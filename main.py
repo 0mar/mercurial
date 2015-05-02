@@ -3,7 +3,7 @@ __author__ = 'omar'
 import argparse
 
 from geometry import *
-from planner import Planner
+from planner import Planner,GraphPlanner
 
 
 # Default parameters
@@ -22,8 +22,9 @@ args = parser.parse_args()
 
 # Initialization
 scene = Scene(size=Size([args.width, args.height]), pedNumber=args.number)
-planner = Planner(scene)
-vis = VisualScene(scene, 1500, 1000,step=planner.update, loop=not args.step)
+planner = GraphPlanner(scene)
+print("hey!")
+vis = VisualScene(scene, 1500, 1000, step=planner.update, loop=not args.step)
 
 # Running
 vis.loop()

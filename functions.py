@@ -9,19 +9,19 @@ EPS = 1e-9
 VERBOSE = False
 
 
-def error(msg):
+def error(msg: str):
     raise RuntimeError("\033[91mError: %s \033[0m" % msg)
 
 
-def warn(msg):
+def warn(msg: str):
     print("\033[93mWarning: %s \033[0m" % msg)
 
 
-def fyi(msg):
+def fyi(msg: str):
     print("\033[92m%s \033[0m" % msg)
 
 
-def debug(msg):
+def debug(msg: str):
     if VERBOSE:
         print(msg)
 
@@ -67,7 +67,7 @@ class Coordinate(object):
 
 # A specification of the coordinate class that represents a size with a width and height
 class Size(Coordinate):
-    def __init__(self,x):
+    def __init__(self, x):
         super().__init__(x)
         self.width = x[0]
         self.height = x[1]
@@ -75,7 +75,7 @@ class Size(Coordinate):
             raise ValueError("Negative size specified")
 
     def internal_random_coordinate(self):
-        return Coordinate(np.array([random.random() * dim for dim in self.array]))
+        return Point(np.array([random.random() * dim for dim in self.array]))
 
 
 # A specification of the coordinate class that represents a point with an x and y component
@@ -109,7 +109,7 @@ class Interval(object):
     def __getitem__(self, item):
         return self.array[item]
 
-    def __contains__(self, item):
+    def __contains__(self, item: float):
         return self.array[0] <= item <= self.array[1]
 
     def __repr__(self):
@@ -120,16 +120,17 @@ class Interval(object):
 class LineSegment(object):
     def __init__(self, coords):
         self.array = np.array(coords)
-        self.length = np.linalg.norm(coords[0] - coords[1])
+        self.length_2 = np.linalg.norm(coords[0] - coords[1])
         self.color = 'blue'
 
+    length = property(lambda s: np.linalg.norm(s[0] - s[1]))
     begin = property(lambda s: s[0])
     end = property(lambda s: s[1])
 
-    def get_point(self, value):
+    def get_point(self, value:float):
         return self.begin + value * (self.end - self.begin)
 
-    def crosses_obstacle(self, obstacle,strict = False):
+    def crosses_obstacle(self, obstacle, strict=False):
         line = np.array([self.begin, self.end])
         obs_matrix = np.array([obstacle.begin.array, obstacle.end.array])
         # Translation to center of object
@@ -146,7 +147,7 @@ class LineSegment(object):
         def path_function(t):  # arguments (begin,end) should be in here too.
             return np.linalg.norm(rot_path[0] + t * (rot_path[1] - rot_path[0]), ord=1)
 
-        t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]),strict=strict)
+        t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]), strict=strict)
         return self.get_point(t) in obstacle
 
     def __getitem__(self, item):
@@ -180,17 +181,18 @@ class Path(object):
         for i in range(len(line_segment_list) - 1):
             self._check_connectivity(line_segment_list[i], line_segment_list[i + 1])
 
-    def _check_connectivity(self, ls1, ls2):
+    @property
+    def length(self):
+        return sum([line.length for line in self.list])
+
+    def _check_connectivity(self, ls1: LineSegment, ls2: LineSegment):
         connected = np.allclose(ls1.end, ls2.begin)
         if not connected:
             raise AssertionError("%s & %s do not connect" % (ls1, ls2))
 
     def __iadd__(self, other):
-        if isinstance(other, Path):
-            if self.list:
-                self._check_connectivity(self.list[-1], other[0])
-        else:
-            raise ValueError("Object joined to Path must be Path, not %s" % other)
+        if self.list:
+            self._check_connectivity(self.list[-1], other[0])
         self.list += other
 
     def __getitem__(self, item):
@@ -200,8 +202,14 @@ class Path(object):
         if isinstance(other, LineSegment):
             if self.list:
                 self._check_connectivity(self.list[-1], other)
+        elif isinstance(other,Point):
+            if not self.list:
+                raise AssertionError("List must have elements before adding Points")
+            print("Last element: %s\n Last point of last element: %s\n"%(self.list[-1],self.list[-1][-1]))
+            new_line_segment = LineSegment([Point(self.list[-1][-1]),other])
+            self.list.append(new_line_segment)
         else:
-            raise ValueError("Object appended to Path must be LineSegment, not %s" % other)
+            raise AttributeError("Object appended to Path must be LineSegment or Point, not %s" % other)
         self.list.append(other)
 
     def pop_next_segment(self):
@@ -216,26 +224,26 @@ class Path(object):
         return "Path:\n%s" % "\n".join([str(ls) for ls in self.list])
 
 
-def rot_mat(angle):
+def rot_mat(angle: float):
     return np.array([[np.sin(angle), np.cos(angle)], [-np.cos(angle), np.sin(angle)]])
 
 
 # Return minimum of convex piecewise linear function. Stops when reached lower bound. High acc.
-def solve_convex_piece_lin_ineq(func, lower_bound, interval, max_iter=10,strict=False):
+def solve_convex_piece_lin_ineq(func, lower_bound: float, interval: Interval, max_iter=10, strict=False):
     (left, right) = (interval.begin, interval.end)
     dx = 0.001
     cmp = np.less_equal
     if strict:
         cmp = np.less
-    if cmp(func(left),lower_bound):
+    if cmp(func(left), lower_bound):
         return interval.begin
-    elif cmp(func(right),lower_bound):
+    elif cmp(func(right), lower_bound):
         return interval.end
     else:
         for counter in range(max_iter):
             mid_point = (left + right) / 2.
             mid_value = func(mid_point)
-            if cmp(mid_value,lower_bound):
+            if cmp(mid_value, lower_bound):
                 return mid_point
             dmid = func(mid_point + dx) - mid_value
             if dmid > 0:

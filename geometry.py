@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import tkinter
+
 from functions import *
 from pedestrian import Pedestrian
-from planner import Planner
+
 
 __author__ = 'omar'
 
 
 class Scene:
-    def __init__(self, size, pedNumber=10, dt=0.05):
+    def __init__(self, size: Size, pedNumber=10, dt=0.05):
         self.size = size
         self.ped_number = pedNumber
         self.dt = dt
@@ -16,13 +17,15 @@ class Scene:
         for boundary in self.__create_boundaries():
             self.obs_list.append(boundary)
             boundary.in_interior = False
-        self.obs_list.append(Obstacle(self.size * [0.5,0.1], self.size * 0.3, "fontein"))
+        # Todo: Load different scene files in
+        self.obs_list.append(Obstacle(self.size * [0.5, 0.1], self.size * 0.3, "fontein"))
         self.obs_list.append(Obstacle(self.size * 0.7, self.size * 0.1, "hotdogstand"))
-        self.obs_list.append(Obstacle(self.size * np.array([0.1,0.65]), self.size * 0.3, "hotdogstand"))
+        self.obs_list.append(Obstacle(self.size * np.array([0.1, 0.65]), self.size * 0.3, "hotdogstand"))
         self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(VisualScene.color_list)) for i in
                          range(pedNumber)]
 
     def __create_boundaries(self):
+        # Todo: Change this to abstractness
         left_wall = Obstacle(Point([0., 0.]), Size([1., self.size.height]), 'left wall')
         right_wall = Obstacle(Point([self.size.width - 1., 0.]), Size([1., self.size.height]), 'right wall')
         top_wall_1 = Obstacle(Point([0., self.size.height - 1]), Size([self.size.width * 0.3 - 1, 1.]), 'top wall_left')
@@ -45,7 +48,7 @@ class Scene:
 
 
 class Obstacle:
-    def __init__(self, begin, size, name, permeable=False):
+    def __init__(self, begin: Point, size:Size, name:str, permeable=False):
         self.begin = begin
         self.size = size
         self.end = self.begin + self.size
@@ -54,11 +57,14 @@ class Obstacle:
         self.color = 'black'
         self.corner_info_list = [(Point(self.begin + Size([x, y]) * self.size), [x, y]) for x in range(2) for y in
                                  range(2)]
-        # todo: revert corner_info_list to corner_list
+        self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
+        # Safety margin for around the obstacle corners.
+        # Todo: Prove that adding a safety margin provides no problem in aggregate objects.
+        self.margin_list = [Point(np.sign([x-0.5, y-0.5])) for x in range(2) for y in range(2)]
         self.in_interior = True
         self.center = self.begin + self.size * 0.5
 
-    def __contains__(self, coord):
+    def __contains__(self, coord:Point):
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
 
     def __getitem__(self, item):
@@ -74,7 +80,7 @@ class Obstacle:
 
 
 class Entrance(Obstacle):
-    def __init__(self, begin, size, name, spawn_rate=0):
+    def __init__(self, begin:Point, size:Size, name:str, spawn_rate=0):
         Obstacle.__init__(self, begin, size, name)
         self.spawn_rate = spawn_rate
         self.color = 'blue'
@@ -86,12 +92,11 @@ class Exit(Obstacle):
         self.color = 'red'
 
 
-
 class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 0], [1, 1], [-1, 1], [-1, 0]])
 
-    def __init__(self, scene, width, height, step,loop):
+    def __init__(self, scene: Scene, width, height, step, loop):
         self.step = step
         self.scene = scene
         self.autoloop = loop
@@ -122,20 +127,22 @@ class VisualScene:
         if self.autoloop:
             self.window.after(20, self.loop)
 
-    def provide_information(self,event):
+    def provide_information(self, event):
         for ped in self.scene.ped_list:
             print(ped)
             print(ped.origin)
 
     def draw_scene(self):
+        #Todo: Change this to loading a bitmap and restart drawing every time
         self.canvas.delete('all')
 
         for obstacle in self.scene.obs_list:
             self.draw_obstacle(obstacle)
         for ped in self.scene.ped_list:
             self.draw_directed_pedestrian(ped)
+            self.draw_path(ped.path)
 
-    def draw_pedestrian(self, ped):
+    def draw_pedestrian(self, ped: Pedestrian):
         rel_pos = ped.position / self.scene.size
         rel_size = ped.size / self.scene.size
 
@@ -143,24 +150,24 @@ class VisualScene:
         x_1 = self.convert_relative_coordinate(rel_pos + rel_size * 0.5)
         self.canvas.create_oval(x_0 + x_1, fill=ped.color)
 
-    def draw_directed_pedestrian(self, ped):
+    def draw_directed_pedestrian(self, ped: Pedestrian):
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
         size = ped.size / self.scene.size * self.size
         angle = ped.velocity.angle
         coords = np.dot(VisualScene.directed_polygon * np.array(size), rot_mat(angle)) + np.array(position)
         self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
 
-    def draw_obstacle(self, obstacle):
+    def draw_obstacle(self, obstacle: Obstacle):
         x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
         x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
         self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
 
-    def draw_line_segment(self, line_segment):
+    def draw_line_segment(self, line_segment: LineSegment):
         x_0 = self.convert_relative_coordinate(line_segment.begin / self.scene.size)
         x_1 = self.convert_relative_coordinate(line_segment.end / self.scene.size)
         self.canvas.create_line(tuple(x_0) + tuple(x_1), fill=line_segment.color)
 
-    def draw_path(self, path):
+    def draw_path(self, path: Path):
         for line_segment in path:
             self.draw_line_segment(line_segment)
 

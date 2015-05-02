@@ -5,7 +5,7 @@ __author__ = 'omar'
 
 
 class Pedestrian(object):
-    def __init__(self, scene, counter, goal, position=Point([0.0, 0.0]), color=None):
+    def __init__(self, scene, counter, goal, position=Point([0,0]), color=None):
         self.scene = scene
         self._position = position
         self.counter = counter
@@ -26,7 +26,7 @@ class Pedestrian(object):
 
     def __str__(self):
         return "Pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self._position, self._velocity.angle/np.pi)
+               (self.counter, self._position, self._velocity.angle / np.pi)
 
     def __repr__(self):
         return "Instance: Pedestrian#%d" % self.counter
@@ -36,14 +36,15 @@ class Pedestrian(object):
         if self.scene.is_accessible(new_position):
             self.position = new_position
 
-    def move_to_position(self, position, dt):
+    def move_to_position(self, position: Point, dt):
         distance = position - self.position
         if np.linalg.norm(distance.array) < self.max_speed * dt:
             if self.scene.is_accessible(position):
                 self.position = position
                 return True
             else:
-                error("Position requested (%s) is not accessible. Check for bugs" % position)
+                warn("%s is directed into stuff"%self)
+                return False
         else:
             self.velocity = Velocity(distance)
             self.update_position(dt)
