@@ -23,7 +23,7 @@ args = parser.parse_args()
 # Initialization
 scene = Scene(size=Size([args.width, args.height]), pedNumber=args.number)
 planner = GraphPlanner(scene)
-print("hey!")
+# Todo: optimize planning preprocessing
 vis = VisualScene(scene, 1500, 1000, step=planner.update, loop=not args.step)
 
 # Running
