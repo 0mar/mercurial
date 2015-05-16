@@ -57,8 +57,7 @@ class Obstacle:
                                  range(2)]
         self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
         # Safety margin for around the obstacle corners.
-        # Todo: Prove that adding a safety margin provides no problem in aggregate objects.
-        self.margin_list = [Point(np.sign([x-0.5, y-0.5])) for x in range(2) for y in range(2)]
+        self.margin_list = [Point(np.sign([x-0.5, y-0.5]))*3 for x in range(2) for y in range(2)]
         self.in_interior = True
         self.center = self.begin + self.size * 0.5
 
@@ -118,7 +117,7 @@ class VisualScene:
         self.window.geometry("%dx%d" % tuple(value))
 
     def advance_simulation(self, event):
-        self.scene.evaluate_pedestrians()
+        #self.scene.evaluate_pedestrians()
         self.step()  # Some functions which should be called on every time step.
         self.draw_scene()
 
@@ -128,14 +127,13 @@ class VisualScene:
             self.window.after(20, self.loop)
 
     def provide_information(self, event):
+        x,y = (event.x/self.size[0],1-event.y/self.size[1])
+        fyi("Mouse location: %s"%Point([x*self.scene.size[0],y*self.scene.size[1]]))
         for ped in self.scene.ped_list:
-            print(ped)
-            print(ped.origin)
+            fyi(str(ped))
+            fyi("Origin: %s"%ped.origin)
 
     def draw_scene(self):
-        # timing results: Deleting 1000 objects: 0.0003 sec
-        #                 Drawing 1000 objects: 0.188 sec
-        # Using a bitmap will not be any faster...
         self.canvas.delete('all')
         for obstacle in self.scene.obs_list:
             self.draw_obstacle(obstacle)

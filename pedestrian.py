@@ -36,6 +36,7 @@ class Pedestrian(object):
         if self.scene.is_accessible(new_position):
             self.position = new_position
 
+    # Todo: Profile the pedestrian methods.
     def move_to_position(self, position: Point, dt):
         distance = position - self.position
         if np.linalg.norm(distance.array) < self.max_speed * dt:

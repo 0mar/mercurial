@@ -143,8 +143,8 @@ class LineSegment(object):
         # Rotating 45 degrees
         rot_path = np.dot(scaled_path, rot_mat(np.pi / 4.) / np.sqrt(2))
         # 1 norm of function
-
-        def path_function(t):  # arguments (begin,end) should be in here too.
+        # todo: arguments (begin,end) should be in here too. method is expensive.
+        def path_function(t):
             return np.linalg.norm(rot_path[0] + t * (rot_path[1] - rot_path[0]), ord=1)
 
         t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]), strict=strict)

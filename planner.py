@@ -2,6 +2,8 @@ __author__ = 'omar'
 
 import networkx as nx
 from geometry import *
+
+
 class Planner:
     on_track = 0
     reached_checkpoint = 1
@@ -69,7 +71,6 @@ class Planner:
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
     def update(self):
-        # Todo: Fix update method. It is broken (causes the jiggling pedestrians)
         for pedestrian in self.scene.ped_list:
             if pedestrian.state == Planner.on_track:
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
@@ -83,6 +84,7 @@ class Planner:
                     pedestrian.state = Planner.other_state
             else:
                 if not pedestrian.is_done():
+                    assert pedestrian.position not in self.scene.exit_obs
                     pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
                     pedestrian.state = Planner.on_track
                 else:
@@ -110,11 +112,10 @@ class GraphPlanner(Planner):
         ped_graph = nx.Graph(self.graph)
         ped_graph.add_node(pedestrian.position)
         self._fill_with_required_edges(pedestrian.position, ped_graph,goal_obstacle)
-        self.draw_graph(ped_graph)
         try:
             path = nx.astar_path(ped_graph, pedestrian.position, goal_obstacle)
         except nx.NetworkXNoPath:
-            raise AssertionError("No path could be found from %s to exit. Check your obstacles"%pedestrian)
+            raise RuntimeError("No path could be found from %s to exit. Check your obstacles"%pedestrian)
         path_to_exit = Path([])
         prev_point = path[0]
         for point in path[1:-1]:
@@ -133,7 +134,7 @@ class GraphPlanner(Planner):
         self.graph = nx.Graph()
         self.graph.add_node(goal_obstacle)
         for obstacle in self.scene.obs_list:
-            if obstacle.in_interior:
+            if obstacle.in_interior and not obstacle.permeable:
                 ordered_list = [corner+margin for corner,margin in zip(obstacle.corner_list,obstacle.margin_list)]
                 ordered_list[2], ordered_list[3] = ordered_list[3], ordered_list[2]
                 for index in range(len(ordered_list)):
