@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import tkinter
-
+import time
 from functions import *
 from pedestrian import Pedestrian
 
@@ -14,29 +14,27 @@ class Scene:
         self.ped_number = pedNumber
         self.dt = dt
         self.obs_list = []
-        for boundary in self.__create_boundaries():
-            self.obs_list.append(boundary)
-            boundary.in_interior = False
         # Todo: Load different scene files in
         self.obs_list.append(Obstacle(self.size * [0.5, 0.1], self.size * 0.3, "fontein"))
         self.obs_list.append(Obstacle(self.size * 0.7, self.size * 0.1, "hotdogstand"))
         self.obs_list.append(Obstacle(self.size * np.array([0.1, 0.65]), self.size * 0.3, "hotdogstand"))
+        self.exit_obs = Exit(Point([self.size.width * 0.3, self.size.height - 1]),
+                             Size([self.size.width * 0.4 - 1, 1.]), 'exit obstacle')
+        self.obs_list.append(self.exit_obs)
         self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(VisualScene.color_list)) for i in
                          range(pedNumber)]
 
-    def __create_boundaries(self):
-        # Todo: Change this to abstractness
-        left_wall = Obstacle(Point([0., 0.]), Size([1., self.size.height]), 'left wall')
-        right_wall = Obstacle(Point([self.size.width - 1., 0.]), Size([1., self.size.height]), 'right wall')
-        top_wall_1 = Obstacle(Point([0., self.size.height - 1]), Size([self.size.width * 0.3 - 1, 1.]), 'top wall_left')
-        top_wall_2 = Obstacle(Point([self.size.width * 0.7, self.size.height - 1]), Size([self.size.width * 0.3, 1.]),
-                              'top wall_right')
-        self.exit_obs = Exit(Point([self.size.width * 0.3, self.size.height - 1]),
-                             Size([self.size.width * 0.4 - 1, 1.]), 'exit obstacle')
-        bottom_wall = Obstacle(Point([0., 0.]), Size([self.size.width, 1.]), 'bottom wall')
-        return [left_wall, right_wall, top_wall_1, top_wall_2, self.exit_obs, bottom_wall]
-
-    def is_accessible(self, coord, at_start=False):
+    def is_accessible(self, coord: Point, at_start=False) -> bool:
+        '''
+        Checking whether the coordinate present is an accessible coordinate on the scene.
+        When evaluated at the start, the exit is not an accessible object. That would be weird. We can eliminate this later though.
+        :param coord: Coordinates to be checked
+        :param at_start: Whether to be evaluated at the start
+        :return: True if accessible, False otherwise.
+        '''
+        within_boundaries = all(np.array([0,0]) < coord.array) and all(coord.array < self.size.array)
+        if not within_boundaries:
+            return False
         if at_start:
             return all([coord not in obstacle for obstacle in self.obs_list])
         else:
@@ -90,6 +88,8 @@ class Exit(Obstacle):
     def __init__(self, begin, size, name):
         Obstacle.__init__(self, begin, size, name, permeable=True)
         self.color = 'red'
+        self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
+        print(self.margin_list)
 
 
 class VisualScene:
@@ -133,22 +133,22 @@ class VisualScene:
             print(ped.origin)
 
     def draw_scene(self):
-        #Todo: Change this to loading a bitmap and restart drawing every time
+        # timing results: Deleting 1000 objects: 0.0003 sec
+        #                 Drawing 1000 objects: 0.188 sec
+        # Using a bitmap will not be any faster...
         self.canvas.delete('all')
-
         for obstacle in self.scene.obs_list:
             self.draw_obstacle(obstacle)
         for ped in self.scene.ped_list:
-            self.draw_directed_pedestrian(ped)
+            self.draw_pedestrian(ped)
             self.draw_path(ped.path)
 
     def draw_pedestrian(self, ped: Pedestrian):
-        rel_pos = ped.position / self.scene.size
-        rel_size = ped.size / self.scene.size
-
-        x_0 = self.convert_relative_coordinate(rel_pos - rel_size * 0.5)
-        x_1 = self.convert_relative_coordinate(rel_pos + rel_size * 0.5)
-        self.canvas.create_oval(x_0 + x_1, fill=ped.color)
+        position = self.convert_relative_coordinate(ped.position / self.scene.size)
+        size = ped.size / self.scene.size * self.size
+        x_0 = position - size*0.5
+        x_1 = position + size*0.5
+        self.canvas.create_oval(x_0[0],x_0[1],x_1[0],x_1[1], fill=ped.color)
 
     def draw_directed_pedestrian(self, ped: Pedestrian):
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
