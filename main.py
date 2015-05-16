@@ -2,8 +2,10 @@ __author__ = 'omar'
 
 import argparse
 
-from geometry import *
-from planner import Planner,GraphPlanner
+from geometry import Size
+from scene import Scene
+from visualise_scene import VisualScene
+from planner import GraphPlanner
 
 
 # Default parameters

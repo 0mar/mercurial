@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+import random
+
 from functions import *
+from geometry import Point, Size, Velocity, Interval
+
 
 __author__ = 'omar'
 
 
 class Pedestrian(object):
-    def __init__(self, scene, counter, goal, position=Point([0,0]), color=None):
+    def __init__(self, scene, counter, goal, position=Point([0, 0]), color=None):
         self.scene = scene
         self._position = position
         self.counter = counter
@@ -44,7 +48,7 @@ class Pedestrian(object):
                 self.position = position
                 return True
             else:
-                warn("%s is directed into stuff"%self)
+                warn("%s is directed into stuff" % self)
                 return False
         else:
             self.velocity = Velocity(distance)

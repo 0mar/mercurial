@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-import tkinter
-import time
+import math
+import random
+
 from functions import *
-from pedestrian import Pedestrian
-import visualise_scene as vis
 
 
 __author__ = 'omar'
+
 
 class Coordinate(object):
     def __init__(self, x):
@@ -43,7 +43,6 @@ class Coordinate(object):
         return np.linalg.norm(self.array) < EPS
 
 
-# A specification of the coordinate class that represents a size with a width and height
 class Size(Coordinate):
     def __init__(self, x):
         super().__init__(x)
@@ -106,8 +105,8 @@ class LineSegment(object):
     end = property(lambda s: s[1])
 
     @staticmethod
-    def path_norm(path,t):
-            return np.linalg.norm(path[0] + t * (path[1] - path[0]), ord=1)
+    def path_norm(path, t):
+        return np.linalg.norm(path[0] + t * (path[1] - path[0]), ord=1)
 
     def get_point(self, value:float):
         return self.begin + value * (self.end - self.begin)
@@ -125,9 +124,8 @@ class LineSegment(object):
         # Rotating 45 degrees
         rot_path = np.dot(scaled_path, rot_mat(np.pi / 4.) / np.sqrt(2))
         # 1 norm of function
-        # todo: arguments (begin,end) should be in here too. method is expensive.
 
-        path_function = lambda x:LineSegment.path_norm(rot_path,x)
+        path_function = lambda x: LineSegment.path_norm(rot_path, x)
         t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]), strict=strict)
         return self.get_point(t) in obstacle
 
@@ -183,11 +181,11 @@ class Path(object):
         if isinstance(other, LineSegment):
             if self.list:
                 self._check_connectivity(self.list[-1], other)
-        elif isinstance(other,Point):
+        elif isinstance(other, Point):
             if not self.list:
                 raise AssertionError("List must have elements before adding Points")
-            print("Last element: %s\n Last point of last element: %s\n"%(self.list[-1],self.list[-1][-1]))
-            new_line_segment = LineSegment([Point(self.list[-1][-1]),other])
+            print("Last element: %s\n Last point of last element: %s\n" % (self.list[-1], self.list[-1][-1]))
+            new_line_segment = LineSegment([Point(self.list[-1][-1]), other])
             self.list.append(new_line_segment)
         else:
             raise AttributeError("Object appended to Path must be LineSegment or Point, not %s" % other)
@@ -203,87 +201,3 @@ class Path(object):
 
     def __str__(self):
         return "Path:\n%s" % "\n".join([str(ls) for ls in self.list])
-
-
-class Scene:
-    def __init__(self, size: Size, pedNumber, dt=0.05):
-        self.size = size
-        self.ped_number = pedNumber
-        self.dt = dt
-        self.obs_list = []
-        # Todo: Load different scene files in with json
-        self.obs_list.append(Obstacle(self.size * [0.5, 0.1], self.size * 0.3, "fontein"))
-        self.obs_list.append(Obstacle(self.size * 0.7, self.size * 0.1, "hotdogstand"))
-        self.obs_list.append(Obstacle(self.size * np.array([0.1, 0.65]), self.size * 0.3, "hotdogstand"))
-        self.exit_obs = Exit(Point([self.size.width * 0.3, self.size.height - 1]),
-                             Size([self.size.width * 0.4 - 1, 1.]), 'exit obstacle')
-        self.obs_list.append(self.exit_obs)
-        self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
-                         range(pedNumber)]
-
-    def is_accessible(self, coord: Point, at_start=False) -> bool:
-        '''
-        Checking whether the coordinate present is an accessible coordinate on the scene.
-        When evaluated at the start, the exit is not an accessible object. That would be weird. We can eliminate this later though.
-        :param coord: Coordinates to be checked
-        :param at_start: Whether to be evaluated at the start
-        :return: True if accessible, False otherwise.
-        '''
-        within_boundaries = all(np.array([0,0]) < coord.array) and all(coord.array < self.size.array)
-        if not within_boundaries:
-            return False
-        if at_start:
-            return all([coord not in obstacle for obstacle in self.obs_list])
-        else:
-            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obs_list])
-
-    def evaluate_pedestrians(self):
-        for pedestrian in self.ped_list:
-            pedestrian.update_position(self.dt)
-
-
-class Obstacle:
-    def __init__(self, begin: Point, size:Size, name:str, permeable=False):
-        self.begin = begin
-        self.size = size
-        self.end = self.begin + self.size
-        self.name = name
-        self.permeable = permeable
-        self.color = 'black'
-        self.corner_info_list = [(Point(self.begin + Size([x, y]) * self.size), [x, y]) for x in range(2) for y in
-                                 range(2)]
-        self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
-        # Safety margin for around the obstacle corners.
-        self.margin_list = [Point(np.sign([x-0.5, y-0.5]))*3 for x in range(2) for y in range(2)]
-        self.in_interior = True
-        self.center = self.begin + self.size * 0.5
-
-    def __contains__(self, coord:Point):
-        return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
-
-    def __getitem__(self, item):
-        return [self.begin, self.end][item]
-
-    def __repr__(self):
-        return "Instance: %s '%s'" % (self.__class__.__name__, self.name)
-
-    def __str__(self):
-        return "Obstacle %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)
-
-        # Pause on wrapping in this method
-
-
-class Entrance(Obstacle):
-    def __init__(self, begin:Point, size:Size, name:str, spawn_rate=0):
-        Obstacle.__init__(self, begin, size, name)
-        self.spawn_rate = spawn_rate
-        self.color = 'blue'
-
-
-class Exit(Obstacle):
-    def __init__(self, begin, size, name):
-        Obstacle.__init__(self, begin, size, name, permeable=True)
-        self.color = 'red'
-        self.in_interior = False
-        self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
-        print(self.margin_list)

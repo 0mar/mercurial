@@ -1,8 +1,6 @@
 __author__ = 'omar'
-from nose import with_setup
 from nose.tools import raises
 
-from functions import *
 from geometry import *
 from pedestrian import Pedestrian
 
@@ -106,12 +104,14 @@ class TestPath:
         path.pop_next_segment()
         assert not bool(path)
 
-from planner import GraphPlanner
-class TestGraphPlanner:
 
+from planner import GraphPlanner
+
+
+class TestGraphPlanner:
     def __init__(self):
         self.scene = Scene(size=Size([250, 150]), pedNumber=1)
-        self.gt = GraphPlanner(self.scene,self.scene.exit_obs)
+        self.gt = GraphPlanner(self.scene, self.scene.exit_obs)
 
     def test_line_segments_cross_no_objects(self):
         pass

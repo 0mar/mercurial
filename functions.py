@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import random
-import math
 
 import numpy as np
 
@@ -29,12 +27,27 @@ def debug(msg: str):
 def empty_method():
     pass
 
+
 def rot_mat(angle: float):
+    """
+    Computes the rotation matrix for the given angle
+    :param angle: rotation angle in radians
+    :return: 2d rotation matrix
+    """
     return np.array([[np.sin(angle), np.cos(angle)], [-np.cos(angle), np.sin(angle)]])
 
 
-# Return minimum of convex piecewise linear function. Stops when reached lower bound. High acc.
-def solve_convex_piece_lin_ineq(func, lower_bound: float, interval: Interval, max_iter=10, strict=False):
+def solve_convex_piece_lin_ineq(func, lower_bound: float, interval, max_iter=10, strict=False):
+    """
+    Solves a convex inequation. Stops when lower bound is reached and return argument.
+    Inequation is solved by a simple iterative binary solver.
+    :param func: function to be solved. In general, only piecewise linear functions are used
+    :param lower_bound: lower bound for the function
+    :param interval: interval to evaluate the function on.
+    :param max_iter: maximum number of iterations to make
+    :param strict: whether to evaluate a strict inequation
+    :return: value for with the ineqality holds. This should be checked though, because of finite precision
+    """
     (left, right) = (interval.begin, interval.end)
     dx = 0.001
 

@@ -1,6 +1,11 @@
 __author__ = 'omar'
-from geometry import *
 
+import tkinter
+
+from functions import *
+from geometry import Point, Size, LineSegment, Path
+from pedestrian import Pedestrian
+from scene import Obstacle, Scene
 
 
 class VisualScene:
@@ -29,7 +34,7 @@ class VisualScene:
         self.window.geometry("%dx%d" % tuple(value))
 
     def advance_simulation(self, event):
-        #self.scene.evaluate_pedestrians()
+        # self.scene.evaluate_pedestrians()
         self.step()  # Some functions which should be called on every time step.
         self.draw_scene()
 
@@ -39,11 +44,11 @@ class VisualScene:
             self.window.after(1, self.loop)
 
     def provide_information(self, event):
-        x,y = (event.x/self.size[0],1-event.y/self.size[1])
-        fyi("Mouse location: %s"%Point([x*self.scene.size[0],y*self.scene.size[1]]))
+        x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
+        fyi("Mouse location: %s" % Point([x * self.scene.size[0], y * self.scene.size[1]]))
         for ped in self.scene.ped_list:
             fyi(str(ped))
-            fyi("Origin: %s"%ped.origin)
+            fyi("Origin: %s" % ped.origin)
 
     def draw_scene(self):
         self.canvas.delete('all')
@@ -55,9 +60,9 @@ class VisualScene:
     def draw_pedestrian(self, ped: Pedestrian):
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
         size = ped.size / self.scene.size * self.size
-        x_0 = position - size*0.5
-        x_1 = position + size*0.5
-        self.canvas.create_oval(x_0[0],x_0[1],x_1[0],x_1[1], fill=ped.color)
+        x_0 = position - size * 0.5
+        x_1 = position + size * 0.5
+        self.canvas.create_oval(x_0[0], x_0[1], x_1[0], x_1[1], fill=ped.color)
 
     def draw_directed_pedestrian(self, ped: Pedestrian):
         position = self.convert_relative_coordinate(ped.position / self.scene.size)

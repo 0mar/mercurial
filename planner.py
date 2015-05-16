@@ -1,7 +1,12 @@
 __author__ = 'omar'
 
 import networkx as nx
-from geometry import *
+import numpy as np
+
+from functions import *
+from geometry import LineSegment, Path, Point, Coordinate, Interval
+from pedestrian import Pedestrian
+from scene import Obstacle
 
 
 class Planner:
@@ -96,7 +101,6 @@ class Planner:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
 
 
-
 class GraphPlanner(Planner):
     def __init__(self, scene):
         fyi("Graph planner implementation")
@@ -104,47 +108,47 @@ class GraphPlanner(Planner):
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
         for pedestrian in scene.ped_list:
-            pedestrian.path = self.create_path(pedestrian,self.scene.exit_obs)
+            pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.state = Planner.on_track
 
-    def create_path(self, pedestrian: Pedestrian,goal_obstacle) -> Path:
+    def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)
         ped_graph.add_node(pedestrian.position)
-        self._fill_with_required_edges(pedestrian.position, ped_graph,goal_obstacle)
+        self._fill_with_required_edges(pedestrian.position, ped_graph, goal_obstacle)
         try:
             path = nx.astar_path(ped_graph, pedestrian.position, goal_obstacle)
         except nx.NetworkXNoPath:
-            raise RuntimeError("No path could be found from %s to exit. Check your obstacles"%pedestrian)
+            raise RuntimeError("No path could be found from %s to exit. Check your obstacles" % pedestrian)
         path_to_exit = Path([])
         prev_point = path[0]
         for point in path[1:-1]:
-            line = LineSegment([prev_point,point])
+            line = LineSegment([prev_point, point])
             path_to_exit.append(line)
             prev_point = point
         else:
-            finish_point = Planner.get_goal(prev_point,goal_obstacle)
-            line_to_finish = LineSegment([prev_point,finish_point])
+            finish_point = Planner.get_goal(prev_point, goal_obstacle)
+            line_to_finish = LineSegment([prev_point, finish_point])
             assert self.line_crosses_no_obstacles(line_to_finish)
             path_to_exit.append(line_to_finish)
         # print ("Path: %s\nPath obj %s"%(path,path_to_exit))
         return path_to_exit
 
-    def _create_obstacle_graph(self,goal_obstacle):
+    def _create_obstacle_graph(self, goal_obstacle):
         self.graph = nx.Graph()
         self.graph.add_node(goal_obstacle)
         for obstacle in self.scene.obs_list:
             if obstacle.in_interior and not obstacle.permeable:
-                ordered_list = [corner+margin for corner,margin in zip(obstacle.corner_list,obstacle.margin_list)]
+                ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
                 ordered_list[2], ordered_list[3] = ordered_list[3], ordered_list[2]
                 for index in range(len(ordered_list)):
-                    distance = LineSegment([ordered_list[index - 1],ordered_list[index]]).length
-                    self.graph.add_edge(u=ordered_list[index - 1], v=ordered_list[index],weight = distance)
+                    distance = LineSegment([ordered_list[index - 1], ordered_list[index]]).length
+                    self.graph.add_edge(u=ordered_list[index - 1], v=ordered_list[index], weight=distance)
         for node in self.graph.nodes():
             if node is not goal_obstacle:
-                self._fill_with_required_edges(node, self.graph,goal_obstacle)
+                self._fill_with_required_edges(node, self.graph, goal_obstacle)
 
-    def _fill_with_required_edges(self, node: Point, graph,goal_obstacle):
+    def _fill_with_required_edges(self, node: Point, graph, goal_obstacle):
         goal_point = Planner.get_goal(node, goal_obstacle)
         line_to_goal = LineSegment([node, goal_point])
         path_free = True
@@ -179,7 +183,7 @@ class GraphPlanner(Planner):
         nx.draw_networkx_nodes(graph, pos)
         nx.draw_networkx_edges(graph, pos)
 
-    def line_crosses_no_obstacles(self,line: LineSegment) -> bool:
+    def line_crosses_no_obstacles(self, line: LineSegment) -> bool:
         for obstacle in self.scene.obs_list:
             if obstacle.in_interior and line.crosses_obstacle(obstacle, strict=True):
                 return False
