@@ -3,25 +3,222 @@ import tkinter
 import time
 from functions import *
 from pedestrian import Pedestrian
+import visualise_scene as vis
 
 
 __author__ = 'omar'
 
+class Coordinate(object):
+    def __init__(self, x):
+        self.array = np.array(x)
+        self.type = self.__class__.__name__
+
+    angle = property(lambda s: math.atan2(s[1], s[0]))
+
+    def __len__(self):
+        return len(self.array)
+
+    def __iter__(self):
+        return iter(self.array)
+
+    def __getitem__(self, i):
+        return self.array[i]
+
+    def __add__(self, other):
+        return Point(self.array + other.array)
+
+    def __sub__(self, other):
+        return Point(self.array - other.array)
+
+    def __mul__(self, other):
+        return Point(self.array * other)
+
+    def __truediv__(self, other):
+        return Point(self.array / other.array)
+
+    def __repr__(self):
+        return "%s(%s)" % (self.type, ", ".join("%.2f" % f for f in self.array))
+
+    def is_zero(self):
+        return np.linalg.norm(self.array) < EPS
+
+
+# A specification of the coordinate class that represents a size with a width and height
+class Size(Coordinate):
+    def __init__(self, x):
+        super().__init__(x)
+        self.width = x[0]
+        self.height = x[1]
+        if self.width < 0 or self.height < 0:
+            raise ValueError("Negative size specified")
+
+    def internal_random_coordinate(self):
+        return Point(np.array([random.random() * dim for dim in self.array]))
+
+
+# A specification of the coordinate class that represents a point with an x and y component
+class Point(Coordinate):
+    x = property(lambda s: s[0])
+    y = property(lambda s: s[1])
+
+
+class Velocity(Coordinate):
+    x = property(lambda s: s[0])
+    y = property(lambda s: s[1])
+
+    def rescale(self, max_speed=5.):
+        if not self.is_zero():
+            self.array *= max_speed / np.linalg.norm(self.array)
+
+
+class Interval(object):
+    def __init__(self, coords):
+        self.array = np.array(coords)
+        self.length = coords[1] - coords[0]
+        if self.length < 0:
+            raise ValueError("Interval start larger than interval end")
+
+    def random(self):
+        return np.random.random() * self.length + self.array[0]
+
+    begin = property(lambda s: s[0])
+    end = property(lambda s: s[1])
+
+    def __getitem__(self, item):
+        return self.array[item]
+
+    def __contains__(self, item: float):
+        return self.array[0] <= item <= self.array[1]
+
+    def __repr__(self):
+        return "Interval %s" % self.array
+
+
+# Moeten ook naar Points ipv arrays toe
+class LineSegment(object):
+    def __init__(self, coords):
+        self.array = np.array(coords)
+        self.length_2 = np.linalg.norm(coords[0] - coords[1])
+        self.color = 'blue'
+
+    length = property(lambda s: np.linalg.norm(s[0] - s[1]))
+    begin = property(lambda s: s[0])
+    end = property(lambda s: s[1])
+
+    @staticmethod
+    def path_norm(path,t):
+            return np.linalg.norm(path[0] + t * (path[1] - path[0]), ord=1)
+
+    def get_point(self, value:float):
+        return self.begin + value * (self.end - self.begin)
+
+    def crosses_obstacle(self, obstacle, strict=False):
+        line = np.array([self.begin, self.end])
+        obs_matrix = np.array([obstacle.begin.array, obstacle.end.array])
+        # Translation to center of object
+        midpoint = np.mean(obs_matrix, axis=0)
+        translated_line = line - midpoint
+        # Scaling with size of object
+        size = np.dot(np.array([-1, 1]), obs_matrix)  # self.end - self.begin
+        scale = 2 / size
+        scaled_path = translated_line * scale
+        # Rotating 45 degrees
+        rot_path = np.dot(scaled_path, rot_mat(np.pi / 4.) / np.sqrt(2))
+        # 1 norm of function
+        # todo: arguments (begin,end) should be in here too. method is expensive.
+
+        path_function = lambda x:LineSegment.path_norm(rot_path,x)
+        t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]), strict=strict)
+        return self.get_point(t) in obstacle
+
+    def __getitem__(self, item):
+        return self.array[item]
+
+    def __add__(self, other):
+        return LineSegment(self.array + other.array)
+
+    def __sub__(self, other):
+        return LineSegment(self.array - other.array)
+
+    def __mul__(self, other):
+        return LineSegment(self.array * other)
+
+    def __truediv__(self, other):
+        return LineSegment(self.array / other)
+
+    def __lt__(self, other):
+        if not type(self) == type(other):
+            raise AttributeError("Paths must be compared to other Paths")
+        return self.length < other.length
+
+    def __repr__(self):
+        return "LineSegment from %s to %s" % (Point(self.begin), Point(self.end))
+
+
+# Wrapper around list of line segments
+class Path(object):
+    def __init__(self, line_segment_list):
+        self.list = line_segment_list
+        for i in range(len(line_segment_list) - 1):
+            self._check_connectivity(line_segment_list[i], line_segment_list[i + 1])
+
+    @property
+    def length(self):
+        return sum([line.length for line in self.list])
+
+    def _check_connectivity(self, ls1: LineSegment, ls2: LineSegment):
+        connected = np.allclose(ls1.end, ls2.begin)
+        if not connected:
+            raise AssertionError("%s & %s do not connect" % (ls1, ls2))
+
+    def __iadd__(self, other):
+        if self.list:
+            self._check_connectivity(self.list[-1], other[0])
+        self.list += other
+
+    def __getitem__(self, item):
+        return self.list[item]
+
+    def append(self, other):
+        if isinstance(other, LineSegment):
+            if self.list:
+                self._check_connectivity(self.list[-1], other)
+        elif isinstance(other,Point):
+            if not self.list:
+                raise AssertionError("List must have elements before adding Points")
+            print("Last element: %s\n Last point of last element: %s\n"%(self.list[-1],self.list[-1][-1]))
+            new_line_segment = LineSegment([Point(self.list[-1][-1]),other])
+            self.list.append(new_line_segment)
+        else:
+            raise AttributeError("Object appended to Path must be LineSegment or Point, not %s" % other)
+        self.list.append(other)
+
+    def pop_next_segment(self):
+        return self.list.pop(0)
+
+    def __bool__(self):
+        return bool(self.list)
+
+    __nonzero__ = __bool__
+
+    def __str__(self):
+        return "Path:\n%s" % "\n".join([str(ls) for ls in self.list])
+
 
 class Scene:
-    def __init__(self, size: Size, pedNumber=10, dt=0.05):
+    def __init__(self, size: Size, pedNumber, dt=0.05):
         self.size = size
         self.ped_number = pedNumber
         self.dt = dt
         self.obs_list = []
-        # Todo: Load different scene files in
+        # Todo: Load different scene files in with json
         self.obs_list.append(Obstacle(self.size * [0.5, 0.1], self.size * 0.3, "fontein"))
         self.obs_list.append(Obstacle(self.size * 0.7, self.size * 0.1, "hotdogstand"))
         self.obs_list.append(Obstacle(self.size * np.array([0.1, 0.65]), self.size * 0.3, "hotdogstand"))
         self.exit_obs = Exit(Point([self.size.width * 0.3, self.size.height - 1]),
                              Size([self.size.width * 0.4 - 1, 1.]), 'exit obstacle')
         self.obs_list.append(self.exit_obs)
-        self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(VisualScene.color_list)) for i in
+        self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
                          range(pedNumber)]
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
@@ -87,87 +284,6 @@ class Exit(Obstacle):
     def __init__(self, begin, size, name):
         Obstacle.__init__(self, begin, size, name, permeable=True)
         self.color = 'red'
+        self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
         print(self.margin_list)
-
-
-class VisualScene:
-    color_list = ["yellow", "green", "cyan", "magenta"]
-    directed_polygon = np.array([[0, -1], [1, 0], [1, 1], [-1, 1], [-1, 0]])
-
-    def __init__(self, scene: Scene, width, height, step, loop):
-        self.step = step
-        self.scene = scene
-        self.autoloop = loop
-        self.window = tkinter.Tk()
-        self.window.title("Prototype Crowd Simulation")
-        self.window.geometry("%dx%d" % (width, height))
-        self.window.bind("<Button-3>", self.provide_information)
-        if not self.autoloop:
-            self.window.bind("<Button-1>", self.advance_simulation)
-        self.canvas = tkinter.Canvas(self.window)
-        self.canvas.pack(fill=tkinter.BOTH, expand=1)
-
-    @property
-    def size(self):
-        return Size([self.canvas.winfo_width(), self.canvas.winfo_height()])
-
-    @size.setter
-    def width(self, value):
-        self.window.geometry("%dx%d" % tuple(value))
-
-    def advance_simulation(self, event):
-        #self.scene.evaluate_pedestrians()
-        self.step()  # Some functions which should be called on every time step.
-        self.draw_scene()
-
-    def loop(self):
-        self.advance_simulation(None)
-        if self.autoloop:
-            self.window.after(20, self.loop)
-
-    def provide_information(self, event):
-        x,y = (event.x/self.size[0],1-event.y/self.size[1])
-        fyi("Mouse location: %s"%Point([x*self.scene.size[0],y*self.scene.size[1]]))
-        for ped in self.scene.ped_list:
-            fyi(str(ped))
-            fyi("Origin: %s"%ped.origin)
-
-    def draw_scene(self):
-        self.canvas.delete('all')
-        for obstacle in self.scene.obs_list:
-            self.draw_obstacle(obstacle)
-        for ped in self.scene.ped_list:
-            self.draw_pedestrian(ped)
-            self.draw_path(ped.path)
-
-    def draw_pedestrian(self, ped: Pedestrian):
-        position = self.convert_relative_coordinate(ped.position / self.scene.size)
-        size = ped.size / self.scene.size * self.size
-        x_0 = position - size*0.5
-        x_1 = position + size*0.5
-        self.canvas.create_oval(x_0[0],x_0[1],x_1[0],x_1[1], fill=ped.color)
-
-    def draw_directed_pedestrian(self, ped: Pedestrian):
-        position = self.convert_relative_coordinate(ped.position / self.scene.size)
-        size = ped.size / self.scene.size * self.size
-        angle = ped.velocity.angle
-        coords = np.dot(VisualScene.directed_polygon * np.array(size), rot_mat(angle)) + np.array(position)
-        self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
-
-    def draw_obstacle(self, obstacle: Obstacle):
-        x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
-        x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
-        self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
-
-    def draw_line_segment(self, line_segment: LineSegment):
-        x_0 = self.convert_relative_coordinate(line_segment.begin / self.scene.size)
-        x_1 = self.convert_relative_coordinate(line_segment.end / self.scene.size)
-        self.canvas.create_line(tuple(x_0) + tuple(x_1), fill=line_segment.color)
-
-    def draw_path(self, path: Path):
-        for line_segment in path:
-            self.draw_line_segment(line_segment)
-
-    def convert_relative_coordinate(self, coord):
-        return Size([coord[0], 1 - coord[1]]) * self.size

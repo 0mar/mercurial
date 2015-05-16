@@ -7,7 +7,7 @@ from planner import Planner,GraphPlanner
 
 
 # Default parameters
-number_of_pedestrians = 1000
+number_of_pedestrians = 100
 domain_width = 250
 domain_height = 150
 
