@@ -9,5 +9,13 @@ then
 	mkdir $prof_dir
 	echo "Created directory 'profiling'"
 fi
+echo "Name for profiling result file?"
+read file_name
+if [ -z "$file_name" ]
+then
+	file_name=profile-$(date +%d-%m_%H:%M)
+fi
+echo "Profiling results stored in '$file_name'"
+
 echo -e "Executing profiling of 'python3 $@'.\nResults are stored and can be viewed directly with './view_profile.sh'"
-python3 -m cProfile -o $prof_dir/profile-$(date +%d-%m_%H:%M).pstats "$@"
+python3 -m cProfile -o $prof_dir/$file_name".pstats" "$@"
