@@ -3,7 +3,7 @@ __author__ = 'omar'
 import argparse
 
 from geometry import Size
-from scene import Scene
+import scene
 from visualise_scene import VisualScene
 from planner import GraphPlanner
 
@@ -23,7 +23,7 @@ parser.add_argument('-y', '--height', type=int, help='Height of the simulation d
 args = parser.parse_args()
 
 # Initialization
-scene = Scene(size=Size([args.width, args.height]), pedNumber=args.number)
+scene = scene.Scene(size=Size([args.width, args.height]), pedNumber=args.number)
 planner = GraphPlanner(scene)
 # Todo: optimize planning preprocessing
 vis = VisualScene(scene, 1500, 1000, step=planner.update, loop=not args.step)

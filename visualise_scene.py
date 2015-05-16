@@ -5,14 +5,14 @@ import tkinter
 from functions import *
 from geometry import Point, Size, LineSegment, Path
 from pedestrian import Pedestrian
-from scene import Obstacle, Scene
+import scene
 
 
 class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 0], [1, 1], [-1, 1], [-1, 0]])
 
-    def __init__(self, scene: Scene, width, height, step, loop):
+    def __init__(self, scene, width, height, step, loop):
         self.step = step
         self.scene = scene
         self.autoloop = loop
@@ -41,7 +41,7 @@ class VisualScene:
     def loop(self):
         self.advance_simulation(None)
         if self.autoloop:
-            self.window.after(1, self.loop)
+            self.window.after(20, self.loop)
 
     def provide_information(self, event):
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
@@ -71,7 +71,7 @@ class VisualScene:
         coords = np.dot(VisualScene.directed_polygon * np.array(size), rot_mat(angle)) + np.array(position)
         self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
 
-    def draw_obstacle(self, obstacle: Obstacle):
+    def draw_obstacle(self, obstacle):
         x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
         x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
         self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
