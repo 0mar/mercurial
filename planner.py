@@ -94,7 +94,7 @@ class Planner:
                     pedestrian.state = Planner.on_track
                 else:
                     self.scene.ped_list.remove(pedestrian)
-                    fyi("%s has left the building" % pedestrian)
+                    # fyi("%s has left the building" % pedestrian)
 
     def plandemo(self):
         for pedestrian in self.scene.ped_list:
@@ -140,8 +140,9 @@ class GraphPlanner(Planner):
         for obstacle in self.scene.obs_list:
             if obstacle.in_interior and not obstacle.permeable:
                 ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
-                for index in range(len(ordered_list)):
-                    self.graph.add_node(ordered_list[index])
+                for point in ordered_list:
+                    if all(point.array < self.scene.size.array):
+                        self.graph.add_node(point)
         for node in self.graph.nodes():
             if node is not goal_obstacle:
                 self._fill_with_required_edges(node, self.graph, goal_obstacle)

@@ -59,7 +59,7 @@ class VisualScene:
         """
         self._advance_simulation(None)
         if self.autoloop:
-            self.window.after(20, self.loop)
+            self.window.after(1, self.loop)
 
     def _provide_information(self, event):
         """

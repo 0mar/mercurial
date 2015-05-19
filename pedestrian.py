@@ -37,20 +37,20 @@ class Pedestrian(object):
 
     def update_position(self, dt):
         new_position = self._position + self._velocity * dt
-        if self.scene.is_accessible(new_position):
-            self.position = new_position
+        # if self.scene.is_accessible(new_position): # We can only remove this because of the graph planner.
+        self.position = new_position
 
     def move_to_position(self, position: Point, dt):
         distance = position - self.position
         if np.linalg.norm(distance.array) < self.max_speed * dt:
-            if self.scene.is_accessible(position):
-                self.position = position
-                return True
+            if self.scene.is_accessible(position): # Might be moved, but is barely called.
+               self.position = position
+               return True
             else:
                 warn("%s is directed into stuff" % self)
                 return False
         else:
-            self.velocity = Velocity(distance)
+            self.velocity = Velocity(distance) # Consumes 5/26 of move_to_position time
             self.update_position(dt)
             return False
 
