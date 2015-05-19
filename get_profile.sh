@@ -15,7 +15,7 @@ if [ -z "$file_name" ]
 then
 	file_name=profile-$(date +%d-%m_%H:%M)
 fi
-echo "Profiling results stored in '$file_name'"
+echo "Profiling results stored in '$file_name.pstats'"
 
 echo -e "Executing profiling of 'python3 $@'.\nResults are stored and can be viewed directly with './view_profile.sh'"
 python3 -m cProfile -o $prof_dir/$file_name".pstats" "$@"

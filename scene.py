@@ -12,7 +12,7 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-    def __init__(self, size: Size, pedNumber, dt=0.05):
+    def __init__(self, size: Size, pedNumber, obstacle_file,dt=0.05):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -24,15 +24,31 @@ class Scene:
         self.ped_number = pedNumber
         self.dt = dt
         self.obs_list = []
-        # Todo: Load different scene files in with json
-        self.obs_list.append(Obstacle(self.size * [0.5, 0.1], self.size * 0.3, "fontein"))
-        self.obs_list.append(Obstacle(self.size * 0.7, self.size * 0.1, "hotdogstand"))
-        self.obs_list.append(Obstacle(self.size * np.array([0.1, 0.65]), self.size * 0.3, "hotdogstand"))
-        self.exit_obs = Exit(Point([self.size.width * 0.3, self.size.height - 1]),
-                             Size([self.size.width * 0.4 - 1, 1.]), 'exit obstacle')
-        self.obs_list.append(self.exit_obs)
+        self._read_json_file(file_name=obstacle_file)
         self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
                          range(pedNumber)]
+
+    def _read_json_file(self,file_name):
+        import json
+        with open(file_name,'r') as json_file:
+            data = json.loads(json_file.read())
+        for obstacle_data in data["obstacles"]:
+            begin = Point(self.size*obstacle_data['begin'])
+            size = Size(self.size*obstacle_data['size'])
+            name = obstacle_data["name"]
+            self.obs_list.append(Obstacle(begin,size,name))
+        for exit_data in data['exits']:
+            begin = Point(self.size*exit_data['begin'])
+            size = self.size.array*np.array(exit_data['size'])
+            name = exit_data["name"]
+
+            for dim in range(2):
+                if size[dim] == 0.:
+                    size[dim] = 1.
+
+            self.exit_obs = Exit(begin,Size(size),name)
+            self.obs_list.append(self.exit_obs)
+
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
