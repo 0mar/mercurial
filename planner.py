@@ -81,12 +81,19 @@ class Planner:
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 if checkpoint_reached:
                     pedestrian.state = Planner.reached_checkpoint
+                    pedestrian.velocity = None
             elif pedestrian.state == Planner.reached_checkpoint:
                 if pedestrian.path:
                     pedestrian.line = pedestrian.path.pop_next_segment()
                     pedestrian.state = Planner.on_track
+                    pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 else:
+                    if pedestrian.is_done():
+                        self.scene.ped_list.remove(pedestrian)
+                        continue
+                    warn("Other-state detected for %s. Might be harmless, might be..."%pedestrian)
                     pedestrian.state = Planner.other_state
+                    pedestrian.velocity = None
             else:
                 if not pedestrian.is_done():
                     assert pedestrian.position not in self.scene.exit_obs

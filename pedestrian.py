@@ -16,8 +16,7 @@ class Pedestrian(object):
         self.size = Size(np.array([1.0, 1.0]))
         self.color = color
         self.max_speed = Interval([3, 10]).random()
-        self._velocity = Velocity([random.random() - 0.5, random.random() - 0.5])  # dangerous
-        self._velocity.rescale(self.max_speed)
+        self._velocity = None
         self.goal = goal
         self.radius = 10
         while self._position.is_zero():
@@ -29,8 +28,12 @@ class Pedestrian(object):
         self.origin = self.position
 
     def __str__(self):
-        return "Pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
+        if self._velocity:
+            return "Moving Pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
                (self.counter, self._position, self._velocity.angle / np.pi)
+        else:
+            return "Tired  Pedestrian %d\tPosition: %s" % \
+               (self.counter, self._position)
 
     def __repr__(self):
         return "Instance: Pedestrian#%d" % self.counter
@@ -42,15 +45,16 @@ class Pedestrian(object):
 
     def move_to_position(self, position: Point, dt):
         distance = position - self.position
-        if np.linalg.norm(distance.array) < self.max_speed * dt:
-            if self.scene.is_accessible(position): # Might be moved, but is barely called.
+        if np.linalg.norm(distance.array) < self.max_speed * dt: # should be enough to avoid small numerical error
+            if self.scene.is_accessible(position): # Might be removed, but is barely called.
                self.position = position
                return True
             else:
                 warn("%s is directed into stuff" % self)
                 return False
         else:
-            self.velocity = Velocity(distance) # Consumes 5/26 of move_to_position time
+            if not self.velocity:
+                self.velocity = Velocity(distance) # Consumes 6/19 of move_to_position time
             self.update_position(dt)
             return False
 
@@ -61,7 +65,8 @@ class Pedestrian(object):
     @velocity.setter
     def velocity(self, value):
         self._velocity = value
-        self._velocity.rescale(self.max_speed)
+        if value:
+            self._velocity.rescale(self.max_speed)
 
     @property
     def position(self):

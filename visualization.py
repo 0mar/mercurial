@@ -140,6 +140,7 @@ class VisualScene:
     def convert_relative_coordinate(self, coord):
         """
         Converts relative coordinates (from [0,1]x[0,1]) to screen size coordinates.
+        Should raise an error when coordinates fall from scene, but method is so frequently used I'd rather not
         Also changes the orientation to a Carthesian coordinate system
         :param coord: coordinates (fractions to be converted)
         :return: a Size with the coordinates of screen
