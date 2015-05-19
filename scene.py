@@ -12,23 +12,32 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-    def __init__(self, size: Size, pedNumber, obstacle_file,dt=0.05):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file,dt=0.05):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
-        :param pedNumber: Number of pedestrians on initialization in the scene
+        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param obstacle_file: name of the file containing the obstacles.
         :param dt: update time step
         :return: scene instance.
         """
         self.size = size
-        self.ped_number = pedNumber
+        self.ped_number = pedestrian_number
         self.dt = dt
         self.obs_list = []
         self._read_json_file(file_name=obstacle_file)
         self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
-                         range(pedNumber)]
+                         range(pedestrian_number)]
 
-    def _read_json_file(self,file_name):
+    def _read_json_file(self,file_name: str):
+        """
+        Reads in a JSON file and stores the obstacle data in the scene.
+        The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
+        Every key must have a list of instances, each having a 'name', a 'begin' and a 'size'.
+        Note that sizes are fractions of the scene size. A size of 0 is converted to 1 pixel.
+        :param file_name: String leading to the JSON file
+        :return: None
+        """
         import json
         with open(file_name,'r') as json_file:
             data = json.loads(json_file.read())
@@ -131,4 +140,3 @@ class Exit(Obstacle):
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
-        print(self.margin_list)

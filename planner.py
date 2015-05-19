@@ -140,10 +140,8 @@ class GraphPlanner(Planner):
         for obstacle in self.scene.obs_list:
             if obstacle.in_interior and not obstacle.permeable:
                 ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
-                ordered_list[2], ordered_list[3] = ordered_list[3], ordered_list[2]
                 for index in range(len(ordered_list)):
-                    distance = LineSegment([ordered_list[index - 1], ordered_list[index]]).length
-                    self.graph.add_edge(u=ordered_list[index - 1], v=ordered_list[index], weight=distance)
+                    self.graph.add_node(ordered_list[index])
         for node in self.graph.nodes():
             if node is not goal_obstacle:
                 self._fill_with_required_edges(node, self.graph, goal_obstacle)

@@ -25,7 +25,7 @@ parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containin
 args = parser.parse_args()
 
 # Initialization
-scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,pedNumber=args.number)
+scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,pedestrian_number=args.number)
 planner = GraphPlanner(scene)
 vis = VisualScene(scene, 1500, 1000, step=planner.update, loop=not args.step)
 
