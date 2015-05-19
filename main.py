@@ -4,7 +4,7 @@ import argparse
 
 from geometry import Size
 import scene
-from visualise_scene import VisualScene
+from visualization import VisualScene
 from planner import GraphPlanner
 
 

@@ -5,7 +5,7 @@ import random
 from functions import *
 from pedestrian import Pedestrian
 from geometry import Point, Size
-import visualise_scene as vis
+import visualization as vis
 
 
 class Scene:
