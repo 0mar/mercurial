@@ -3,12 +3,12 @@ from nose.tools import raises
 
 from geometry import *
 from pedestrian import Pedestrian
-
+from scene import *
 
 class TestPedestrian:
     def __init__(self):
         print("Initializing the class")
-        self.scene = Scene(size=Size([250, 150]), pedNumber=1000)
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000,obstacle_file='demo_obstacle_list.json')
 
     def setup(self):
         print("Supposed to happen for each class")
@@ -17,13 +17,13 @@ class TestPedestrian:
         ped_list = []
         for i in range(1000):
             ped_list.append(Pedestrian(self.scene, 1, self.scene.obs_list[-1]))
-        assert [ped.position.array < self.scene.size.array for ped in ped_list].all()
+        assert all([all(ped.position.array < self.scene.size.array) for ped in ped_list])
 
     def test_pedestrian_location_not_in_obstacle(self):
         ped_list = []
         for i in range(1000):
             ped_list.append(Pedestrian(self.scene, 1, self.scene.obs_list[-1]))
-        assert [ped not in obstacle for obstacle in self.scene.obs_list for ped in ped_list].all()
+        assert all([ped.position not in obstacle for obstacle in self.scene.obs_list for ped in ped_list])
 
 
 class TestLineSegment:
@@ -110,8 +110,8 @@ from planner import GraphPlanner
 
 class TestGraphPlanner:
     def __init__(self):
-        self.scene = Scene(size=Size([250, 150]), pedNumber=1)
-        self.gt = GraphPlanner(self.scene, self.scene.exit_obs)
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1,obstacle_file='demo_obstacle_list.json')
+        self.gt = GraphPlanner(self.scene)
 
     def test_line_segments_cross_no_objects(self):
         pass
