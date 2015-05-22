@@ -27,7 +27,7 @@ args = parser.parse_args()
 # Initialization
 scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,pedestrian_number=args.number)
 planner = GraphPlanner(scene)
-vis = VisualScene(scene, 1500, 1000, step=planner.update, loop=not args.step)
+vis = VisualScene(scene, 1500, 1000, step=planner.collective_update, loop=not args.step)
 
 # Running
 vis.loop()

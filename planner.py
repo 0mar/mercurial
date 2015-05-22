@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 
 from functions import *
-from geometry import LineSegment, Path, Point, Coordinate, Interval
+from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
 from pedestrian import Pedestrian
 from scene import Obstacle
 
@@ -19,7 +19,7 @@ class Planner:
         for pedestrian in self.scene.ped_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
-            pedestrian.state = Planner.on_track
+            pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         path_to_exit = Path([])
@@ -76,6 +76,7 @@ class Planner:
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
     def update(self):
+        self.scene.evaluate_pedestrian()
         for pedestrian in self.scene.ped_list:
             if pedestrian.state == Planner.on_track:
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
@@ -87,9 +88,10 @@ class Planner:
                     pedestrian.line = pedestrian.path.pop_next_segment()
                     pedestrian.state = Planner.on_track
                     pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
+                    pedestrian.get_update()
                 else:
                     if pedestrian.is_done():
-                        self.scene.ped_list.remove(pedestrian)
+                        pedestrian.state = Planner.other_state
                         continue
                     warn("Other-state detected for %s. Might be harmless, might be..."%pedestrian)
                     pedestrian.state = Planner.other_state
@@ -100,8 +102,27 @@ class Planner:
                     pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
                     pedestrian.state = Planner.on_track
                 else:
-                    self.scene.ped_list.remove(pedestrian)
+                    self.scene.remove_pedestrian(pedestrian)
+                    # I put this statement here to keep the scene method clear of Planner dependencies.
+                    # It gives the empty pedestrian the ignore flag.
+                    self.scene.ped_list[pedestrian.counter].state = Planner.other_state
                     # fyi("%s has left the building" % pedestrian)
+
+    def collective_update(self):
+        self.scene.move_pedestrians()
+        for pedestrian in self.scene.ped_list:
+            if pedestrian.is_alive:
+                # assert self.scene.is_accessible(pedestrian.position)
+                checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
+                if checkpoint_reached:
+                    done = pedestrian.is_done()
+                    if done:
+                        self.scene.remove_pedestrian(pedestrian)
+                    else:
+                        pedestrian.line = pedestrian.path.pop_next_segment()
+                        pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+                else:
+                    pass
 
     def plandemo(self):
         for pedestrian in self.scene.ped_list:
@@ -117,7 +138,7 @@ class GraphPlanner(Planner):
         for pedestrian in scene.ped_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
-            pedestrian.state = Planner.on_track
+            pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)
@@ -136,7 +157,7 @@ class GraphPlanner(Planner):
         else:
             finish_point = Planner.get_goal(prev_point, goal_obstacle)
             line_to_finish = LineSegment([prev_point, finish_point])
-            assert self.line_crosses_no_obstacles(line_to_finish)
+            # assert self.line_crosses_no_obstacles(line_to_finish)
             path_to_exit.append(line_to_finish)
         # print ("Path: %s\nPath obj %s"%(path,path_to_exit))
         return path_to_exit

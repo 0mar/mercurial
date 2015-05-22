@@ -26,46 +26,49 @@ class Pedestrian(object):
         :return: Pedestrian instance
         """
         self.scene = scene
-        self._position = position
         self.counter = counter
+        self._position = self._velocity = None
+        self.position = position
         self.size = Size(np.array([1.0, 1.0]))
         self.color = color
         self.max_speed = Interval([3, 10]).random()
-        self._velocity = None
         self.goal = goal
-        self.radius = 10
-        while self._position.is_zero():
+        self.is_alive = True
+        while self.position.is_zero() and type(self)==Pedestrian:
             new_position = scene.size.internal_random_coordinate()
             if scene.is_accessible(new_position, at_start=True):
-                self._position = new_position
-        if not scene.is_accessible(self.position):
+                self.position = new_position
+        if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
 
     def __str__(self):
         if self._velocity:
             return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self._position, self._velocity.angle / np.pi)
+               (self.counter, self.position, self._velocity.angle / np.pi)
         else:
             return "Standing pedestrian %d\tPosition: %s" % \
-               (self.counter, self._position)
+               (self.counter, self.position)
 
     def __repr__(self):
         return "Instance: Pedestrian#%d" % self.counter
 
-    def update_position(self, dt):
-        """
-        Direct updating of the pedestrian position by moving to x+v*dt
-        Could be made private, but that depends on the planner implementation.
-        Currently, it is not checked whether the position is available, e.g. free from obstacles
-        or other pedestrians. This is because we use a path that does not lead into other obstacles,
-        and other pedestrians are ignored. If we implement the fluid model, we should perform a check on this
-        :param dt: Time step
-        :return: None
-        """
-        new_position = self._position + self._velocity * dt
-        # if self.scene.is_accessible(new_position): # We can only remove this because of the graph planner.
-        self.position = new_position
+    # def update_position(self, dt):
+    #     """
+    #     Direct updating of the pedestrian position by moving to x+v*dt
+    #     Could be made private, but that depends on the planner implementation.
+    #     Currently, it is not checked whether the position is available, e.g. free from obstacles
+    #     or other pedestrians. This is because we use a path that does not lead into other obstacles,
+    #     and other pedestrians are ignored. If we implement the fluid model, we should perform a check on this
+    #     :param dt: Time step
+    #     :return: None
+    #     """
+    #     new_position = self._position + self._velocity * dt
+    #     # if self.scene.is_accessible(new_position): # We can only remove this because of the graph planner.
+    #     self.position = new_position
+
+    def manual_update(self,velocity_array,dt):
+        self.position = Point(velocity_array*dt)
 
     def move_to_position(self, position: Point, dt):
         """
@@ -86,13 +89,11 @@ class Pedestrian(object):
                 warn("%s is directed into stuff" % self)
                 return False
         else:
-            if not self.velocity:
-                self.velocity = Velocity(distance) # Consumes 6/19 of move_to_position time
-            self.update_position(dt)
             return False
 
     @property
     def velocity(self):
+        # return Velocity(self.scene.velocity_array[self.counter])
         return self._velocity
 
     @velocity.setter
@@ -106,14 +107,23 @@ class Pedestrian(object):
         self._velocity = value
         if value:
             self._velocity.rescale(self.max_speed)
+            self.scene.velocity_array[self.counter] = self._velocity.array
+
 
     @property
     def position(self):
-        return self._position
+        # Todo: Profile wrapper methods
+        if all(self.scene.position_array[self.counter] == self._position.array):
+            return self._position
+        else:
+            self._position.array = self.scene.position_array[self.counter]
+            return self._position
+
 
     @position.setter
     def position(self, point):
         self._position = point
+        self.scene.position_array[self.counter] = point.array
 
     def is_done(self):
         """
@@ -128,3 +138,18 @@ class Pedestrian(object):
             return True
         else:
             return False
+
+class EmptyPedestrian(Pedestrian):
+    def __init__(self,scene,counter):
+        super(EmptyPedestrian,self).__init__(scene = scene,counter = counter,goal = None)
+        self.is_alive = False
+
+    def is_done(self):
+        return True
+
+    def __repr__(self):
+        return "PedestrianPlaceholder%d"%self.counter
+
+    def update_position(self, dt):
+        pass
+

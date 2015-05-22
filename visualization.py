@@ -82,8 +82,23 @@ class VisualScene:
         self.canvas.delete('all')
         for obstacle in self.scene.obs_list:
             self.draw_obstacle(obstacle)
+        self.draw_pedestrians()
+
+    def draw_pedestrians(self):
+        start_pos_array,end_pos_array = self.get_visual_pedestrian_coordinates()
         for ped in self.scene.ped_list:
-            self.draw_pedestrian(ped)
+            if ped.is_alive:
+                self.canvas.create_oval(start_pos_array[ped.counter,0],start_pos_array[ped.counter,1],
+                                        end_pos_array[ped.counter,0],end_pos_array[ped.counter,1],
+                                        fill=ped.color)
+
+    def get_visual_pedestrian_coordinates(self):
+        rel_pos_array = self.scene.position_array/self.scene.size.array
+        rel_size_array = np.ones([self.scene.ped_number,2])/self.scene.size.array*self.size.array # Todo: Replace numbers by pedestrian size
+        vis_pos_array = np.asarray([rel_pos_array[:,0],1- rel_pos_array[:,1]]).T * self.size.array #Todo: Quickest?
+        start_pos_array = vis_pos_array - 0.5*rel_size_array
+        end_pos_array = vis_pos_array + 0.5*rel_size_array
+        return start_pos_array,end_pos_array
 
     def draw_pedestrian(self, ped: Pedestrian):
         """
