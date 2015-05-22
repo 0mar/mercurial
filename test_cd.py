@@ -14,16 +14,16 @@ class TestPedestrian:
         print("Supposed to happen for each class")
 
     def test_pedestrian_location_within_domain(self):
-        ped_list = []
+        pedestrian_list = []
         for i in range(1000):
-            ped_list.append(Pedestrian(self.scene, 1, self.scene.obs_list[-1]))
-        assert all([all(ped.position.array < self.scene.size.array) for ped in ped_list])
+            pedestrian_list.append(Pedestrian(self.scene, 1, self.scene.obstacle_list[-1]))
+        assert all([all(ped.position.array < self.scene.size.array) for ped in pedestrian_list])
 
     def test_pedestrian_location_not_in_obstacle(self):
-        ped_list = []
+        pedestrian_list = []
         for i in range(1000):
-            ped_list.append(Pedestrian(self.scene, 1, self.scene.obs_list[-1]))
-        assert all([ped.position not in obstacle for obstacle in self.scene.obs_list for ped in ped_list])
+            pedestrian_list.append(Pedestrian(self.scene, 1, self.scene.obstacle_list[-1]))
+        assert all([ped.position not in obstacle for obstacle in self.scene.obstacle_list for ped in pedestrian_list])
 
 
 class TestLineSegment:

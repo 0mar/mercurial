@@ -69,7 +69,7 @@ class VisualScene:
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         fyi("Mouse location: %s" % Point([x * self.scene.size[0], y * self.scene.size[1]]))
-        for ped in self.scene.ped_list:
+        for ped in self.scene.pedestrian_list:
             fyi(str(ped))
             fyi("Origin: %s" % ped.origin)
 
@@ -80,13 +80,13 @@ class VisualScene:
         :return: None
         """
         self.canvas.delete('all')
-        for obstacle in self.scene.obs_list:
+        for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()
 
     def draw_pedestrians(self):
         start_pos_array,end_pos_array = self.get_visual_pedestrian_coordinates()
-        for ped in self.scene.ped_list:
+        for ped in self.scene.pedestrian_list:
             if ped.is_alive:
                 self.canvas.create_oval(start_pos_array[ped.counter,0],start_pos_array[ped.counter,1],
                                         end_pos_array[ped.counter,0],end_pos_array[ped.counter,1],
@@ -94,7 +94,7 @@ class VisualScene:
 
     def get_visual_pedestrian_coordinates(self):
         rel_pos_array = self.scene.position_array/self.scene.size.array
-        rel_size_array = np.ones([self.scene.ped_number,2])/self.scene.size.array*self.size.array # Todo: Replace numbers by pedestrian size
+        rel_size_array = np.ones([self.scene.pedestrian_number,2])/self.scene.size.array*self.size.array # Todo: Replace numbers by pedestrian size
         vis_pos_array = np.asarray([rel_pos_array[:,0],1- rel_pos_array[:,1]]).T * self.size.array #Todo: Quickest?
         start_pos_array = vis_pos_array - 0.5*rel_size_array
         end_pos_array = vis_pos_array + 0.5*rel_size_array

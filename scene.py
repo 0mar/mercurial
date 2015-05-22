@@ -22,13 +22,13 @@ class Scene:
         :return: scene instance.
         """
         self.size = size
-        self.ped_number = pedestrian_number
+        self.pedestrian_number = pedestrian_number
         self.dt = dt
-        self.obs_list = []
+        self.obstacle_list = []
         self._read_json_file(file_name=obstacle_file)
-        self.position_array = np.zeros([self.ped_number,2])
-        self.velocity_array = np.zeros([self.ped_number,2])
-        self.ped_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
+        self.position_array = np.zeros([self.pedestrian_number,2])
+        self.velocity_array = np.zeros([self.pedestrian_number,2])
+        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
                          range(pedestrian_number)]
 
 
@@ -48,7 +48,7 @@ class Scene:
             begin = Point(self.size*obstacle_data['begin'])
             size = Size(self.size*obstacle_data['size'])
             name = obstacle_data["name"]
-            self.obs_list.append(Obstacle(begin,size,name))
+            self.obstacle_list.append(Obstacle(begin,size,name))
         for exit_data in data['exits']:
             begin = Point(self.size*exit_data['begin'])
             size = self.size.array*np.array(exit_data['size'])
@@ -59,17 +59,17 @@ class Scene:
                     size[dim] = 1.
 
             self.exit_obs = Exit(begin,Size(size),name)
-            self.obs_list.append(self.exit_obs)
+            self.obstacle_list.append(self.exit_obs)
 
     # def _update_pedestrian_values(self,counter):
-    #     self.position_array[counter] = self.ped_list[counter].position.array
-    #     self.velocity_array[counter] = self.ped_list[counter].velocity.array
+    #     self.position_array[counter] = self.pedestrian_list[counter].position.array
+    #     self.velocity_array[counter] = self.pedestrian_list[counter].velocity.array
 
     def remove_pedestrian(self,pedestrian):
         # assert pedestrian.is_done()
         counter = pedestrian.counter
         emptyPed = EmptyPedestrian(self,counter)
-        self.ped_list[counter] = emptyPed
+        self.pedestrian_list[counter] = emptyPed
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
@@ -83,22 +83,12 @@ class Scene:
         if not within_boundaries:
             return False
         if at_start:
-            return all([coord not in obstacle for obstacle in self.obs_list])
+            return all([coord not in obstacle for obstacle in self.obstacle_list])
         else:
-            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obs_list])
+            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_list])
 
     def move_pedestrians(self):
         self.position_array += self.velocity_array*self.dt
-
-
-class PartialScene:
-
-    def __init__(self,orientation,parent):
-        self.orientation = orientation
-        self.parent = parent
-        self.obstacle_list = []
-        self.pedestrian_list = []
-
 
 
 class Obstacle:

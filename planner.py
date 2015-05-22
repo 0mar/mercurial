@@ -16,10 +16,10 @@ class Planner:
 
     def __init__(self, scene):
         self.scene = scene
-        for pedestrian in self.scene.ped_list:
+        for pedestrian in self.scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
-            pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+            #pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         path_to_exit = Path([])
@@ -29,7 +29,7 @@ class Planner:
             line_to_goal = LineSegment([sub_start, goal])
             angle_to_goal = (goal - sub_start).angle
             colliding_obstacles = []
-            for obstacle in self.scene.obs_list:
+            for obstacle in self.scene.obstacle_list:
                 if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle):
                     colliding_obstacles.append(obstacle)
             if colliding_obstacles:
@@ -75,42 +75,9 @@ class Planner:
         obstacle_repulsion = np.sign(np.array(corner_points[best_direction][1]) - 0.5)
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
-    def update(self):
-        self.scene.evaluate_pedestrian()
-        for pedestrian in self.scene.ped_list:
-            if pedestrian.state == Planner.on_track:
-                checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
-                if checkpoint_reached:
-                    pedestrian.state = Planner.reached_checkpoint
-                    pedestrian.velocity = None
-            elif pedestrian.state == Planner.reached_checkpoint:
-                if pedestrian.path:
-                    pedestrian.line = pedestrian.path.pop_next_segment()
-                    pedestrian.state = Planner.on_track
-                    pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
-                    pedestrian.get_update()
-                else:
-                    if pedestrian.is_done():
-                        pedestrian.state = Planner.other_state
-                        continue
-                    warn("Other-state detected for %s. Might be harmless, might be..."%pedestrian)
-                    pedestrian.state = Planner.other_state
-                    pedestrian.velocity = None
-            else:
-                if not pedestrian.is_done():
-                    assert pedestrian.position not in self.scene.exit_obs
-                    pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
-                    pedestrian.state = Planner.on_track
-                else:
-                    self.scene.remove_pedestrian(pedestrian)
-                    # I put this statement here to keep the scene method clear of Planner dependencies.
-                    # It gives the empty pedestrian the ignore flag.
-                    self.scene.ped_list[pedestrian.counter].state = Planner.other_state
-                    # fyi("%s has left the building" % pedestrian)
-
     def collective_update(self):
         self.scene.move_pedestrians()
-        for pedestrian in self.scene.ped_list:
+        for pedestrian in self.scene.pedestrian_list:
             if pedestrian.is_alive:
                 # assert self.scene.is_accessible(pedestrian.position)
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
@@ -124,18 +91,13 @@ class Planner:
                 else:
                     pass
 
-    def plandemo(self):
-        for pedestrian in self.scene.ped_list:
-            pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
-
-
 class GraphPlanner(Planner):
     def __init__(self, scene):
         fyi("Graph planner implementation")
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
-        for pedestrian in scene.ped_list:
+        for pedestrian in scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
@@ -165,7 +127,7 @@ class GraphPlanner(Planner):
     def _create_obstacle_graph(self, goal_obstacle):
         self.graph = nx.Graph()
         self.graph.add_node(goal_obstacle)
-        for obstacle in self.scene.obs_list:
+        for obstacle in self.scene.obstacle_list:
             if obstacle.in_interior and not obstacle.permeable:
                 ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
                 for point in ordered_list:
@@ -179,7 +141,7 @@ class GraphPlanner(Planner):
         goal_point = Planner.get_goal(node, goal_obstacle)
         line_to_goal = LineSegment([node, goal_point])
         path_free = True
-        for obstacle in self.scene.obs_list:
+        for obstacle in self.scene.obstacle_list:
             if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle, strict=True):
                 path_free = False
                 break
@@ -189,7 +151,7 @@ class GraphPlanner(Planner):
             if (other_node is not node) and (other_node is not goal_obstacle):
                 path = LineSegment([node, other_node])
                 path_free = True
-                for obstacle in self.scene.obs_list:
+                for obstacle in self.scene.obstacle_list:
                     if obstacle.in_interior and path.crosses_obstacle(obstacle, strict=True):
                         path_free = False
                         break
@@ -211,7 +173,7 @@ class GraphPlanner(Planner):
         nx.draw_networkx_edges(graph, pos)
 
     def line_crosses_no_obstacles(self, line: LineSegment) -> bool:
-        for obstacle in self.scene.obs_list:
+        for obstacle in self.scene.obstacle_list:
             if obstacle.in_interior and line.crosses_obstacle(obstacle, strict=True):
                 return False
         return True
