@@ -2,16 +2,17 @@ __author__ = 'omar'
 from nose.tools import raises
 
 from geometry import *
-from pedestrian import Pedestrian
 from scene import *
+
 
 class TestPedestrian:
     def __init__(self):
         print("Initializing the class")
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000,obstacle_file='demo_obstacle_list.json')
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000, obstacle_file='demo_obstacle_list.json')
 
     def setup(self):
-        print("Supposed to happen for each class")
+        # print("Supposed to happen for each class")
+        pass
 
     def test_pedestrian_location_within_domain(self):
         pedestrian_list = []
@@ -110,14 +111,16 @@ from planner import GraphPlanner
 
 class TestGraphPlanner:
     def __init__(self):
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1,obstacle_file='demo_obstacle_list.json')
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=10, obstacle_file='demo_obstacle_list.json')
         self.gt = GraphPlanner(self.scene)
 
-    def test_line_segments_cross_no_objects(self):
-        pass
+    def test_path_cross_no_obstacles(self):
+        ped = self.scene.pedestrian_list[0]
+        for obstacle in self.scene.obstacle_list:
+            for line_segment in ped.path:
+                assert not line_segment.crosses_obstacle(obstacle)
 
-    def test_path_crosses_no_obstacles(self):
-        pass
 
     def test_path_from_pedestrian_to_finish(self):
-        pass
+        ped = self.scene.pedestrian_list[0]
+        assert ped.path[-1].end in ped.goal

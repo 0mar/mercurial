@@ -46,7 +46,7 @@ def solve_convex_piece_lin_ineq(func, lower_bound: float, interval, max_iter=10,
     :param interval: interval to evaluate the function on.
     :param max_iter: maximum number of iterations to make
     :param strict: whether to evaluate a strict inequation
-    :return: value for with the ineqality holds. This should be checked though, because of finite precision
+    :return: value for with the inequality holds. This should be checked though, because of finite precision
     """
     (left, right) = (interval.begin, interval.end)
     dx = 0.001

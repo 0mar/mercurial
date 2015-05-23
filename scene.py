@@ -3,7 +3,7 @@ __author__ = 'omar'
 import random
 
 from functions import *
-from pedestrian import Pedestrian,EmptyPedestrian
+from pedestrian import Pedestrian, EmptyPedestrian
 from geometry import Point, Size
 import visualization as vis
 
@@ -12,7 +12,8 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-    def __init__(self, size: Size, pedestrian_number, obstacle_file,dt=0.05):
+
+    def __init__(self, size: Size, pedestrian_number, obstacle_file, dt=0.05):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -26,13 +27,14 @@ class Scene:
         self.dt = dt
         self.obstacle_list = []
         self._read_json_file(file_name=obstacle_file)
-        self.position_array = np.zeros([self.pedestrian_number,2])
-        self.velocity_array = np.zeros([self.pedestrian_number,2])
-        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for i in
-                         range(pedestrian_number)]
+        self.position_array = np.zeros([self.pedestrian_number, 2])
+        self.velocity_array = np.zeros([self.pedestrian_number, 2])
+        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for
+                                i in
+                                range(pedestrian_number)]
 
 
-    def _read_json_file(self,file_name: str):
+    def _read_json_file(self, file_name: str):
         """
         Reads in a JSON file and stores the obstacle data in the scene.
         The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
@@ -42,33 +44,37 @@ class Scene:
         :return: None
         """
         import json
-        with open(file_name,'r') as json_file:
+
+        with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
         for obstacle_data in data["obstacles"]:
-            begin = Point(self.size*obstacle_data['begin'])
-            size = Size(self.size*obstacle_data['size'])
+            begin = Point(self.size * obstacle_data['begin'])
+            size = Size(self.size * obstacle_data['size'])
             name = obstacle_data["name"]
-            self.obstacle_list.append(Obstacle(begin,size,name))
+            self.obstacle_list.append(Obstacle(begin, size, name))
         for exit_data in data['exits']:
-            begin = Point(self.size*exit_data['begin'])
-            size = self.size.array*np.array(exit_data['size'])
+            begin = Point(self.size * exit_data['begin'])
+            size = self.size.array * np.array(exit_data['size'])
             name = exit_data["name"]
 
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
 
-            self.exit_obs = Exit(begin,Size(size),name)
+            self.exit_obs = Exit(begin, Size(size), name)
             self.obstacle_list.append(self.exit_obs)
 
-    # def _update_pedestrian_values(self,counter):
-    #     self.position_array[counter] = self.pedestrian_list[counter].position.array
-    #     self.velocity_array[counter] = self.pedestrian_list[counter].velocity.array
-
-    def remove_pedestrian(self,pedestrian):
+    def remove_pedestrian(self, pedestrian):
+        """
+        Removes a pedestrian from the scene by replacing it with an empty pedestrian
+        The replace is required so that the indexing is not disturbed.
+        :param pedestrian: The pedestrian instance to be removed.
+        :return: None
+        """
         # assert pedestrian.is_done()
+        assert self.pedestrian_list[pedestrian.counter] == pedestrian
         counter = pedestrian.counter
-        emptyPed = EmptyPedestrian(self,counter)
+        emptyPed = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = emptyPed
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
@@ -88,7 +94,13 @@ class Scene:
             return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_list])
 
     def move_pedestrians(self):
-        self.position_array += self.velocity_array*self.dt
+        """
+        Performs a vectorized move of all the pedestrians.
+        Assumes that all the velocities have been set accordingly.
+        :return: None
+        """
+
+        self.position_array += self.velocity_array * self.dt
 
 
 class Obstacle:
@@ -96,6 +108,7 @@ class Obstacle:
     Models an rectangular obstacle within the domain. The obstacle has a starting point, a size,
     and a permeability factor.
     """
+
     def __init__(self, begin: Point, size:Size, name:str, permeable=False):
         """
         Constructor for the obstacle.
@@ -136,6 +149,7 @@ class Entrance(Obstacle):
     """
     Not yet implemented
     """
+
     def __init__(self, begin:Point, size:Size, name:str, spawn_rate=0):
         Obstacle.__init__(self, begin, size, name)
         self.spawn_rate = spawn_rate
@@ -146,8 +160,9 @@ class Exit(Obstacle):
     """
     Model an exit obstacle. This is, unlike other obstacles, permeable and has no dodge margin.
     """
+
     def __init__(self, begin, size, name):
-        super(Exit,self).__init__( begin, size, name, permeable=True)
+        super(Exit, self).__init__(begin, size, name, permeable=True)
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]

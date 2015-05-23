@@ -9,7 +9,15 @@ __author__ = 'omar'
 
 
 class Coordinate(object):
+    """
+    Class that models a coordinate in Carthesian space.
+    Used as a base class for points, velocities and sizes.
+    """
+
     def __init__(self, x):
+        """
+        :param x: iterable of coordinates. Requires a list of length 2.
+        """
         self.array = np.array(x)
         self.type = self.__class__.__name__
 
@@ -44,6 +52,10 @@ class Coordinate(object):
 
 
 class Size(Coordinate):
+    """
+    Class that models a size. Sizes are an extension of coordinates that cannot be negative.
+    """
+
     def __init__(self, x):
         super().__init__(x)
         self.width = x[0]
@@ -55,13 +67,18 @@ class Size(Coordinate):
         return Point(np.array([random.random() * dim for dim in self.array]))
 
 
-# A specification of the coordinate class that represents a point with an x and y component
 class Point(Coordinate):
+    """
+    Class that models a point within a plane.
+    """
     x = property(lambda s: s[0])
     y = property(lambda s: s[1])
 
 
 class Velocity(Coordinate):
+    """
+    Class that models a velocity in the plane.
+    """
     x = property(lambda s: s[0])
     y = property(lambda s: s[1])
 
@@ -112,6 +129,15 @@ class LineSegment(object):
         return self.begin + value * (self.end - self.begin)
 
     def crosses_obstacle(self, obstacle, strict=False):
+        """
+        Checks whether the line crosses the rectangular obstacle.
+        Currently done quite inefficiently, even if I say so myself.
+        Very precise though.
+        :param obstacle: The rectangular obstacle to be checked
+        :param strict: Whether the line passes only through the obstacle (strict = True)
+         or also through the boundary (strict = False)
+        :return: True if line crosses obstacle, false otherwise
+        """
         line = np.array([self.begin, self.end])
         obs_matrix = np.array([obstacle.begin.array, obstacle.end.array])
         # Translation to center of object

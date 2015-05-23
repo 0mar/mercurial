@@ -5,7 +5,6 @@ import tkinter
 from functions import *
 from geometry import Point, Size, LineSegment, Path
 from pedestrian import Pedestrian
-import scene
 
 
 class VisualScene:
@@ -85,24 +84,35 @@ class VisualScene:
         self.draw_pedestrians()
 
     def draw_pedestrians(self):
-        start_pos_array,end_pos_array = self.get_visual_pedestrian_coordinates()
+        """
+        Draws all the pedestrians in the scene using the visual_pedestrian coordinates.
+        :return: None
+        """
+        start_pos_array, end_pos_array = self.get_visual_pedestrian_coordinates()
         for ped in self.scene.pedestrian_list:
             if ped.is_alive:
-                self.canvas.create_oval(start_pos_array[ped.counter,0],start_pos_array[ped.counter,1],
-                                        end_pos_array[ped.counter,0],end_pos_array[ped.counter,1],
+                self.canvas.create_oval(start_pos_array[ped.counter, 0], start_pos_array[ped.counter, 1],
+                                        end_pos_array[ped.counter, 0], end_pos_array[ped.counter, 1],
                                         fill=ped.color)
 
     def get_visual_pedestrian_coordinates(self):
-        rel_pos_array = self.scene.position_array/self.scene.size.array
-        rel_size_array = np.ones([self.scene.pedestrian_number,2])/self.scene.size.array*self.size.array # Todo: Replace numbers by pedestrian size
-        vis_pos_array = np.asarray([rel_pos_array[:,0],1- rel_pos_array[:,1]]).T * self.size.array #Todo: Quickest?
-        start_pos_array = vis_pos_array - 0.5*rel_size_array
-        end_pos_array = vis_pos_array + 0.5*rel_size_array
-        return start_pos_array,end_pos_array
+        """
+        Computes the coordinates of all pedestrian relative to the visualization.
+        Uses vectorized operations for speed increments
+        :return: relative start coordinates, relative end coordinates.
+        """
+        rel_pos_array = self.scene.position_array / self.scene.size.array
+        rel_size_array = np.ones([self.scene.pedestrian_number,
+                                  2]) / self.scene.size.array * self.size.array  # Todo: Replace numbers by pedestrian size
+        vis_pos_array = np.asarray(
+            [rel_pos_array[:, 0], 1 - rel_pos_array[:, 1]]).T * self.size.array  # Todo: Quickest?
+        start_pos_array = vis_pos_array - 0.5 * rel_size_array
+        end_pos_array = vis_pos_array + 0.5 * rel_size_array
+        return start_pos_array, end_pos_array
 
     def draw_pedestrian(self, ped: Pedestrian):
         """
-        Draws a pedestrian on its relative location in the window as a circle.
+        Draws a single pedestrian on its relative location in the window as a circle.
         :param ped: pedestrian which is represented on screen
         """
         position = self.convert_relative_coordinate(ped.position / self.scene.size)

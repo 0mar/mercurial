@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import random
 
 from functions import *
-from geometry import Point, Size, Velocity, Interval
+from geometry import Point, Size, Interval
 
 
 __author__ = 'omar'
@@ -14,6 +13,7 @@ class Pedestrian(object):
     this class also contains agent properties like planned path, (NYI:) goal, social forces,
     and maximum speed.
     """
+
     def __init__(self, scene, counter, goal, position=Point([0, 0]), color=None):
         """
         Initializes the pedestrian
@@ -34,7 +34,7 @@ class Pedestrian(object):
         self.max_speed = Interval([3, 10]).random()
         self.goal = goal
         self.is_alive = True
-        while self.position.is_zero() and type(self)==Pedestrian:
+        while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.internal_random_coordinate()
             if scene.is_accessible(new_position, at_start=True):
                 self.position = new_position
@@ -45,17 +45,17 @@ class Pedestrian(object):
     def __str__(self):
         if self._velocity:
             return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self.position, self._velocity.angle / np.pi)
+                   (self.counter, self.position, self._velocity.angle / np.pi)
         else:
             return "Standing pedestrian %d\tPosition: %s" % \
-               (self.counter, self.position)
+                   (self.counter, self.position)
 
     def __repr__(self):
         return "Instance: Pedestrian#%d" % self.counter
 
     # def update_position(self, dt):
-    #     """
-    #     Direct updating of the pedestrian position by moving to x+v*dt
+    # """
+    # Direct updating of the pedestrian position by moving to x+v*dt
     #     Could be made private, but that depends on the planner implementation.
     #     Currently, it is not checked whether the position is available, e.g. free from obstacles
     #     or other pedestrians. This is because we use a path that does not lead into other obstacles,
@@ -67,8 +67,8 @@ class Pedestrian(object):
     #     # if self.scene.is_accessible(new_position): # We can only remove this because of the graph planner.
     #     self.position = new_position
 
-    def manual_update(self,velocity_array,dt):
-        self.position = Point(velocity_array*dt)
+    def manual_update(self, velocity_array, dt):
+        self.position = Point(velocity_array * dt)
 
     def move_to_position(self, position: Point, dt):
         """
@@ -81,10 +81,10 @@ class Pedestrian(object):
         :return: True when position is attained, false otherwise
         """
         distance = position - self.position
-        if np.linalg.norm(distance.array) < self.max_speed * dt: # should be enough to avoid small numerical error
-            if self.scene.is_accessible(position): # Might be removed, but is barely called.
-               self.position = position
-               return True
+        if np.linalg.norm(distance.array) < self.max_speed * dt:  # should be enough to avoid small numerical error
+            if self.scene.is_accessible(position):  # Might be removed, but is barely called.
+                self.position = position
+                return True
             else:
                 warn("%s is directed into stuff" % self)
                 return False
@@ -139,16 +139,17 @@ class Pedestrian(object):
         else:
             return False
 
+
 class EmptyPedestrian(Pedestrian):
-    def __init__(self,scene,counter):
-        super(EmptyPedestrian,self).__init__(scene = scene,counter = counter,goal = None)
+    def __init__(self, scene, counter):
+        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None)
         self.is_alive = False
 
     def is_done(self):
         return True
 
     def __repr__(self):
-        return "PedestrianPlaceholder%d"%self.counter
+        return "PedestrianPlaceholder%d" % self.counter
 
     def update_position(self, dt):
         pass

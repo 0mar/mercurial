@@ -1,7 +1,6 @@
 __author__ = 'omar'
 
 import networkx as nx
-import numpy as np
 
 from functions import *
 from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
@@ -19,7 +18,7 @@ class Planner:
         for pedestrian in self.scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
-            #pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+            # pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         path_to_exit = Path([])
@@ -90,6 +89,7 @@ class Planner:
                         pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
                 else:
                     pass
+
 
 class GraphPlanner(Planner):
     def __init__(self, scene):
