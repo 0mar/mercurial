@@ -41,6 +41,7 @@ class Pedestrian(object):
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
+        self.scene.position_array[self.counter] = self._position.array
 
     def __str__(self):
         if self._velocity:
@@ -53,22 +54,17 @@ class Pedestrian(object):
     def __repr__(self):
         return "Instance: Pedestrian#%d" % self.counter
 
-    # def update_position(self, dt):
-    # """
-    # Direct updating of the pedestrian position by moving to x+v*dt
-    #     Could be made private, but that depends on the planner implementation.
-    #     Currently, it is not checked whether the position is available, e.g. free from obstacles
-    #     or other pedestrians. This is because we use a path that does not lead into other obstacles,
-    #     and other pedestrians are ignored. If we implement the fluid model, we should perform a check on this
-    #     :param dt: Time step
-    #     :return: None
-    #     """
-    #     new_position = self._position + self._velocity * dt
-    #     # if self.scene.is_accessible(new_position): # We can only remove this because of the graph planner.
-    #     self.position = new_position
+    def update_position(self):
+        new_point = Point(self.scene.position_array[self.counter])
+        if self.scene.is_accessible(new_point):
+            self._position = new_point
 
-    def manual_update(self, velocity_array, dt):
-        self.position = Point(velocity_array * dt)
+    def manual_move(self, position):
+        if self.scene.is_accessible(position):
+            self.position = position
+            self.scene.position_array[self.counter] = self.position.array
+            return True
+        return False
 
     def move_to_position(self, position: Point, dt):
         """
@@ -82,12 +78,8 @@ class Pedestrian(object):
         """
         distance = position - self.position
         if np.linalg.norm(distance.array) < self.max_speed * dt:  # should be enough to avoid small numerical error
-            if self.scene.is_accessible(position):  # Might be removed, but is barely called.
-                self.position = position
-                return True
-            else:
-                warn("%s is directed into stuff" % self)
-                return False
+            moved_to_position = self.manual_move(position)
+            return moved_to_position
         else:
             return False
 
@@ -109,21 +101,13 @@ class Pedestrian(object):
             self._velocity.rescale(self.max_speed)
             self.scene.velocity_array[self.counter] = self._velocity.array
 
-
     @property
     def position(self):
-        # Todo: Profile wrapper methods
-        if all(self.scene.position_array[self.counter] == self._position.array):
-            return self._position
-        else:
-            self._position.array = self.scene.position_array[self.counter]
-            return self._position
-
+        return self._position
 
     @position.setter
     def position(self, point):
         self._position = point
-        self.scene.position_array[self.counter] = point.array
 
     def is_done(self):
         """

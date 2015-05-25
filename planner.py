@@ -78,6 +78,7 @@ class Planner:
         self.scene.move_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
             if pedestrian.is_alive:
+                pedestrian.update_position()
                 # assert self.scene.is_accessible(pedestrian.position)
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 if checkpoint_reached:
