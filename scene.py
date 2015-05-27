@@ -29,40 +29,15 @@ class Scene:
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.velocity_array = np.zeros([self.pedestrian_number, 2])
-        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for
-                                i in
-                                range(pedestrian_number)]
+        self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.cell_dict = {}
         self.number_of_cells = (40, 40)
+        self.cell_size = Size(self.size.array / self.number_of_cells)
         self._create_cells()
+        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for
+                                i in
+                                range(self.pedestrian_number)]
         self._fill_cells()
-
-    def _create_cells(self):
-        row_number, col_number = self.number_of_cells
-        size = Size(self.size.array / self.number_of_cells)
-        for row in range(row_number):
-            for col in range(col_number):
-                start = Point(size.array * [row, col])
-                cell = Cell(row, col, start, size)
-                self.cell_dict[(row, col)] = cell
-
-    def _fill_cells(self):
-        fyi("Started preprocessing cells")
-        size = Size(self.size.array / self.number_of_cells)
-        cell_locations = np.floor(self.position_array / size)
-        for index in range(self.pedestrian_number):
-            cell_location = (int(cell_locations[index, 0]), int(cell_locations[index, 1]))
-            self.cell_dict[cell_location].add_pedestrian(self.pedestrian_list[index])
-        for cell_location in self.cell_dict:
-            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
-            ped_set = self.cell_dict[cell_location].pedestrian_set
-            obstacle_set = self.cell_dict[cell_location].obstacle_set
-        fyi("Finished preprocessing cells")
-
-    def get_cell_from_position(self,position):
-        size = Size(self.size.array / self.number_of_cells)
-        cell_location = np.floor(np.array(position) / size)
-        return self.cell_dict[(int(cell_location[0]),int(cell_location[1]))]
 
     def _read_json_file(self, file_name: str):
         """
@@ -94,6 +69,48 @@ class Scene:
             self.exit_obs = Exit(begin, Size(size), name)
             self.obstacle_list.append(self.exit_obs)
 
+    def _create_cells(self):
+        row_number, col_number = self.number_of_cells
+        for row in range(row_number):
+            for col in range(col_number):
+                start = Point(self.cell_size.array * [row, col])
+                cell = Cell(row, col, start, self.cell_size)
+                self.cell_dict[(row, col)] = cell
+
+    def _fill_cells(self):
+        fyi("Started preprocessing cells")
+        cell_locations = np.floor(self.position_array / self.cell_size)
+        self.pedestrian_cells = cell_locations
+        for index in range(self.pedestrian_number):
+            cell_location = (int(cell_locations[index, 0]), int(cell_locations[index, 1]))
+            self.cell_dict[cell_location].add_pedestrian(self.pedestrian_list[index])
+        for cell_location in self.cell_dict:
+            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
+        fyi("Finished preprocessing cells")
+
+    def get_cell_from_position(self, position):
+        size = Size(self.size.array / self.number_of_cells)
+        cell_location = np.floor(np.array(position) / size)
+        return self.cell_dict[(int(cell_location[0]), int(cell_location[1]))]
+
+    def get_pedestrian_cells(self):
+        return np.floor(self.position_array / self.cell_size)
+
+    def update_cells(self):
+        # Todo: Check the partitioning method still bans pedestrians from going into walls
+        new_ped_cells = self.get_pedestrian_cells()
+        needs_update = self.pedestrian_cells != new_ped_cells
+        for index in range(self.pedestrian_number):
+            if self.pedestrian_list[index].is_alive:
+                if any(needs_update[index]):
+                    pedestrian = self.pedestrian_list[index]
+                    cell = pedestrian.cell
+                    cell.remove_pedestrian(self.pedestrian_list[index])
+                    new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))
+                    new_cell = self.cell_dict[new_cell_orientation]
+                    new_cell.add_pedestrian(pedestrian)
+        self.pedestrian_cells = new_ped_cells
+
     def remove_pedestrian(self, pedestrian):
         """
         Removes a pedestrian from the scene by replacing it with an empty pedestrian
@@ -103,11 +120,12 @@ class Scene:
         """
         # assert pedestrian.is_done()
         assert self.pedestrian_list[pedestrian.counter] == pedestrian
+        pedestrian.cell.remove_pedestrian(pedestrian)
         counter = pedestrian.counter
         empty_ped = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = empty_ped
 
-    def get_global_accesibility(self, at_start=False):
+    def get_global_accessibility(self, at_start=False):
         # Todo: Vectorize this operation
         # Within boundaries is easily vectorized.
         # In order to vectorize the obstacle method, we need more magic.
@@ -137,6 +155,7 @@ class Scene:
         """
 
         self.position_array += self.velocity_array * self.dt
+        self.update_cells()
 
 
 class Cell:
@@ -151,26 +170,26 @@ class Cell:
         self.location = (row, column)
         self.begin = begin
         self.size = size
-        self.center = self.begin+self.size*0.5
+        self.center = self.begin + self.size * 0.5
         self.pedestrian_set = set()
         self.obstacle_set = set()
 
-    def obtain_relevant_obstacles(self,obstacle_list):
+    def obtain_relevant_obstacles(self, obstacle_list):
         # Check if obstacle is contained in cell, or cell contained in obstacle
         for obstacle in obstacle_list:
             if obstacle.center in self or self.center in obstacle:
                 # Possible optimization:
                 # If cells completely lie within obstacles, make them moot.
                 self.obstacle_set.add(obstacle)
-        # Check if any of the cell lines crosses an obstacle
-            # Create corners
+                # Check if any of the cell lines crosses an obstacle
+                # Create corners
         corner_points = [(Point(self.begin + Size([x, y]) * self.size)) for x in range(2) for y in
-                                 range(2)]
-        corner_points[2],corner_points[3] = corner_points[3],corner_points[2]
-            # Create edges
+                         range(2)]
+        corner_points[2], corner_points[3] = corner_points[3], corner_points[2]
+        # Create edges
         edge_list = []
         for i in range(4):
-            edge_list.append(LineSegment([corner_points[i],corner_points[i-1]]))
+            edge_list.append(LineSegment([corner_points[i], corner_points[i - 1]]))
             # Check edges for every obstacle
         for obstacle in obstacle_list:
             for edge in edge_list:
@@ -179,14 +198,25 @@ class Cell:
                     break
 
 
-
     def add_pedestrian(self, pedestrian):
         assert pedestrian not in self.pedestrian_set
+        pedestrian.cell = self
         self.pedestrian_set.add(pedestrian)
 
     def remove_pedestrian(self, pedestrian):
         assert pedestrian in self.pedestrian_set
         self.pedestrian_set.remove(pedestrian)
+
+    def is_accessible(self, coord, at_start=False):
+        within_boundaries = all(self.begin.array < coord.array) and all(
+            coord.array < self.begin.array + self.size.array)
+        if not within_boundaries:
+            warn('Position accessibility requested outside of %s' % self)
+            return False
+        if at_start:
+            return all([coord not in obstacle for obstacle in self.obstacle_set])
+        else:
+            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_set])
 
     def __contains__(self, coord):
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
@@ -195,9 +225,10 @@ class Cell:
         return "Cell %s from %s to %s" % (self.location, self.begin, self.begin + self.size)
 
     def __str__(self):
-        return "Cell %s. Begin: %s. End %s\nPedestrians: %s\nObstacles: %s"%(
-            self.location,self.begin,self.begin+self.size,self.pedestrian_set,self.obstacle_set
+        return "Cell %s. Begin: %s. End %s\nPedestrians: %s\nObstacles: %s" % (
+            self.location, self.begin, self.begin + self.size, self.pedestrian_set, self.obstacle_set
         )
+
 
 class Obstacle:
     """
@@ -261,6 +292,6 @@ class Exit(Obstacle):
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
 
-#
-# scene = Scene(size=Size([400, 500]), obstacle_file="demo_obstacle_list.json",
-#               pedestrian_number=100)
+        #
+        # scene = Scene(size=Size([400, 500]), obstacle_file="demo_obstacle_list.json",
+        # pedestrian_number=100)

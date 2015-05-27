@@ -67,12 +67,12 @@ class VisualScene:
         :return:
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
-        scene_point =Point([x * self.scene.size[0], y * self.scene.size[1]])
+        scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
         fyi("Mouse location: %s" % scene_point)
         clicked_cell = self.scene.get_cell_from_position(scene_point)
         print(str(clicked_cell))
         # for ped in self.scene.pedestrian_list:
-        #     fyi(str(ped))
+        # fyi(str(ped))
         #     fyi("Origin: %s" % ped.origin)
 
     def draw_scene(self):
@@ -84,8 +84,8 @@ class VisualScene:
         self.canvas.delete('all')
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
-        for cell in self.scene.cell_dict.values():
-            self.draw_cell(cell)
+        # for cell in self.scene.cell_dict.values():
+        # self.draw_cell(cell)
         self.draw_pedestrians()
 
     def draw_pedestrians(self):

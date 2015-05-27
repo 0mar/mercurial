@@ -34,6 +34,7 @@ class Pedestrian(object):
         self.max_speed = Interval([3, 10]).random()
         self.goal = goal
         self.is_alive = True
+        self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
             self.manual_move(new_position)
@@ -44,20 +45,24 @@ class Pedestrian(object):
 
     def __str__(self):
         return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-                   (self.counter, self.position, self._velocity.angle / np.pi)
+               (self.counter, self.position, self._velocity.angle / np.pi)
 
     def __repr__(self):
         return "Pedestrian#%d" % self.counter
 
     def update_position(self):
         new_point = Point(self.scene.position_array[self.counter])
-        if self.scene.is_accessible(new_point):
+        if self.cell.is_accessible(new_point):
             self._position = new_point
 
     def manual_move(self, position):
+        # Should a whole scene check take too much time, then this should be replaced
         if self.scene.is_accessible(position):
             self.position = position
             self.scene.position_array[self.counter] = self.position.array
+            if self.cell:
+                self.cell.remove_pedestrian(self)
+                self.scene.get_cell_from_position(self.position).add_pedestrian(self)
             return True
         return False
 
@@ -131,7 +136,8 @@ class EmptyPedestrian(Pedestrian):
         return "DonePedestrian#%d" % self.counter
 
     def __str__(self):
-        return"Finished Pedestrian %d" % self.counter
+        return "Finished Pedestrian %d" % self.counter
+
     def update_position(self, dt):
         pass
 

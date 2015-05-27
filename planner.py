@@ -103,6 +103,7 @@ class GraphPlanner(Planner):
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
         fyi("Finished preprocessing global paths")
+
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)
         ped_graph.add_node(pedestrian.position)
