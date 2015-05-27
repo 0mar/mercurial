@@ -67,10 +67,13 @@ class VisualScene:
         :return:
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
-        fyi("Mouse location: %s" % Point([x * self.scene.size[0], y * self.scene.size[1]]))
-        for ped in self.scene.pedestrian_list:
-            fyi(str(ped))
-            fyi("Origin: %s" % ped.origin)
+        scene_point =Point([x * self.scene.size[0], y * self.scene.size[1]])
+        fyi("Mouse location: %s" % scene_point)
+        clicked_cell = self.scene.get_cell_from_position(scene_point)
+        print(str(clicked_cell))
+        # for ped in self.scene.pedestrian_list:
+        #     fyi(str(ped))
+        #     fyi("Origin: %s" % ped.origin)
 
     def draw_scene(self):
         """
@@ -81,6 +84,8 @@ class VisualScene:
         self.canvas.delete('all')
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
+        for cell in self.scene.cell_dict.values():
+            self.draw_cell(cell)
         self.draw_pedestrians()
 
     def draw_pedestrians(self):
@@ -132,6 +137,16 @@ class VisualScene:
         angle = ped.velocity.angle
         coords = np.dot(VisualScene.directed_polygon * np.array(size), rot_mat(angle)) + np.array(position)
         self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
+
+    def draw_cell(self, cell):
+        """
+        Draws a cell as a rectangle within the window. Only useful for debugging purposes.
+        :param cell: Cell object to be drawn
+        :return: None
+        """
+        x_0 = self.convert_relative_coordinate(cell.begin / self.scene.size)
+        x_1 = self.convert_relative_coordinate((cell.begin + cell.size) / self.scene.size)
+        self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), outline='blue')
 
     def draw_obstacle(self, obstacle):
         """

@@ -63,7 +63,7 @@ class Size(Coordinate):
         if self.width < 0 or self.height < 0:
             raise ValueError("Negative size specified")
 
-    def internal_random_coordinate(self):
+    def random_internal_point(self):
         return Point(np.array([random.random() * dim for dim in self.array]))
 
 
@@ -114,7 +114,6 @@ class Interval(object):
 class LineSegment(object):
     def __init__(self, coords):
         self.array = np.array(coords)
-        self.length_2 = np.linalg.norm(coords[0] - coords[1])
         self.color = 'blue'
 
     length = property(lambda s: np.linalg.norm(s[0] - s[1]))

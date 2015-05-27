@@ -4,7 +4,7 @@ import random
 
 from functions import *
 from pedestrian import Pedestrian, EmptyPedestrian
-from geometry import Point, Size
+from geometry import Point, Size, LineSegment
 import visualization as vis
 
 
@@ -32,7 +32,37 @@ class Scene:
         self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for
                                 i in
                                 range(pedestrian_number)]
+        self.cell_dict = {}
+        self.number_of_cells = (40, 40)
+        self._create_cells()
+        self._fill_cells()
 
+    def _create_cells(self):
+        row_number, col_number = self.number_of_cells
+        size = Size(self.size.array / self.number_of_cells)
+        for row in range(row_number):
+            for col in range(col_number):
+                start = Point(size.array * [row, col])
+                cell = Cell(row, col, start, size)
+                self.cell_dict[(row, col)] = cell
+
+    def _fill_cells(self):
+        fyi("Started preprocessing cells")
+        size = Size(self.size.array / self.number_of_cells)
+        cell_locations = np.floor(self.position_array / size)
+        for index in range(self.pedestrian_number):
+            cell_location = (int(cell_locations[index, 0]), int(cell_locations[index, 1]))
+            self.cell_dict[cell_location].add_pedestrian(self.pedestrian_list[index])
+        for cell_location in self.cell_dict:
+            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
+            ped_set = self.cell_dict[cell_location].pedestrian_set
+            obstacle_set = self.cell_dict[cell_location].obstacle_set
+        fyi("Finished preprocessing cells")
+
+    def get_cell_from_position(self,position):
+        size = Size(self.size.array / self.number_of_cells)
+        cell_location = np.floor(np.array(position) / size)
+        return self.cell_dict[(int(cell_location[0]),int(cell_location[1]))]
 
     def _read_json_file(self, file_name: str):
         """
@@ -74,8 +104,14 @@ class Scene:
         # assert pedestrian.is_done()
         assert self.pedestrian_list[pedestrian.counter] == pedestrian
         counter = pedestrian.counter
-        emptyPed = EmptyPedestrian(self, counter)
-        self.pedestrian_list[counter] = emptyPed
+        empty_ped = EmptyPedestrian(self, counter)
+        self.pedestrian_list[counter] = empty_ped
+
+    def get_global_accesibility(self, at_start=False):
+        # Todo: Vectorize this operation
+        # Within boundaries is easily vectorized.
+        # In order to vectorize the obstacle method, we need more magic.
+        pass
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
@@ -103,6 +139,66 @@ class Scene:
         self.position_array += self.velocity_array * self.dt
 
 
+class Cell:
+    """
+    Models a cell from the partitioned scene.
+    Currently, this is meant for applying the UIC.
+    In the future, we like to refactor the scene accessibility in here as well.
+    We assume equal sized cells.
+    """
+
+    def __init__(self, row: int, column: int, begin: Point, size: Size):
+        self.location = (row, column)
+        self.begin = begin
+        self.size = size
+        self.center = self.begin+self.size*0.5
+        self.pedestrian_set = set()
+        self.obstacle_set = set()
+
+    def obtain_relevant_obstacles(self,obstacle_list):
+        # Check if obstacle is contained in cell, or cell contained in obstacle
+        for obstacle in obstacle_list:
+            if obstacle.center in self or self.center in obstacle:
+                # Possible optimization:
+                # If cells completely lie within obstacles, make them moot.
+                self.obstacle_set.add(obstacle)
+        # Check if any of the cell lines crosses an obstacle
+            # Create corners
+        corner_points = [(Point(self.begin + Size([x, y]) * self.size)) for x in range(2) for y in
+                                 range(2)]
+        corner_points[2],corner_points[3] = corner_points[3],corner_points[2]
+            # Create edges
+        edge_list = []
+        for i in range(4):
+            edge_list.append(LineSegment([corner_points[i],corner_points[i-1]]))
+            # Check edges for every obstacle
+        for obstacle in obstacle_list:
+            for edge in edge_list:
+                if edge.crosses_obstacle(obstacle):
+                    self.obstacle_set.add(obstacle)
+                    break
+
+
+
+    def add_pedestrian(self, pedestrian):
+        assert pedestrian not in self.pedestrian_set
+        self.pedestrian_set.add(pedestrian)
+
+    def remove_pedestrian(self, pedestrian):
+        assert pedestrian in self.pedestrian_set
+        self.pedestrian_set.remove(pedestrian)
+
+    def __contains__(self, coord):
+        return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
+
+    def __repr__(self):
+        return "Cell %s from %s to %s" % (self.location, self.begin, self.begin + self.size)
+
+    def __str__(self):
+        return "Cell %s. Begin: %s. End %s\nPedestrians: %s\nObstacles: %s"%(
+            self.location,self.begin,self.begin+self.size,self.pedestrian_set,self.obstacle_set
+        )
+
 class Obstacle:
     """
     Models an rectangular obstacle within the domain. The obstacle has a starting point, a size,
@@ -124,8 +220,6 @@ class Obstacle:
         self.name = name
         self.permeable = permeable
         self.color = 'black'
-        self.corner_info_list = [(Point(self.begin + Size([x, y]) * self.size), [x, y]) for x in range(2) for y in
-                                 range(2)]
         self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
         # Safety margin for around the obstacle corners.
         self.margin_list = [Point(np.sign([x - 0.5, y - 0.5])) * 3 for x in range(2) for y in range(2)]
@@ -139,7 +233,7 @@ class Obstacle:
         return [self.begin, self.end][item]
 
     def __repr__(self):
-        return "Instance: %s '%s'" % (self.__class__.__name__, self.name)
+        return "%s#%s" % (self.__class__.__name__, self.name)
 
     def __str__(self):
         return "Obstacle %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)
@@ -166,3 +260,7 @@ class Exit(Obstacle):
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
+
+#
+# scene = Scene(size=Size([400, 500]), obstacle_file="demo_obstacle_list.json",
+#               pedestrian_number=100)

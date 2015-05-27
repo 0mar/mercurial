@@ -35,24 +35,19 @@ class Pedestrian(object):
         self.goal = goal
         self.is_alive = True
         while self.position.is_zero() and type(self) == Pedestrian:
-            new_position = scene.size.internal_random_coordinate()
-            if scene.is_accessible(new_position, at_start=True):
-                self.position = new_position
+            new_position = scene.size.random_internal_point()
+            self.manual_move(new_position)
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
         self.scene.position_array[self.counter] = self._position.array
 
     def __str__(self):
-        if self._velocity:
-            return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
+        return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
                    (self.counter, self.position, self._velocity.angle / np.pi)
-        else:
-            return "Standing pedestrian %d\tPosition: %s" % \
-                   (self.counter, self.position)
 
     def __repr__(self):
-        return "Instance: Pedestrian#%d" % self.counter
+        return "Pedestrian#%d" % self.counter
 
     def update_position(self):
         new_point = Point(self.scene.position_array[self.counter])
@@ -133,8 +128,10 @@ class EmptyPedestrian(Pedestrian):
         return True
 
     def __repr__(self):
-        return "PedestrianPlaceholder%d" % self.counter
+        return "DonePedestrian#%d" % self.counter
 
+    def __str__(self):
+        return"Finished Pedestrian %d" % self.counter
     def update_position(self, dt):
         pass
 

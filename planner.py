@@ -94,15 +94,15 @@ class Planner:
 
 class GraphPlanner(Planner):
     def __init__(self, scene):
-        fyi("Graph planner implementation")
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
+        fyi("Started preprocessing global paths")
         for pedestrian in scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
-
+        fyi("Finished preprocessing global paths")
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)
         ped_graph.add_node(pedestrian.position)

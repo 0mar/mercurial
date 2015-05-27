@@ -124,3 +124,24 @@ class TestGraphPlanner:
     def test_path_from_pedestrian_to_finish(self):
         ped = self.scene.pedestrian_list[0]
         assert ped.path[-1].end in ped.goal
+
+
+class TestCell:
+    def __init__(self):
+        self.ped_number = 1000
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=self.ped_number,
+                           obstacle_file='demo_obstacle_list.json')
+
+    def test_ped_distribution(self):
+        counted_ped = 0
+        for cell in scene.cell_dict.values():
+            counted_ped += len(cell.pedestrian_set)
+        assert counted_ped == self.ped_number
+
+    def test_partitioning(self):
+        for _ in range(300):
+            loc = self.scene.size.random_internal_point()
+            found = 0
+            for cell in scene.cell_dict.values():
+                found += int(loc in cell)
+            assert found == 1
