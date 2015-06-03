@@ -1,6 +1,7 @@
 __author__ = 'omar'
 
 import random
+import pickle
 
 from functions import *
 from pedestrian import Pedestrian, EmptyPedestrian
@@ -13,7 +14,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, pedestrian_number, obstacle_file, dt=0.05):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file, dt=0.05, cache='read'):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -30,13 +31,19 @@ class Scene:
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.velocity_array = np.zeros([self.pedestrian_number, 2])
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
+        self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
         self.number_of_cells = (40, 40)
         self.cell_size = Size(self.size.array / self.number_of_cells)
-        self._create_cells()
-        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list)) for
-                                i in
-                                range(self.pedestrian_number)]
+        if cache == 'read':
+            self._load_cells()
+        else:
+            self._create_cells()
+        if cache == 'write':
+            self._store_cells()
+        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
+                                for i in range(self.pedestrian_number)]
+
         self._fill_cells()
 
     def _read_json_file(self, file_name: str):
@@ -45,7 +52,7 @@ class Scene:
         The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
         Every key must have a list of instances, each having a 'name', a 'begin' and a 'size'.
         Note that sizes are fractions of the scene size. A size of 0 is converted to 1 size unit.
-        :param file_name: String leading to the JSON file
+        :param file_name: String containing file name of the JSON file
         :return: None
         """
         import json
@@ -70,34 +77,91 @@ class Scene:
             self.obstacle_list.append(self.exit_obs)
 
     def _create_cells(self):
+        """
+        Creates the cell objects into which the scene is partitioned.
+        The cell objects are stored in the scenes cell_dict as {(row, column): Cell}
+        This is a time intensive operation which can be avoided by using the cache function
+        :return: None
+        """
+        fyi("Started preprocessing cells")
         row_number, col_number = self.number_of_cells
         for row in range(row_number):
             for col in range(col_number):
                 start = Point(self.cell_size.array * [row, col])
                 cell = Cell(row, col, start, self.cell_size)
                 self.cell_dict[(row, col)] = cell
+        for cell_location in self.cell_dict:
+            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
+        fyi("Finished preprocessing cells")
 
     def _fill_cells(self):
-        fyi("Started preprocessing cells")
+        """
+        This method fills the cells in self.cell_dict with the pedestrians
+        :return: None
+        """
         cell_locations = np.floor(self.position_array / self.cell_size)
         self.pedestrian_cells = cell_locations
         for index in range(self.pedestrian_number):
             cell_location = (int(cell_locations[index, 0]), int(cell_locations[index, 1]))
             self.cell_dict[cell_location].add_pedestrian(self.pedestrian_list[index])
-        for cell_location in self.cell_dict:
-            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
-        fyi("Finished preprocessing cells")
+
+    def _store_cells(self, filename='cells.bin'):
+        """
+        This method pickles the cells dictionary (without pedestrians) into a file.
+        It can be loaded using _load_cells
+        :param filename: name of pickle file
+        :return: None
+        """
+        with open(filename, 'wb') as pickle_file:
+            pickle.dump(self.cell_dict, pickle_file)
+
+    def _load_cells(self, filename='cells.bin'):
+        """
+        Opens and unpickles the file containing the scene dictionary
+        :param filename: name of pickle file
+        :return: None
+        """
+        fyi("Loading cell objects from file")
+        with open(filename, 'rb') as pickle_file:
+            self.cell_dict = pickle.load(pickle_file)
+        if not self._validate_cells():
+            fyi("Cells cache does not correspond to this scene. Creating new cells and storing those.")
+            self._create_cells()
+            self._store_cells()
+
+    def _validate_cells(self):
+        """
+        Compares the cell dictionary to the scene information.
+        Polls a cells and checks its location and its size to see if it behaves as expected.
+        :return: False if the method detects an inconsistency, True otherwise
+        """
+        cell_location = set(self.cell_dict).pop()
+        correct_index = all([cell_location[dim] < self.number_of_cells[dim] for dim in range(2)])
+        correct_size = all((self.cell_dict[cell_location].size - self.cell_size).array == 0)
+        return correct_index and correct_size
 
     def get_cell_from_position(self, position):
+        """
+        Obtain the cell corresponding to a certain position
+        :param position: position
+        :return: corresponding cell
+        """
         size = Size(self.size.array / self.number_of_cells)
         cell_location = np.floor(np.array(position) / size)
         return self.cell_dict[(int(cell_location[0]), int(cell_location[1]))]
 
     def get_pedestrian_cells(self):
+        """
+        Obtain the pedestrian distribution over the cells.
+        :return:array with integer values per pedestrian corresponding to its cell.
+        """
         return np.floor(self.position_array / self.cell_size)
 
     def update_cells(self):
-        # Todo: Check the partitioning method still bans pedestrians from going into walls
+        """
+        Update all the pedestrians, but by looking per cell what the new situation is.
+        :return: None
+        """
         new_ped_cells = self.get_pedestrian_cells()
         needs_update = self.pedestrian_cells != new_ped_cells
         for index in range(self.pedestrian_number):
@@ -124,12 +188,7 @@ class Scene:
         counter = pedestrian.counter
         empty_ped = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = empty_ped
-
-    def get_global_accessibility(self, at_start=False):
-        # Todo: Vectorize this operation
-        # Within boundaries is easily vectorized.
-        # In order to vectorize the obstacle method, we need more magic.
-        pass
+        self.alive_array[counter] = 0
 
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
@@ -161,8 +220,7 @@ class Scene:
 class Cell:
     """
     Models a cell from the partitioned scene.
-    Currently, this is meant for applying the UIC.
-    In the future, we like to refactor the scene accessibility in here as well.
+    This is to accommodate the UIC computations as well as to perform a more efficient scene evaluation.
     We assume equal sized cells.
     """
 
@@ -196,7 +254,6 @@ class Cell:
                 if edge.crosses_obstacle(obstacle):
                     self.obstacle_set.add(obstacle)
                     break
-
 
     def add_pedestrian(self, pedestrian):
         assert pedestrian not in self.pedestrian_set
