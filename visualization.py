@@ -58,13 +58,13 @@ class VisualScene:
         """
         self._advance_simulation(None)
         if self.autoloop:
-            self.window.after(20, self.loop)
+            self.window.after(1, self.loop)
 
     def _provide_information(self, event):
         """
         When assigned to a button by tkinter, prints a live summary of the present pedestrians to the screen.
         :param event: Event instance passed by tkinter
-        :return:
+        :return: None
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])

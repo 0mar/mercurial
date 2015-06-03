@@ -5,11 +5,12 @@ import argparse
 from geometry import Size
 import scene
 from visualization import VisualScene
+from grid_computer import GridComputer
 from planner import GraphPlanner
 
 
 # Default parameters
-number_of_pedestrians = 100
+number_of_pedestrians = 300
 domain_width = 250
 domain_height = 150
 obstacle_file = 'demo_obstacle_list.json'
@@ -29,7 +30,15 @@ args = parser.parse_args()
 scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
 planner = GraphPlanner(scene)
-vis = VisualScene(scene, 1500, 1000, step=planner.collective_update, loop=not args.step)
+grid = GridComputer(scene)
+
+# Methods inserted on every update
+def step():
+    planner.collective_update()
+    grid.get_grid_values()
+
+
+vis = VisualScene(scene, 1500, 1000, step=step, loop=not args.step)
 
 # Running
 vis.loop()
