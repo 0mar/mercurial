@@ -36,7 +36,7 @@ class GridComputer:
                         # Valid neighbour cell
                         relevant_pedestrian_set |= cell_dict[neighbour_cell_location].pedestrian_set
             distance_array = np.linalg.norm(self.scene.position_array - cell.center, axis=1)
-            weights = GridComputer.weight_function(distance_array / self.correction_factor) * self.scene.alive_array
+            weights = GridComputer.weight_function(distance_array / self.correction_factor)*self.scene.alive_array
             density = np.sum(weights)
             self.rho[cell_location] = density
 
@@ -46,10 +46,10 @@ class GridComputer:
 
     def plot_grid_values(self):
         self.rho_graph.cla()
-        # We need a rotate, because we have 'ij' indexing
+        # We need a rotation, because we have 'ij' indexing
         self.rho_graph.imshow(np.rot90(self.rho))
         self.v_graph.cla()
-        self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        self.v_graph.quiver(self.mesh_x,self.mesh_y,self.v_x,self.v_y,scale=1,scale_units='xy')
         # plt.draw()
 
     @staticmethod
@@ -64,7 +64,6 @@ class GridComputer:
         first_factor = np.maximum(1 - array / 2, 0)
         weight = first_factor ** 4 * (1 + 2 * array)
         return weight * norm_constant
-
 #
 #
 # from geometry import Size
