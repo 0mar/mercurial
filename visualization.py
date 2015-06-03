@@ -58,7 +58,7 @@ class VisualScene:
         """
         self._advance_simulation(None)
         if self.autoloop:
-            self.window.after(1, self.loop)
+            self.window.after(20, self.loop)
 
     def _provide_information(self, event):
         """
@@ -84,8 +84,6 @@ class VisualScene:
         self.canvas.delete('all')
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
-        # for cell in self.scene.cell_dict.values():
-        # self.draw_cell(cell)
         self.draw_pedestrians()
 
     def draw_pedestrians(self):

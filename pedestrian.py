@@ -3,7 +3,6 @@
 from functions import *
 from geometry import Point, Size, Interval
 
-
 __author__ = 'omar'
 
 
@@ -140,4 +139,3 @@ class EmptyPedestrian(Pedestrian):
 
     def update_position(self, dt):
         pass
-

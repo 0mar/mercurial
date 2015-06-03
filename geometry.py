@@ -4,7 +4,6 @@ import random
 
 from functions import *
 
-
 __author__ = 'omar'
 
 
