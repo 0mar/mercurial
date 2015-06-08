@@ -17,12 +17,13 @@ class GridComputer:
         self.cell_dimension = self.scene.number_of_cells
         self.dx = self.scene.cell_size[0]
         self.dt = self.scene.dt
-        # Todo: Change scene to allow for non-square domains
         self.interpolation_factor = 4
         self.packing_factor = 0.8
         self.minimal_distance = 1
         self.max_pressure = 2*self.packing_factor/(np.sqrt(3)*self.minimal_distance)
-        self.basis_matrix = self._create_matrix()
+
+        self.basis_A = self.basis_v_x = self.basis_v_y = None
+        self._create_matrices()
 
         self.show_plot = show_plot
         self.rho = np.zeros(self.cell_dimension)
@@ -41,7 +42,7 @@ class GridComputer:
             self.v_graph = graph2.add_subplot(111)
             plt.show(block=False)
 
-    def _create_matrix(self):
+    def _create_matrices(self):
         """
         Creates the matrix for solving the LCP using kronecker sums and the finite difference scheme
         The matrix returned is sparse and in cvxopt format.
@@ -50,13 +51,18 @@ class GridComputer:
         nx,ny = self.cell_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
-        dxx = ss.dia_matrix((ex,-1),shape=(40,40))+ss.dia_matrix((-ex,1),shape=(40,40))
-        dyy = ss.dia_matrix((ey,-1),shape=(40,40))+ss.dia_matrix((-ey,1),shape=(40,40))
+        dxx = ss.dia_matrix((-ex,-1),shape=(40,40))+ss.dia_matrix((2*ex,0),shape=(40,40))+ss.dia_matrix((-ex,1),shape=(40,40))
+        dyy = ss.dia_matrix((-ey,-1),shape=(40,40))+ss.dia_matrix((2*ey,0),shape=(40,40))+ss.dia_matrix((-ey,1),shape=(40,40))
         ssmatrix = ss.kronsum(dxx,dyy)
         # Cast into a cvxopt sparse matrix
         coo = ssmatrix.tocoo()
-        c_mat = cvxopt.spmatrix(coo.data,coo.row.tolist(),coo.col.tolist())
-        return c_mat
+        self.basis_A = self.dt/self.dx**2*cvxopt.spmatrix(coo.data,coo.row.tolist(),coo.col.tolist())
+
+        v_x = ss.dia_matrix((-ex,-1),shape=(40,40))+ss.dia_matrix((ex,1),shape=(40,40))
+        self.basis_v_x = self.dt/self.dx*ss.kron(np.eye(len(ex)),v_x)
+        v_y = ss.dia_matrix((ey,-1),shape=(40,40))+ss.dia_matrix((ey,1),shape=(40,40))
+        self.basis_v_y = self.dt/self.dx*ss.kron(np.eye(len(ey)),v_y)
+
 
     def get_grid_values(self):
         cell_dict = self.scene.cell_dict
@@ -94,9 +100,11 @@ class GridComputer:
         flat_v_x = self.v_x.flatten()
         flat_v_y = self.v_y.flatten()
 
-        A = (self.basis_matrix.T*flat_rho).T
+        A = (self.basis_A.T*flat_rho).T
         x = flat_p
-        b = self.max_pressure - flat_rho + # more stuff
+        b = self.max_pressure - flat_rho + \
+            (self.basis_v_x.dot(flat_v_x)+self.basis_v_y.dot(flat_v_y))*flat_rho
+
 
 
     @staticmethod

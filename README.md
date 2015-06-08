@@ -19,6 +19,7 @@ This project depends on the following external libraries:
 `numpy`
 `scipy`
 `networkx`
+`cvxopt`
 * How to run tests
 Unit tests are currently stored in test\_cd.py and can be run using the `nosetests` framework
 * Deployment instructions
