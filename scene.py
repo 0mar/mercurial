@@ -41,8 +41,8 @@ class Scene:
             self._create_cells()
         if cache == 'write':
             self._store_cells()
-        self.pedestrian_list = [Pedestrian(self, i, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
-                                for i in range(self.pedestrian_number)]
+        self.pedestrian_list = [Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
+                                for counter in range(self.pedestrian_number)]
 
         self._fill_cells()
 
@@ -52,7 +52,7 @@ class Scene:
         The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
         Every key must have a list of instances, each having a 'name', a 'begin' and a 'size'.
         Note that sizes are fractions of the scene size. A size of 0 is converted to 1 size unit.
-        :param file_name: String containing file name of the JSON file
+        :param file_name: file name string of the JSON file
         :return: None
         """
         import json
@@ -138,7 +138,9 @@ class Scene:
         cell_location = set(self.cell_dict).pop()
         correct_index = all([cell_location[dim] < self.number_of_cells[dim] for dim in range(2)])
         correct_size = all((self.cell_dict[cell_location].size - self.cell_size).array == 0)
-        return correct_index and correct_size
+        correct_obstacle = {obs.name for obs in self.obstacle_list} \
+                           == {obs.name for cell in self.cell_dict.values() for obs in cell.obstacle_set}
+        return correct_index and correct_size and correct_obstacle
 
     def get_cell_from_position(self, position):
         """
