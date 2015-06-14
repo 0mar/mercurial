@@ -48,7 +48,7 @@ class VisualScene:
         :param event: Event originating from the tkinter update function
         :return: None
         """
-        self.step()  # Some functions which should be called on every time step.
+        self.step()  # All functions which should be called on every time step.
         self.draw_scene()
 
     def loop(self):

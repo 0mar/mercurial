@@ -3,16 +3,15 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import scipy as sp
-import numpy as np
 import scipy.sparse as ss
+from scipy.interpolate import RectBivariateSpline as RBS
 import cvxopt
 
 from functions import *
 
 
 class GridComputer:
-    def __init__(self, scene, show_plot=True):
+    def __init__(self, scene, show_plot=False):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx = self.scene.cell_size[0]
@@ -20,8 +19,8 @@ class GridComputer:
         self.interpolation_factor = 4
         self.packing_factor = 0.8
         self.minimal_distance = 1
-        self.max_pressure = 2*self.packing_factor/(np.sqrt(3)*self.minimal_distance)
-
+        self.max_pressure = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance)
+        cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
 
@@ -31,10 +30,11 @@ class GridComputer:
         self.v_y = np.zeros(self.cell_dimension)
         self.p = np.zeros(self.cell_dimension)
 
+        self.x_range = np.linspace(0, self.scene.size.width, self.cell_dimension[0])
+        self.y_range = np.linspace(0, self.scene.size.height, self.cell_dimension[1])
+
         if self.show_plot:
             # Plotting hooks
-            self.x_range = np.linspace(0, self.scene.size.width, self.cell_dimension[0])
-            self.y_range = np.linspace(0, self.scene.size.height, self.cell_dimension[1])
             self.mesh_x, self.mesh_y = np.meshgrid(self.x_range, self.y_range, indexing='ij')
             graph1 = plt.figure()
             self.rho_graph = graph1.add_subplot(111)
@@ -48,21 +48,18 @@ class GridComputer:
         The matrix returned is sparse and in cvxopt format.
         :return: \delta t/\delta x^2*'ones'. Matrix is ready apart from multiplication with density.
         """
-        nx,ny = self.cell_dimension
+        nx, ny = self.cell_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
-        dxx = ss.dia_matrix((-ex,-1),shape=(40,40))+ss.dia_matrix((2*ex,0),shape=(40,40))+ss.dia_matrix((-ex,1),shape=(40,40))
-        dyy = ss.dia_matrix((-ey,-1),shape=(40,40))+ss.dia_matrix((2*ey,0),shape=(40,40))+ss.dia_matrix((-ey,1),shape=(40,40))
-        ssmatrix = ss.kronsum(dxx,dyy)
-        # Cast into a cvxopt sparse matrix
-        coo = ssmatrix.tocoo()
-        self.basis_A = self.dt/self.dx**2*cvxopt.spmatrix(coo.data,coo.row.tolist(),coo.col.tolist())
-
-        v_x = ss.dia_matrix((-ex,-1),shape=(40,40))+ss.dia_matrix((ex,1),shape=(40,40))
-        self.basis_v_x = self.dt/self.dx*ss.kron(np.eye(len(ex)),v_x)
-        v_y = ss.dia_matrix((ey,-1),shape=(40,40))+ss.dia_matrix((ey,1),shape=(40,40))
-        self.basis_v_y = self.dt/self.dx*ss.kron(np.eye(len(ey)),v_y)
-
+        dxx = -np.diag(ex[:-1], 1) + np.diag(2 * ex) - np.diag(ex[:-1], -1)
+        dyy = -np.diag(ey[:-1], 1) + np.diag(2 * ex) - np.diag(ey[:-1], -1)
+        fullmatrix = np.kron(dxx, np.eye(len(ex))) + np.kron(np.eye(len(ey)), dyy)
+        self.basis_A = self.dt / self.dx ** 2 * fullmatrix
+        # self.basis_A = fullmatrix
+        v_x = ss.dia_matrix((-ex, -1), shape=self.cell_dimension) + ss.dia_matrix((ex, 1), shape=self.cell_dimension)
+        self.basis_v_x = self.dt / self.dx * ss.kron(np.eye(len(ex)), v_x)
+        v_y = ss.dia_matrix((ey, -1), shape=self.cell_dimension) + ss.dia_matrix((-ey, 1), shape=self.cell_dimension)
+        self.basis_v_y = self.dt / self.dx * ss.kron(v_y, np.eye(len(ey)))
 
     def get_grid_values(self):
         cell_dict = self.scene.cell_dict
@@ -91,21 +88,56 @@ class GridComputer:
         self.rho_graph.cla()
         self.rho_graph.imshow(np.rot90(self.rho))
         self.v_graph.cla()
-        self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        #self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        self.v_graph.imshow(np.rot90(self.p))
         plt.draw()
 
     def solve_LCP(self):
-        flat_rho = self.rho.flatten()
-        flat_p = self.p.flatten()
+        """
+        We solve min {1/2x^TAx+x^Tq}
+
+        :return:
+        """
+        nx = self.cell_dimension[0]
+        ny = self.cell_dimension[1]
+        flat_rho = self.rho.flatten()+0.1
         flat_v_x = self.v_x.flatten()
         flat_v_y = self.v_y.flatten()
 
-        A = (self.basis_A.T*flat_rho).T
-        x = flat_p
-        b = self.max_pressure - flat_rho + \
-            (self.basis_v_x.dot(flat_v_x)+self.basis_v_y.dot(flat_v_y))*flat_rho
+        A = (self.basis_A.T * flat_rho).T  # Unsubtle and maybe a bit of a hack
+        cvx_A = cvxopt.matrix(A)
+        b = self.max_pressure - flat_rho + (self.basis_v_x.dot(flat_v_x) + self.basis_v_y.dot(flat_v_y)) * flat_rho
+        cvx_b = cvxopt.matrix(b)
+        I = np.eye(nx*ny)
+        cvx_G = cvxopt.matrix(np.vstack((-A,-I)))
+        zeros = np.zeros([nx*ny,1])
+        cvx_h = cvxopt.matrix(np.vstack((b[:,None],zeros)))
+        result = cvxopt.solvers.qp(P=cvx_A, q=cvx_b, G=cvx_G, h=cvx_h)
+        flat_p = result['x']
+        self.p = np.reshape(flat_p,self.cell_dimension)
 
+    def adjust_velocity(self):
+        grad_p_x = np.zeros(self.cell_dimension)
+        grad_p_x[:,1:-1] = (self.p[:,:-2]-self.p[:,2:])/(2*self.dx)
+        grad_p_y = np.zeros(self.cell_dimension)
+        grad_p_y[1:-1,:] = (self.p[2:,:]-self.p[:-2,:])/(2*self.dx)
+        self.v_x -= grad_p_x
+        self.v_y -= grad_p_y
 
+    def interpolate_pedestrians(self):
+        v_x_func = RBS(self.x_range,self.y_range,self.v_x)
+        v_y_func = RBS(self.x_range,self.y_range,self.v_y)
+        solved_v_x = v_x_func.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
+        solved_v_y = v_y_func.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
+        solved_velocity = np.hstack((solved_v_x[:,None],solved_v_y[:,None]))
+        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity)/2
+        self.scene.velocity_array /= 1/5*np.linalg.norm(self.scene.velocity_array,axis=1)[:,None] #todo: should be max vel
+
+    def step(self):
+        self.get_grid_values()
+        self.solve_LCP()
+        self.adjust_velocity()
+        self.interpolate_pedestrians()
 
     @staticmethod
     def weight_function(array):

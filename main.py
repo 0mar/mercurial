@@ -10,9 +10,9 @@ from planner import GraphPlanner
 
 
 # Default parameters
-number_of_pedestrians = 300
-domain_width = 250
-domain_height = 150
+number_of_pedestrians = 100
+domain_width = 70
+domain_height = 70
 obstacle_file = 'demo_obstacle_list.json'
 
 # Command line parameters
@@ -35,7 +35,7 @@ grid = GridComputer(scene)
 # Methods inserted on every update
 def step():
     planner.collective_update()
-    grid.get_grid_values()
+    grid.step()
 
 
 vis = VisualScene(scene, 1500, 1000, step=step, loop=not args.step)

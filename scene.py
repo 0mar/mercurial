@@ -33,7 +33,7 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.number_of_cells = (40, 40)
+        self.number_of_cells = (20,20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         if cache == 'read':
             self._load_cells()
@@ -84,6 +84,7 @@ class Scene:
         :return: None
         """
         fyi("Started preprocessing cells")
+        self.cell_dict = {}
         row_number, col_number = self.number_of_cells
         for row in range(row_number):
             for col in range(col_number):
@@ -157,7 +158,10 @@ class Scene:
         Obtain the pedestrian distribution over the cells.
         :return:array with integer values per pedestrian corresponding to its cell.
         """
-        return np.floor(self.position_array / self.cell_size)
+        raw_cell_locations = np.floor(self.position_array / self.cell_size)
+        min_corrected_locations = np.maximum(raw_cell_locations,np.array((0,0)))
+        corrected_cell_locations = np.minimum(min_corrected_locations,np.array(self.number_of_cells)-1)
+        return corrected_cell_locations
 
     def update_cells(self):
         """
