@@ -50,9 +50,16 @@ class Pedestrian(object):
         return "Pedestrian#%d" % self.counter
 
     def update_position(self):
+        """
+        Updates the position of the pedestrian by checking its accessibility in the corresponding cell.
+        If the position is not accessible, the pedestrian does not move.
+        :return: None
+        """
         new_point = Point(self.scene.position_array[self.counter])
         if self.cell.is_accessible(new_point):
             self._position = new_point
+        else:
+            self.scene.position_array[self.counter] = self._position.array
 
     def manual_move(self, position):
         # Should a whole scene check take too much time, then this should be replaced

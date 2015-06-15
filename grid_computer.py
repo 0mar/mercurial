@@ -11,7 +11,7 @@ from functions import *
 
 
 class GridComputer:
-    def __init__(self, scene, show_plot=False):
+    def __init__(self, scene, show_plot):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx = self.scene.cell_size[0]
@@ -88,7 +88,7 @@ class GridComputer:
         self.rho_graph.cla()
         self.rho_graph.imshow(np.rot90(self.rho))
         self.v_graph.cla()
-        #self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        # self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
         self.v_graph.imshow(np.rot90(self.p))
         plt.draw()
 
@@ -100,38 +100,39 @@ class GridComputer:
         """
         nx = self.cell_dimension[0]
         ny = self.cell_dimension[1]
-        flat_rho = self.rho.flatten()+0.1
+        flat_rho = self.rho.flatten() + 0.1
         flat_v_x = self.v_x.flatten()
         flat_v_y = self.v_y.flatten()
 
-        A = (self.basis_A.T * flat_rho).T  # Unsubtle and maybe a bit of a hack
+        A = self.basis_A * flat_rho[:, None]
         cvx_A = cvxopt.matrix(A)
         b = self.max_pressure - flat_rho + (self.basis_v_x.dot(flat_v_x) + self.basis_v_y.dot(flat_v_y)) * flat_rho
         cvx_b = cvxopt.matrix(b)
-        I = np.eye(nx*ny)
-        cvx_G = cvxopt.matrix(np.vstack((-A,-I)))
-        zeros = np.zeros([nx*ny,1])
-        cvx_h = cvxopt.matrix(np.vstack((b[:,None],zeros)))
+        I = np.eye(nx * ny)
+        cvx_G = cvxopt.matrix(np.vstack((-A, -I)))
+        zeros = np.zeros([nx * ny, 1])
+        cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
         result = cvxopt.solvers.qp(P=cvx_A, q=cvx_b, G=cvx_G, h=cvx_h)
         flat_p = result['x']
-        self.p = np.reshape(flat_p,self.cell_dimension)
+        self.p = np.reshape(flat_p, self.cell_dimension)
 
     def adjust_velocity(self):
         grad_p_x = np.zeros(self.cell_dimension)
-        grad_p_x[:,1:-1] = (self.p[:,:-2]-self.p[:,2:])/(2*self.dx)
+        grad_p_x[:, 1:-1] = (self.p[:, :-2] - self.p[:, 2:]) / (2 * self.dx)
         grad_p_y = np.zeros(self.cell_dimension)
-        grad_p_y[1:-1,:] = (self.p[2:,:]-self.p[:-2,:])/(2*self.dx)
+        grad_p_y[1:-1, :] = (elf.p[:-2, :] - self.p[2:, :]) / (2 * self.dx)
         self.v_x -= grad_p_x
         self.v_y -= grad_p_y
 
     def interpolate_pedestrians(self):
-        v_x_func = RBS(self.x_range,self.y_range,self.v_x)
-        v_y_func = RBS(self.x_range,self.y_range,self.v_y)
-        solved_v_x = v_x_func.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
-        solved_v_y = v_y_func.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
-        solved_velocity = np.hstack((solved_v_x[:,None],solved_v_y[:,None]))
-        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity)/2
-        self.scene.velocity_array /= 1/5*np.linalg.norm(self.scene.velocity_array,axis=1)[:,None] #todo: should be max vel
+        v_x_func = RBS(self.x_range, self.y_range, self.v_x)
+        v_y_func = RBS(self.x_range, self.y_range, self.v_y)
+        solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
+        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity) / 2
+        self.scene.velocity_array /= np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / 5
+        # todo: should be max vel
 
     def step(self):
         self.get_grid_values()

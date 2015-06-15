@@ -33,7 +33,7 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.number_of_cells = (20,20)
+        self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         if cache == 'read':
             self._load_cells()
@@ -41,8 +41,9 @@ class Scene:
             self._create_cells()
         if cache == 'write':
             self._store_cells()
-        self.pedestrian_list = [Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
-                                for counter in range(self.pedestrian_number)]
+        self.pedestrian_list = [
+            Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
+            for counter in range(self.pedestrian_number)]
 
         self._fill_cells()
 
@@ -159,9 +160,7 @@ class Scene:
         :return:array with integer values per pedestrian corresponding to its cell.
         """
         raw_cell_locations = np.floor(self.position_array / self.cell_size)
-        min_corrected_locations = np.maximum(raw_cell_locations,np.array((0,0)))
-        corrected_cell_locations = np.minimum(min_corrected_locations,np.array(self.number_of_cells)-1)
-        return corrected_cell_locations
+        return raw_cell_locations
 
     def update_cells(self):
         """
@@ -175,10 +174,14 @@ class Scene:
                 if any(needs_update[index]):
                     pedestrian = self.pedestrian_list[index]
                     cell = pedestrian.cell
-                    cell.remove_pedestrian(self.pedestrian_list[index])
                     new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))
-                    new_cell = self.cell_dict[new_cell_orientation]
-                    new_cell.add_pedestrian(pedestrian)
+                    if new_cell_orientation in self.cell_dict:
+                        cell.remove_pedestrian(self.pedestrian_list[index])
+                        new_cell = self.cell_dict[new_cell_orientation]
+                        new_cell.add_pedestrian(pedestrian)
+                    else:
+                        fyi('Pedestrian %d wanted to leave grid at %s, but that should be solved now' % (
+                        index, new_cell_orientation))
         self.pedestrian_cells = new_ped_cells
 
     def remove_pedestrian(self, pedestrian):
@@ -274,7 +277,7 @@ class Cell:
         within_boundaries = all(self.begin.array < coord.array) and all(
             coord.array < self.begin.array + self.size.array)
         if not within_boundaries:
-            warn('Position accessibility requested outside of %s' % self)
+            warn('Accessibility of %s requested outside of %s' % (coord, self))
             return False
         if at_start:
             return all([coord not in obstacle for obstacle in self.obstacle_set])

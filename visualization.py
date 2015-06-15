@@ -31,6 +31,7 @@ class VisualScene:
         self.window.bind("<Button-3>", self._provide_information)
         if not self.autoloop:
             self.window.bind("<Button-1>", self._advance_simulation)
+            self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
 

@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulatio
 parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation',
                     default=number_of_pedestrians)
 parser.add_argument('-s', '--step', action='store_true', help='Let simulation progress on mouse click only')
+parser.add_argument('-p', '--plot', action='store_true', help='Let simulation plot global values on each time step')
 parser.add_argument('-x', '--width', type=int, help='Width of the simulation domain', default=domain_width)
 parser.add_argument('-y', '--height', type=int, help='Height of the simulation domain', default=domain_height)
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
@@ -30,7 +31,7 @@ args = parser.parse_args()
 scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
 planner = GraphPlanner(scene)
-grid = GridComputer(scene)
+grid = GridComputer(scene, args.plot)
 
 # Methods inserted on every update
 def step():
