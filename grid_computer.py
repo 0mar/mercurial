@@ -120,7 +120,7 @@ class GridComputer:
         grad_p_x = np.zeros(self.cell_dimension)
         grad_p_x[:, 1:-1] = (self.p[:, :-2] - self.p[:, 2:]) / (2 * self.dx)
         grad_p_y = np.zeros(self.cell_dimension)
-        grad_p_y[1:-1, :] = (elf.p[:-2, :] - self.p[2:, :]) / (2 * self.dx)
+        grad_p_y[1:-1, :] = (self.p[:-2, :] - self.p[2:, :]) / (2 * self.dx)
         self.v_x -= grad_p_x
         self.v_y -= grad_p_y
 
