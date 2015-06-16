@@ -107,9 +107,8 @@ class VisualScene:
         """
         rel_pos_array = self.scene.position_array / self.scene.size.array
         rel_size_array = np.ones([self.scene.pedestrian_number,
-                                  2]) / self.scene.size.array * self.size.array  # Todo: Replace numbers by pedestrian size
-        vis_pos_array = np.asarray(
-            [rel_pos_array[:, 0], 1 - rel_pos_array[:, 1]]).T * self.size.array  # Todo: Quickest?
+                                  2]) / self.scene.size.array/2 * self.size.array  # Todo: Replace numbers by pedestrian size
+        vis_pos_array = np.hstack((rel_pos_array[:, 0][:,None], 1 - rel_pos_array[:, 1][:,None]))* self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
         return start_pos_array, end_pos_array
