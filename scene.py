@@ -180,8 +180,7 @@ class Scene:
                         new_cell = self.cell_dict[new_cell_orientation]
                         new_cell.add_pedestrian(pedestrian)
                     else:
-                        fyi('Pedestrian %d wanted to leave grid at %s, but that should be solved now' % (
-                        index, new_cell_orientation))
+                        pass
         self.pedestrian_cells = new_ped_cells
 
     def remove_pedestrian(self, pedestrian):
@@ -199,6 +198,10 @@ class Scene:
         self.pedestrian_list[counter] = empty_ped
         self.alive_array[counter] = 0
 
+    def is_within_boundaries(self,coord: Point) -> bool:
+        within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
+        return within_boundaries
+
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
         Checking whether the coordinate present is an accessible coordinate on the scene.
@@ -207,8 +210,7 @@ class Scene:
         :param at_start: Whether to be evaluated at the start
         :return: True if accessible, False otherwise.
         """
-        within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
-        if not within_boundaries:
+        if not self.is_within_boundaries(coord):
             return False
         if at_start:
             return all([coord not in obstacle for obstacle in self.obstacle_list])
@@ -274,9 +276,9 @@ class Cell:
         self.pedestrian_set.remove(pedestrian)
 
     def is_accessible(self, coord, at_start=False):
-        within_boundaries = all(self.begin.array < coord.array) and all(
+        within_cell_boundaries = all(self.begin.array < coord.array) and all(
             coord.array < self.begin.array + self.size.array)
-        if not within_boundaries:
+        if not within_cell_boundaries:
             warn('Accessibility of %s requested outside of %s' % (coord, self))
             return False
         if at_start:

@@ -28,7 +28,7 @@ class Pedestrian(object):
         self.counter = counter
         self._position = self._velocity = None
         self.position = position
-        self.size = Size(np.array([1.0, 1.0]))
+        self.size = Size(np.array([0.5, 0.5]))
         self.color = color
         self.max_speed = Interval([3, 10]).random()
         self.goal = goal
@@ -56,7 +56,7 @@ class Pedestrian(object):
         :return: None
         """
         new_point = Point(self.scene.position_array[self.counter])
-        if self.cell.is_accessible(new_point):
+        if self.scene.is_within_boundaries(new_point) and self.cell.is_accessible(new_point):
             self._position = new_point
         else:
             self.scene.position_array[self.counter] = self._position.array
