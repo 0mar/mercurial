@@ -1,6 +1,8 @@
 __author__ = 'omar'
 
 import tkinter
+import time
+import sys
 
 from functions import *
 from geometry import Point, Size, LineSegment, Path
@@ -11,7 +13,7 @@ class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, width, height, step, loop):
+    def __init__(self, scene, width, height, step, loop,delay):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
@@ -25,6 +27,7 @@ class VisualScene:
         self.step = step
         self.scene = scene
         self.autoloop = loop
+        self.delay = delay
         self.window = tkinter.Tk()
         self.window.title("Prototype Crowd Simulation")
         self.window.geometry("%dx%d" % (width, height))
@@ -51,6 +54,9 @@ class VisualScene:
         """
         self.step()  # All functions which should be called on every time step.
         self.draw_scene()
+        if self.scene.status=='DONE':
+            fyi("Simulation is finished. Exiting")
+            sys.exit(0)
 
     def loop(self):
         """
@@ -59,7 +65,7 @@ class VisualScene:
         """
         self._advance_simulation(None)
         if self.autoloop:
-            self.window.after(1, self.loop)
+            self.window.after(self.delay, self.loop)
 
     def _provide_information(self, event):
         """
@@ -93,11 +99,11 @@ class VisualScene:
         :return: None
         """
         start_pos_array, end_pos_array = self.get_visual_pedestrian_coordinates()
-        for ped in self.scene.pedestrian_list:
-            if ped.is_alive:
-                self.canvas.create_oval(start_pos_array[ped.counter, 0], start_pos_array[ped.counter, 1],
-                                        end_pos_array[ped.counter, 0], end_pos_array[ped.counter, 1],
-                                        fill=ped.color)
+        for counter in range(self.scene.pedestrian_number):
+            if self.scene.alive_array[counter]:
+                self.canvas.create_oval(start_pos_array[counter, 0], start_pos_array[counter, 1],
+                                        end_pos_array[counter, 0], end_pos_array[counter, 1],
+                                        fill=self.scene.pedestrian_list[counter].color)
 
     def get_visual_pedestrian_coordinates(self):
         """
@@ -106,8 +112,8 @@ class VisualScene:
         :return: relative start coordinates, relative end coordinates.
         """
         rel_pos_array = self.scene.position_array / self.scene.size.array
-        rel_size_array = np.ones([self.scene.pedestrian_number,
-                                  2]) / self.scene.size.array/2 * self.size.array  # Todo: Replace numbers by pedestrian size
+        rel_size_array = np.ones([self.scene.pedestrian_number,2]) / self.scene.size.array/2 * self.size.array
+        # Todo: Replace collective size by pedestrian size
         vis_pos_array = np.hstack((rel_pos_array[:, 0][:,None], 1 - rel_pos_array[:, 1][:,None]))* self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array

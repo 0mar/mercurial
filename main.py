@@ -21,8 +21,10 @@ parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in s
                     default=number_of_pedestrians)
 parser.add_argument('-s', '--step', action='store_true', help='Let simulation progress on mouse click only')
 parser.add_argument('-p', '--plot', action='store_true', help='Let simulation plot global values on each time step')
+parser.add_argument('-a', '--apply', action='store_true', help='Let simulation apply UIC to the pedestrians')
 parser.add_argument('-x', '--width', type=int, help='Width of the simulation domain', default=domain_width)
 parser.add_argument('-y', '--height', type=int, help='Height of the simulation domain', default=domain_height)
+parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (in milliseconds)', default=1)
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
 args = parser.parse_args()
@@ -31,7 +33,7 @@ args = parser.parse_args()
 scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
 planner = GraphPlanner(scene)
-grid = GridComputer(scene, args.plot)
+grid = GridComputer(scene, show_plot=args.plot, apply=args.apply)
 
 # Methods inserted on every update
 def step():
@@ -39,7 +41,7 @@ def step():
     grid.step()
 
 
-vis = VisualScene(scene, 1500, 1000, step=step, loop=not args.step)
+vis = VisualScene(scene, 1500, 1000, step=step, loop=not args.step,delay=args.delay)
 
 # Running
 vis.loop()

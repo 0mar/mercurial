@@ -46,7 +46,7 @@ class Scene:
             for counter in range(self.pedestrian_number)]
 
         self._fill_cells()
-
+        self.status = 'RUNNING'
     def _read_json_file(self, file_name: str):
         """
         Reads in a JSON file and stores the obstacle data in the scene.
@@ -170,7 +170,7 @@ class Scene:
         new_ped_cells = self.get_pedestrian_cells()
         needs_update = self.pedestrian_cells != new_ped_cells
         for index in range(self.pedestrian_number):
-            if self.pedestrian_list[index].is_alive:
+            if self.alive_array[index]:
                 if any(needs_update[index]):
                     pedestrian = self.pedestrian_list[index]
                     cell = pedestrian.cell
@@ -197,8 +197,10 @@ class Scene:
         empty_ped = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = empty_ped
         self.alive_array[counter] = 0
+        if np.sum(self.alive_array) == 0:
+            self.status='DONE'
 
-    def is_within_boundaries(self,coord: Point) -> bool:
+    def is_within_boundaries(self, coord: Point) -> bool:
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
         return within_boundaries
 

@@ -11,7 +11,7 @@ from functions import *
 
 
 class GridComputer:
-    def __init__(self, scene, show_plot):
+    def __init__(self, scene, show_plot,apply):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx = self.scene.cell_size[0]
@@ -25,6 +25,7 @@ class GridComputer:
         self._create_matrices()
 
         self.show_plot = show_plot
+        self.apply = apply
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
@@ -36,10 +37,7 @@ class GridComputer:
         if self.show_plot:
             # Plotting hooks
             self.mesh_x, self.mesh_y = np.meshgrid(self.x_range, self.y_range, indexing='ij')
-            graph1 = plt.figure()
-            self.rho_graph = graph1.add_subplot(111)
-            graph2 = plt.figure()
-            self.v_graph = graph2.add_subplot(111)
+            f, self.graphs = plt.subplots(2,2)
             plt.show(block=False)
 
     def _create_matrices(self):
@@ -55,7 +53,6 @@ class GridComputer:
         dyy = -np.diag(ey[:-1], 1) + np.diag(2 * ex) - np.diag(ey[:-1], -1)
         fullmatrix = np.kron(dxx, np.eye(len(ex))) + np.kron(np.eye(len(ey)), dyy)
         self.basis_A = self.dt / self.dx ** 2 * fullmatrix
-        # self.basis_A = fullmatrix
         v_x = ss.dia_matrix((-ex, -1), shape=self.cell_dimension) + ss.dia_matrix((ex, 1), shape=self.cell_dimension)
         self.basis_v_x = self.dt / self.dx * ss.kron(np.eye(len(ex)), v_x)
         v_y = ss.dia_matrix((ey, -1), shape=self.cell_dimension) + ss.dia_matrix((-ey, 1), shape=self.cell_dimension)
@@ -85,12 +82,11 @@ class GridComputer:
             self.plot_grid_values()
 
     def plot_grid_values(self):
-        self.rho_graph.cla()
-        self.rho_graph.imshow(np.rot90(self.rho))
-        self.v_graph.cla()
-        # self.v_graph.quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
-        self.v_graph.imshow(np.rot90(self.p))
-        plt.draw()
+        for graph in self.graphs.flatten():
+            graph.cla()
+        self.graphs[0,0].imshow(np.rot90(self.rho))
+        self.graphs[0,1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        plt.show(block=False)
 
     def solve_LCP(self):
         """
@@ -136,9 +132,10 @@ class GridComputer:
 
     def step(self):
         self.get_grid_values()
-        self.solve_LCP()
-        self.adjust_velocity()
-        self.interpolate_pedestrians()
+        if self.apply:
+            self.solve_LCP()
+            self.adjust_velocity()
+            self.interpolate_pedestrians()
 
     @staticmethod
     def weight_function(array):
