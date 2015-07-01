@@ -11,10 +11,10 @@ from functions import *
 
 
 class GridComputer:
-    def __init__(self, scene, show_plot,apply):
+    def __init__(self, scene, show_plot, apply):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
-        self.dx = self.scene.cell_size[0]
+        self.dx,self.dy = self.scene.cell_size
         self.dt = self.scene.dt
         self.interpolation_factor = 4
         self.packing_factor = 0.8
@@ -30,6 +30,8 @@ class GridComputer:
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
         self.p = np.zeros(self.cell_dimension)
+        self.grad_p_x = np.zeros(self.cell_dimension)
+        self.grad_p_y = np.zeros(self.cell_dimension)
 
         self.x_range = np.linspace(0, self.scene.size.width, self.cell_dimension[0])
         self.y_range = np.linspace(0, self.scene.size.height, self.cell_dimension[1])
@@ -37,26 +39,31 @@ class GridComputer:
         if self.show_plot:
             # Plotting hooks
             self.mesh_x, self.mesh_y = np.meshgrid(self.x_range, self.y_range, indexing='ij')
-            f, self.graphs = plt.subplots(2,2)
+            f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
     def _create_matrices(self):
         """
         Creates the matrix for solving the LCP using kronecker sums and the finite difference scheme
         The matrix returned is sparse and in cvxopt format.
-        :return: \delta t/\delta x^2*'ones'. Matrix is ready apart from multiplication with density.
+        :return: \delta t/\delta x^2*'ones'. Matrices are ready apart from multiplication with density.
         """
         nx, ny = self.cell_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
-        dxx = -np.diag(ex[:-1], 1) + np.diag(2 * ex) - np.diag(ex[:-1], -1)
-        dyy = -np.diag(ey[:-1], 1) + np.diag(2 * ex) - np.diag(ey[:-1], -1)
-        fullmatrix = np.kron(dxx, np.eye(len(ex))) + np.kron(np.eye(len(ey)), dyy)
-        self.basis_A = self.dt / self.dx ** 2 * fullmatrix
-        v_x = ss.dia_matrix((-ex, -1), shape=self.cell_dimension) + ss.dia_matrix((ex, 1), shape=self.cell_dimension)
-        self.basis_v_x = self.dt / self.dx * ss.kron(np.eye(len(ex)), v_x)
-        v_y = ss.dia_matrix((ey, -1), shape=self.cell_dimension) + ss.dia_matrix((-ey, 1), shape=self.cell_dimension)
-        self.basis_v_y = self.dt / self.dx * ss.kron(v_y, np.eye(len(ey)))
+        Adxx = np.diag(-ex[:-1],1)+np.diag(ex[:-1],-1)
+        Adyy =np.diag(-ey[:-1],1)+np.diag(ey[:-1],-1)
+        self.Ax = 1/(4*self.dx**2)*np.kron(Adxx,np.eye(len(ey)))
+        self.Ay = 1/(4*self.dy**2)*np.kron(np.eye(len(ex)),Adyy)
+
+        Bdxx = np.diag(-ex[:-1],1)+np.diag(2*ex)+np.diag(-ex[:-1],-1)
+        Bdyy =np.diag(-ey[:-1],1)+np.diag(2*ey)+np.diag(-ey[:-1],-1)
+        self.Bx = 1/(self.dx**2)*np.kron(Bdxx,np.eye(len(ey)))
+        self.By = 1/(self.dy**2)*np.kron(np.eye(len(ex)),Bdyy)
+        # v_x = ss.dia_matrix((-ex, -1), shape=self.cell_dimension) + ss.dia_matrix((ex, 1), shape=self.cell_dimension)
+        # self.basis_v_x = self.dt / self.dx * ss.kron(np.eye(len(ex)), v_x)
+        # v_y = ss.dia_matrix((ey, -1), shape=self.cell_dimension) + ss.dia_matrix((-ey, 1), shape=self.cell_dimension)
+        # self.basis_v_y = self.dt / self.dx * ss.kron(v_y, np.eye(len(ey)))
 
     def get_grid_values(self):
         cell_dict = self.scene.cell_dict
@@ -84,8 +91,14 @@ class GridComputer:
     def plot_grid_values(self):
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0,0].imshow(np.rot90(self.rho))
-        self.graphs[0,1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        self.graphs[0, 0].imshow(np.rot90(self.rho))
+        self.graphs[0, 0].set_title('Density')
+        self.graphs[1, 0].imshow(np.rot90(self.p))
+        self.graphs[0, 1].set_title('Pressure')
+        self.graphs[0, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        self.graphs[1, 0].set_title('Velocity field')
+        self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
+        self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
     def solve_LCP(self):
@@ -96,29 +109,31 @@ class GridComputer:
         """
         nx = self.cell_dimension[0]
         ny = self.cell_dimension[1]
-        flat_rho = self.rho.flatten() + 0.1
-        flat_v_x = self.v_x.flatten()
-        flat_v_y = self.v_y.flatten()
+        flat_rho = self.rho.flatten(order='F') + 0.1
+        grad_rho_x = GridComputer.get_gradient(self.rho,'x')
+        grad_rho_y = GridComputer.get_gradient(self.rho,'y')
+        A = self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F')
+        B = (self.Bx+self.By)*flat_rho
+        cvx_M = cvxopt.matrix(A+B)
 
-        A = self.basis_A * flat_rho[:, None]
-        cvx_A = cvxopt.matrix(A)
-        b = self.max_pressure - flat_rho + (self.basis_v_x.dot(flat_v_x) + self.basis_v_y.dot(flat_v_y)) * flat_rho
+        grad_v_rho_x = GridComputer.get_gradient(self.rho*self.v_x,'x')
+        grad_v_rho_y = GridComputer.get_gradient(self.rho*self.v_y,'y')
+
+        b = self.max_pressure - self.dt*(grad_v_rho_x.flatten(order='F')+grad_v_rho_y.flatten(order='F')    )
         cvx_b = cvxopt.matrix(b)
         I = np.eye(nx * ny)
-        cvx_G = cvxopt.matrix(np.vstack((-A, -I)))
+        cvx_G = cvxopt.matrix(np.vstack((A+B, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
-        result = cvxopt.solvers.qp(P=cvx_A, q=cvx_b, G=cvx_G, h=cvx_h)
+        result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
         flat_p = result['x']
         self.p = np.reshape(flat_p, self.cell_dimension)
 
     def adjust_velocity(self):
-        grad_p_x = np.zeros(self.cell_dimension)
-        grad_p_x[:, 1:-1] = (self.p[:, :-2] - self.p[:, 2:]) / (2 * self.dx)
-        grad_p_y = np.zeros(self.cell_dimension)
-        grad_p_y[1:-1, :] = (self.p[:-2, :] - self.p[2:, :]) / (2 * self.dx)
-        self.v_x -= grad_p_x
-        self.v_y -= grad_p_y
+        self.grad_p_x = GridComputer.get_gradient(self.p,'x')
+        self.grad_p_y = GridComputer.get_gradient(self.p,'y')
+        self.v_x -= self.grad_p_x
+        self.v_y -= self.grad_p_y
 
     def interpolate_pedestrians(self):
         v_x_func = RBS(self.x_range, self.y_range, self.v_x)
@@ -149,3 +164,27 @@ class GridComputer:
         first_factor = np.maximum(1 - array / 2, 0)
         weight = first_factor ** 4 * (1 + 2 * array)
         return weight * norm_constant
+
+    @staticmethod
+    def print_field_with_orientation(field):
+        """
+        Prints the field, but places (1,1) in the lower left corner
+        and (m,n) in the upper right corner), column major indexing
+        :param field: 2d array to be printed
+        :return: string with correct field formatting
+        """
+        return str(np.rot90(field))
+
+    @staticmethod
+    def get_gradient(field,direction):
+            assert all(dim > 2 for dim in field.shape)
+            if direction=='x':
+                grad_field_x = np.zeros(field.shape)
+                grad_field_x[1:-1,:] = field[2:,:] - field[:-2,:]
+                return grad_field_x
+            elif direction=='y':
+                grad_field_y = np.zeros(field.shape)
+                grad_field_y[:,1:-1] = field[:,2:] - field[:,:-2]
+                return grad_field_y
+            else:
+                raise ValueError('Choose x or y for direction, not %s'%direction)

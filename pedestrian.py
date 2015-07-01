@@ -77,6 +77,7 @@ class Pedestrian(object):
         If so, moves to that position. Directly attaining the position within the current radius enables us
         to be less numerically accurate with the velocity directing to the goal.
         This has not yet proven to be a problem, luckily.
+        We will need to correct for the UIC though.
         :param position: Position that should be attained
         :param dt: time step
         :return: True when position is attained, false otherwise
