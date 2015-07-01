@@ -3,7 +3,6 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import scipy.sparse as ss
 from scipy.interpolate import RectBivariateSpline as RBS
 import cvxopt
 
@@ -14,7 +13,7 @@ class GridComputer:
     def __init__(self, scene, show_plot, apply):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
-        self.dx,self.dy = self.scene.cell_size
+        self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
         self.interpolation_factor = 4
         self.packing_factor = 0.8
@@ -51,19 +50,15 @@ class GridComputer:
         nx, ny = self.cell_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
-        Adxx = np.diag(-ex[:-1],1)+np.diag(ex[:-1],-1)
-        Adyy =np.diag(-ey[:-1],1)+np.diag(ey[:-1],-1)
-        self.Ax = 1/(4*self.dx**2)*np.kron(Adxx,np.eye(len(ey)))
-        self.Ay = 1/(4*self.dy**2)*np.kron(np.eye(len(ex)),Adyy)
+        Adxx = np.diag(-ex[:-1], 1) + np.diag(ex[:-1], -1)
+        Adyy = np.diag(-ey[:-1], 1) + np.diag(ey[:-1], -1)
+        self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(len(ey)))
+        self.Ay = 1 / (4 * self.dy ** 2) * np.kron(np.eye(len(ex)), Adyy)
 
-        Bdxx = np.diag(-ex[:-1],1)+np.diag(2*ex)+np.diag(-ex[:-1],-1)
-        Bdyy =np.diag(-ey[:-1],1)+np.diag(2*ey)+np.diag(-ey[:-1],-1)
-        self.Bx = 1/(self.dx**2)*np.kron(Bdxx,np.eye(len(ey)))
-        self.By = 1/(self.dy**2)*np.kron(np.eye(len(ex)),Bdyy)
-        # v_x = ss.dia_matrix((-ex, -1), shape=self.cell_dimension) + ss.dia_matrix((ex, 1), shape=self.cell_dimension)
-        # self.basis_v_x = self.dt / self.dx * ss.kron(np.eye(len(ex)), v_x)
-        # v_y = ss.dia_matrix((ey, -1), shape=self.cell_dimension) + ss.dia_matrix((-ey, 1), shape=self.cell_dimension)
-        # self.basis_v_y = self.dt / self.dx * ss.kron(v_y, np.eye(len(ey)))
+        Bdxx = np.diag(-ex[:-1], 1) + np.diag(2 * ex) + np.diag(-ex[:-1], -1)
+        Bdyy = np.diag(-ey[:-1], 1) + np.diag(2 * ey) + np.diag(-ey[:-1], -1)
+        self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(len(ey)))
+        self.By = 1 / (self.dy ** 2) * np.kron(np.eye(len(ex)), Bdyy)
 
     def get_grid_values(self):
         cell_dict = self.scene.cell_dict
@@ -94,9 +89,9 @@ class GridComputer:
         self.graphs[0, 0].imshow(np.rot90(self.rho))
         self.graphs[0, 0].set_title('Density')
         self.graphs[1, 0].imshow(np.rot90(self.p))
-        self.graphs[0, 1].set_title('Pressure')
+        self.graphs[1, 0].set_title('Pressure')
         self.graphs[0, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
-        self.graphs[1, 0].set_title('Velocity field')
+        self.graphs[0, 1].set_title('Velocity field')
         self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
@@ -110,28 +105,28 @@ class GridComputer:
         nx = self.cell_dimension[0]
         ny = self.cell_dimension[1]
         flat_rho = self.rho.flatten(order='F') + 0.1
-        grad_rho_x = GridComputer.get_gradient(self.rho,'x')
-        grad_rho_y = GridComputer.get_gradient(self.rho,'y')
+        grad_rho_x = GridComputer.get_gradient(self.rho, 'x')
+        grad_rho_y = GridComputer.get_gradient(self.rho, 'y')
         A = self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F')
-        B = (self.Bx+self.By)*flat_rho
-        cvx_M = cvxopt.matrix(A+B)
+        B = (self.Bx + self.By) * flat_rho
+        cvx_M = cvxopt.matrix(A + B)
 
-        grad_v_rho_x = GridComputer.get_gradient(self.rho*self.v_x,'x')
-        grad_v_rho_y = GridComputer.get_gradient(self.rho*self.v_y,'y')
+        grad_v_rho_x = GridComputer.get_gradient(self.rho * self.v_x, 'x')
+        grad_v_rho_y = GridComputer.get_gradient(self.rho * self.v_y, 'y')
 
-        b = self.max_pressure - self.dt*(grad_v_rho_x.flatten(order='F')+grad_v_rho_y.flatten(order='F')    )
+        b = self.max_pressure + flat_rho - self.dt * (grad_v_rho_x.flatten(order='F') + grad_v_rho_y.flatten(order='F'))
         cvx_b = cvxopt.matrix(b)
         I = np.eye(nx * ny)
-        cvx_G = cvxopt.matrix(np.vstack((A+B, -I)))
+        cvx_G = cvxopt.matrix(np.vstack((A + B, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
         result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
         flat_p = result['x']
-        self.p = np.reshape(flat_p, self.cell_dimension)
+        self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
     def adjust_velocity(self):
-        self.grad_p_x = GridComputer.get_gradient(self.p,'x')
-        self.grad_p_y = GridComputer.get_gradient(self.p,'y')
+        self.grad_p_x = GridComputer.get_gradient(self.p, 'x')
+        self.grad_p_y = GridComputer.get_gradient(self.p, 'y')
         self.v_x -= self.grad_p_x
         self.v_y -= self.grad_p_y
 
@@ -176,15 +171,15 @@ class GridComputer:
         return str(np.rot90(field))
 
     @staticmethod
-    def get_gradient(field,direction):
-            assert all(dim > 2 for dim in field.shape)
-            if direction=='x':
-                grad_field_x = np.zeros(field.shape)
-                grad_field_x[1:-1,:] = field[2:,:] - field[:-2,:]
-                return grad_field_x
-            elif direction=='y':
-                grad_field_y = np.zeros(field.shape)
-                grad_field_y[:,1:-1] = field[:,2:] - field[:,:-2]
-                return grad_field_y
-            else:
-                raise ValueError('Choose x or y for direction, not %s'%direction)
+    def get_gradient(field, direction):
+        assert all(dim > 2 for dim in field.shape)
+        if direction == 'x':
+            grad_field_x = np.zeros(field.shape)
+            grad_field_x[1:-1, :] = field[2:, :] - field[:-2, :]
+            return grad_field_x
+        elif direction == 'y':
+            grad_field_y = np.zeros(field.shape)
+            grad_field_y[:, 1:-1] = field[:, 2:] - field[:, :-2]
+            return grad_field_y
+        else:
+            raise ValueError('Choose x or y for direction, not %s' % direction)
