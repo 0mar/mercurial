@@ -77,7 +77,7 @@ class Planner:
     def collective_update(self):
         self.scene.move_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
-            if pedestrian.is_alive:
+            if self.scene.alive_array[pedestrian.counter]:
                 pedestrian.update_position()
                 # assert self.scene.is_accessible(pedestrian.position)
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)

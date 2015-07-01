@@ -32,7 +32,6 @@ class Pedestrian(object):
         self.color = color
         self.max_speed = Interval([3, 10]).random()
         self.goal = goal
-        self.is_alive = True
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
@@ -133,7 +132,6 @@ class Pedestrian(object):
 class EmptyPedestrian(Pedestrian):
     def __init__(self, scene, counter):
         super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None)
-        self.is_alive = False
 
     def is_done(self):
         return True

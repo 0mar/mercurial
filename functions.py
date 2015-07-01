@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-
+import scipy.optimize as opt
 EPS = 1e-9
 VERBOSE = False
 
@@ -70,3 +70,8 @@ def solve_convex_piece_lin_ineq(func, lower_bound: float, interval, max_iter=10,
                 left = mid_point
         else:
             return mid_point
+
+def solve_convex_piece_lin_ineq2(func, lower_bound: float, interval, max_iter=10, strict=False):
+    res = opt.minimize(func,x0=(interval.begin+interval.end)/2)
+    print(res)
+    return res.x[0]
