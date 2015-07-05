@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.optimize as opt
+
 EPS = 1e-9
 VERBOSE = False
 
@@ -71,7 +72,16 @@ def solve_convex_piece_lin_ineq(func, lower_bound: float, interval, max_iter=10,
         else:
             return mid_point
 
+
 def solve_convex_piece_lin_ineq2(func, lower_bound: float, interval, max_iter=10, strict=False):
-    res = opt.minimize(func,x0=(interval.begin+interval.end)/2)
+    res = opt.minimize(func, x0=(interval.begin + interval.end) / 2)
     print(res)
     return res.x[0]
+
+
+def rectangles_intersect(start_1, end_1, start_2, end_2):
+    if start_1[0] < end_2[0] or start_1[0] < end_1[0] \
+            or start_1[1] < end_2[1] or start_2[1] < end_1[1]:
+        return True
+    else:
+        return False

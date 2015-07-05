@@ -120,8 +120,12 @@ class GridComputer:
         cvx_G = cvxopt.matrix(np.vstack((A + B, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
-        result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
-        flat_p = result['x']
+        try:
+            result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
+            flat_p = result['x']
+        except ValueError as e:
+            warn(str(e))
+            flat_p = np.zeros([1, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
     def adjust_velocity(self):
@@ -136,8 +140,8 @@ class GridComputer:
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
-        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity) / 2
-        self.scene.velocity_array /= np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / 5
+        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity * 0.5) / 1.5
+        self.scene.velocity_array /= np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / 2
         # todo: should be max vel
 
     def step(self):

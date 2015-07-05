@@ -1,7 +1,6 @@
 __author__ = 'omar'
 
 import tkinter
-import time
 import sys
 
 from functions import *
@@ -144,7 +143,8 @@ class VisualScene:
 
     def draw_cell(self, cell):
         """
-        Draws a cell as a rectangle within the window. Only useful for debugging purposes.
+        Draws a cell as a rectangle within the window.
+        Only use for debugging purposes, since drawing is slow.
         :param cell: Cell object to be drawn
         :return: None
         """

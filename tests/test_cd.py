@@ -123,7 +123,10 @@ class TestGraphPlanner:
 
     def test_path_from_pedestrian_to_finish(self):
         ped = self.scene.pedestrian_list[0]
-        assert ped.path[-1].end in ped.goal
+        if ped.path:
+            assert ped.path[-1].end in ped.goal
+        else:
+            assert ped.line.end in ped.goal
 
 
 class TestCell:
@@ -134,7 +137,7 @@ class TestCell:
 
     def test_ped_distribution(self):
         counted_ped = 0
-        for cell in scene.cell_dict.values():
+        for cell in self.scene.cell_dict.values():
             counted_ped += len(cell.pedestrian_set)
         assert counted_ped == self.ped_number
 
@@ -142,6 +145,43 @@ class TestCell:
         for _ in range(300):
             loc = self.scene.size.random_internal_point()
             found = 0
-            for cell in scene.cell_dict.values():
+            for cell in self.scene.cell_dict.values():
                 found += int(loc in cell)
             assert found == 1
+
+
+class TestFunctions:
+    def __init__(self):
+        self.rec1 = (Point([0, 0]), Point([5, 5]))
+        self.rec2 = (Point([4, 4]), Point([6, 6]))
+        self.rec3 = (Point([5, 0]), Point([6, 1]))
+        self.rec4 = (Point([2, 2]), Point([3, 3]))
+        self.rec5 = (Point([2, -1]), Point([4, 6]))
+        self.rec6 = (Point([2, -1]), Point([4, 4]))
+
+    def test_overlapping_rectangles(self):
+        start1, end1 = self.rec1
+        start2, end2 = self.rec2
+        assert rectangles_intersect(start1, end1, start2, end2)
+
+    def test_overlapping_rectangles(self):
+        start1, end1 = self.rec1
+        start2, end2 = self.rec2
+        assert rectangles_intersect(start1, end1, start2, end2)
+
+    def test_adjacent_rectangles(self):
+        start1, end1 = self.rec1
+        start2, end2 = self.rec3
+        assert rectangles_intersect(start1, end1, start2, end2)
+
+    def test_containing_rectangles(self):
+        start1, end1 = self.rec1
+        start2, end2 = self.rec4
+        assert rectangles_intersect(start1, end1, start2, end2)
+
+    def test_unorderable_rectangles(self):
+        start1, end1 = self.rec1
+        start2, end2 = self.rec5
+        start3, end3 = self.rec6
+        assert rectangles_intersect(start1, end1, start2, end2)
+        assert rectangles_intersect(start1, end1, start3, end3)

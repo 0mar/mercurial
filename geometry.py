@@ -205,6 +205,7 @@ class Path(object):
         if isinstance(other, LineSegment):
             if self.list:
                 self._check_connectivity(self.list[-1], other)
+            self.list.append(other)
         elif isinstance(other, Point):
             if not self.list:
                 raise AssertionError("List must have elements before adding Points")
@@ -213,7 +214,6 @@ class Path(object):
             self.list.append(new_line_segment)
         else:
             raise AttributeError("Object appended to Path must be LineSegment or Point, not %s" % other)
-        self.list.append(other)
 
     def pop_next_segment(self):
         return self.list.pop(0)

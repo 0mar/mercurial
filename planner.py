@@ -114,15 +114,16 @@ class GraphPlanner(Planner):
             raise RuntimeError("No path could be found from %s to exit. Check your obstacles" % pedestrian)
         path_to_exit = Path([])
         prev_point = path[0]
+        if len(path) < 2:
+            print(path, pedestrian)
         for point in path[1:-1]:
             line = LineSegment([prev_point, point])
             path_to_exit.append(line)
             prev_point = point
-        else:
-            finish_point = Planner.get_goal(prev_point, goal_obstacle)
-            line_to_finish = LineSegment([prev_point, finish_point])
-            # assert self.line_crosses_no_obstacles(line_to_finish)
-            path_to_exit.append(line_to_finish)
+        finish_point = Planner.get_goal(prev_point, goal_obstacle)
+        line_to_finish = LineSegment([prev_point, finish_point])
+        # assert self.line_crosses_no_obstacles(line_to_finish)
+        path_to_exit.append(line_to_finish)
         # print ("Path: %s\nPath obj %s"%(path,path_to_exit))
         return path_to_exit
 

@@ -115,7 +115,7 @@ class Scene:
         """
         This method pickles the cells dictionary (without pedestrians) into a file.
         It can be loaded using _load_cells
-        :param filename: name of pickle file
+        :param filename: name of pickled scene file
         :return: None
         """
         with open(filename, 'wb') as pickle_file:
@@ -124,7 +124,7 @@ class Scene:
     def _load_cells(self, filename='cells.bin'):
         """
         Opens and unpickles the file containing the scene dictionary
-        :param filename: name of pickle file
+        :param filename: name of pickled scene file
         :return: None
         """
         fyi("Loading cell objects from file")
@@ -365,7 +365,3 @@ class Exit(Obstacle):
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
-
-        #
-        # scene = Scene(size=Size([400, 500]), obstacle_file="demo_obstacle_list.json",
-        # pedestrian_number=100)
