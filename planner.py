@@ -7,7 +7,6 @@ from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
 from pedestrian import Pedestrian
 from scene import Obstacle
 
-
 class Planner:
     on_track = 0
     reached_checkpoint = 1
@@ -145,7 +144,7 @@ class GraphPlanner(Planner):
         line_to_goal = LineSegment([node, goal_point])
         path_free = True
         for obstacle in self.scene.obstacle_list:
-            if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle, strict=True):
+            if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle, open_sets=True):
                 path_free = False
                 break
         if path_free:
@@ -155,7 +154,7 @@ class GraphPlanner(Planner):
                 path = LineSegment([node, other_node])
                 path_free = True
                 for obstacle in self.scene.obstacle_list:
-                    if obstacle.in_interior and path.crosses_obstacle(obstacle, strict=True):
+                    if obstacle.in_interior and path.crosses_obstacle(obstacle, open_sets=True):
                         path_free = False
                         break
                 if path_free:
@@ -175,8 +174,19 @@ class GraphPlanner(Planner):
         nx.draw_networkx_nodes(graph, pos)
         nx.draw_networkx_edges(graph, pos)
 
-    def line_crosses_no_obstacles(self, line: LineSegment) -> bool:
-        for obstacle in self.scene.obstacle_list:
-            if obstacle.in_interior and line.crosses_obstacle(obstacle, strict=True):
-                return False
-        return True
+        # def line_crosses_no_obstacles(self, line: LineSegment) -> bool:
+        #     for obstacle in self.scene.obstacle_list:
+        #         if obstacle.in_interior and line.crosses_obstacle(obstacle, open_sets=True):
+        #             return False
+        #     return True
+
+
+if __name__ == '__main__':
+    from geometry import Size
+    import scene
+    from planner import GraphPlanner
+
+    scene = scene.Scene(size=Size([70, 70]), obstacle_file='demo_obstacle_list.json',
+                        pedestrian_number=1)
+    planner = GraphPlanner(scene)
+    planner.draw_graph(planner.graph)

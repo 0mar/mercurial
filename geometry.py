@@ -126,32 +126,29 @@ class LineSegment(object):
     def get_point(self, value:float):
         return self.begin + value * (self.end - self.begin)
 
-    def crosses_obstacle(self, obstacle, strict=False):
+    def crosses_obstacle(self, obstacle, open_sets=False):
         """
         Checks whether the line crosses the rectangular obstacle.
-        Currently done quite inefficiently, even if I say so myself.
-        Very precise though.
+        Implemented more efficiently than its counterpart, and even more precise.
         :param obstacle: The rectangular obstacle to be checked
-        :param strict: Whether the line passes only through the obstacle (strict = True)
-         or also through the boundary (strict = False)
+        :param strict: Whether the line passes only through the obstacle (open_sets = True)
+         or also through the boundary (open_sets = False)
         :return: True if line crosses obstacle, false otherwise
         """
-        line = np.array([self.begin, self.end])
-        obs_matrix = np.array([obstacle.begin.array, obstacle.end.array])
-        # Translation to center of object
-        midpoint = np.mean(obs_matrix, axis=0)
-        translated_line = line - midpoint
-        # Scaling with size of object
-        size = np.dot(np.array([-1, 1]), obs_matrix)  # self.end - self.begin
-        scale = 2 / size
-        scaled_path = translated_line * scale
-        # Rotating 45 degrees
-        rot_path = np.dot(scaled_path, rot_mat(np.pi / 4.) / np.sqrt(2))
-        # 1 norm of function
-
-        path_function = lambda x: LineSegment.path_norm(rot_path, x)
-        t = solve_convex_piece_lin_ineq(path_function, lower_bound=1, interval=Interval([0., 1.]), strict=strict)
-        return self.get_point(t) in obstacle
+        line_array = np.array([self.begin, self.end])
+        rect_array = np.array([[np.min(line_array[:, 0]), np.min(line_array[:, 1])],
+                               [np.max(line_array[:, 0]), np.max(line_array[:, 1])]])
+        obs_array = np.array([obstacle.begin.array, obstacle.end.array])
+        intersects = rectangles_intersect(rect_array[0], rect_array[1], obs_array[0], obs_array[1], open_sets)
+        if not intersects:
+            return False
+        f = get_hyperplane_function(line_array[0], line_array[1])
+        obs_points = np.array([point.array for point in obstacle.corner_list])
+        point_result = f(obs_points[:, 0], obs_points[:, 1])
+        if np.sum(np.sign(point_result)) in [-4, 4]:
+            return False
+        else:
+            return True
 
     def __getitem__(self, item):
         return self.array[item]

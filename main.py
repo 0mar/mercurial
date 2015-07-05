@@ -10,7 +10,7 @@ from planner import GraphPlanner
 
 
 # Default parameters
-number_of_pedestrians = 100
+number_of_pedestrians = 1
 domain_width = 70
 domain_height = 70
 obstacle_file = 'demo_obstacle_list.json'

@@ -50,13 +50,13 @@ class TestLineSegment:
         line = LineSegment([Point([7, 10]), Point([7, 15])])
         assert line.begin in self.obs
         assert line.crosses_obstacle(self.obs)
-        assert not line.crosses_obstacle(self.obs, strict=True)
+        assert not line.crosses_obstacle(self.obs, open_sets=True)
 
     def test_line_ending_in_corner(self):
         line = LineSegment([Point([3, 4]), Point([5, 7])])
         assert line.end in self.obs
-        assert line.crosses_obstacle(self.obs)
-        assert not line.crosses_obstacle(self.obs, strict=True)
+        assert line.crosses_obstacle(self.obs, open_sets=False)
+        assert not line.crosses_obstacle(self.obs, open_sets=True)
 
     def test_line_far_from_obstacle(self):
         line = LineSegment([Point([4, 5]), Point([2, 3])])
@@ -70,6 +70,11 @@ class TestLineSegment:
 
     def test_line_starting_close_to_corner(self):
         line = LineSegment([Point([7.01, 10.01]), Point([7, 15])])
+        assert line.begin not in self.obs
+        assert not line.crosses_obstacle(self.obs)
+
+    def test_decreasing_line(self):
+        line = LineSegment([Point([3, 5]), Point([6, 2])])
         assert line.begin not in self.obs
         assert not line.crosses_obstacle(self.obs)
 
@@ -118,7 +123,7 @@ class TestGraphPlanner:
         ped = self.scene.pedestrian_list[0]
         for obstacle in self.scene.obstacle_list:
             for line_segment in ped.path:
-                assert not line_segment.crosses_obstacle(obstacle)
+                assert (not line_segment.crosses_obstacle(obstacle)) or obstacle.permeable
 
 
     def test_path_from_pedestrian_to_finish(self):
@@ -164,15 +169,11 @@ class TestFunctions:
         start2, end2 = self.rec2
         assert rectangles_intersect(start1, end1, start2, end2)
 
-    def test_overlapping_rectangles(self):
-        start1, end1 = self.rec1
-        start2, end2 = self.rec2
-        assert rectangles_intersect(start1, end1, start2, end2)
-
     def test_adjacent_rectangles(self):
         start1, end1 = self.rec1
         start2, end2 = self.rec3
-        assert rectangles_intersect(start1, end1, start2, end2)
+        assert rectangles_intersect(start1, end1, start2, end2, open_sets=False)
+        assert not rectangles_intersect(start1, end1, start2, end2, open_sets=True)
 
     def test_containing_rectangles(self):
         start1, end1 = self.rec1
@@ -185,3 +186,8 @@ class TestFunctions:
         start3, end3 = self.rec6
         assert rectangles_intersect(start1, end1, start2, end2)
         assert rectangles_intersect(start1, end1, start3, end3)
+
+    def test_non_overlapping_rectangles(self):
+        start1, end1 = self.rec3
+        start2, end2 = self.rec5
+        assert not rectangles_intersect(start1, end1, start2, end2)
