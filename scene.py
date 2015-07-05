@@ -65,6 +65,10 @@ class Scene:
             size = Size(self.size * obstacle_data['size'])
             name = obstacle_data["name"]
             self.obstacle_list.append(Obstacle(begin, size, name))
+        if len(data['exits']) ==0:
+            raise AttributeError('No exits specified in %s'%file_name)
+        elif len(data['exits'])>1:
+            raise NotImplementedError('Multiple exits specified in %s'%file_name)
         for exit_data in data['exits']:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])

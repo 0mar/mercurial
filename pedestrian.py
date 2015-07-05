@@ -30,12 +30,12 @@ class Pedestrian(object):
         self.position = position
         self.size = Size(np.array([0.5, 0.5]))
         self.color = color
-        self.max_speed = Interval([3, 10]).random()
+        self.max_speed = Interval([1,2]).random()
         self.goal = goal
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
-            self.manual_move(new_position)
+            self.manual_move(new_position,at_start=True)
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
@@ -60,9 +60,9 @@ class Pedestrian(object):
         else:
             self.scene.position_array[self.counter] = self._position.array
 
-    def manual_move(self, position):
+    def manual_move(self, position,at_start = False):
         # Should a whole scene check take too much time, then this should be replaced
-        if self.scene.is_accessible(position):
+        if self.scene.is_accessible(position,at_start):
             self.position = position
             self.scene.position_array[self.counter] = self.position.array
             if self.cell:
