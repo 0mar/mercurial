@@ -1,10 +1,11 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage{epstopdf}
+\graphicspath{{./images/}}
 \usepackage{caption}
 \usepackage[english]{babel}
-
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,amsthm}
 \usepackage{a4wide}
 \usepackage{tikz}
 \usetikzlibrary{calc}
@@ -19,6 +20,8 @@
 \renewcommand{\tilde}[1]{\oldtil{\mathbf{#1}}}
 \newcommand{\eps}{\varepsilon}
 \newcommand{\bigo}[1]{\mathcal{O}\left(#1\right)}
+\newtheorem{newdef}{Definition}
+\newtheorem{newthm}{Theorem}
 \begin{document}
 
 \maketitle
@@ -45,7 +48,7 @@ This module is responsible for translating the position and speed of the agent t
 This module is responsible for determining the global direction of the agents. Every agent is confined this direction in a certain degree. The denser the crowd, the less influence one agent has over its direction.
 This module also contains the incompressibility constraint to prevent agents from colliding.
 \end{enumerate}
-The model will be implemented in Python. Motivation behind this language is that it has dependable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also has the advantage of object oriented structure, which will make working with agents on a local level more manageable.
+The model will be implemented in Python. Motivation behind this language is that it has dependable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also has the advantage of an object oriented structure, which will make working with agents on a local level more manageable.
 \newpage
 \section{Geometry}
 This section will elaborate on the implementation of the geometry.
@@ -66,42 +69,94 @@ The agents have a maximum speed which varies among them.
 \ \\
 The agents are displayed in the geometry by colored circles. Optionally, it is possible to display the agents as directed triangles, to indicate their movement direction. This, again, has a \underline{higher computational cost}.
 \newpage
-\section{Planner - Naive}
-This section describes the initial planner module implemented.
+\section{Global planner}
 \subsection{Summary}
-The planner has the objective of planning a path for every agent to follow that will lead him to his goal. This path has to respect the obstacles, but can be ignorant of other agents, since the fluid solver will account for that.
+This section describes the global planner module. The planner has the objective of planning a path for every agent to follow that will lead him to his goal. This path has to avoid the obstacles in the scene but ignores the position of other agents. Collisions with other agents will be avoided by the continuum solver. We elaborate on this module in Section \ref{sec:continuum}.
 
 \ \\
-A \emph{path} is modelled as a sequence of sub-paths, straight line segments. This makes the path piecewise linear.
-The path from an agents position to the exit is determined by computing the corresponding line segment and \underline{iteratively} dodging the obstacles in the way until a collision-free path has been established. This path is then imposed on the agent.
-An agents \emph{goal} is a special kind of obstacle which can be entered. The distance from the agent to the goal is defined as the Euclidean distance between a point (the agent position) and a set (the rectangular goal).
+In this implementation, we combine line segments to form piecewise linear paths. The path taken is the shortest path to the exit avoiding the obstacles. An example of a planned agent path is provided in Figure \ref{fig:example_path}. We compute a path by representing the scene as a weighted graph and determining the shortest path from the agents position to the exit.
+\begin{figure}[h]
+	\centering
+	\includegraphics{images/example_graph.png}
+	\caption{An example of a scene geometry and the corresponding path planned out for the agent.}
+	\label{fig:example_path}
+\end{figure}
+\subsection{Graph representation}
+We will explain the algorithm by example. We model our scene as a two-dimensional set $\Omega \subset \mathbb{R}^2$. In this set, we have obstacles $M_i \subset \Omega$ and location of agents $a_j$ as points $(x_{a_j},y_{a_j}) \in \Omega$. 
+\begin{newdef}
+	Let $M \subset \Omega$ be a rectangular obstacle with lower left corner $\vec{s}=(s_x,s_y)$ and upper right corner $\vec{t}=(t_x,t_y)$. The shape of this obstacle is denoted as $[\vec{s},\vec{t}]$. The four corner points (lower-left, lower-right, upper-left and upper-right) are denoted respectivily as $\vec{m}^{00},\vec{m}^{10},\vec{m}^{01},\vec{m}^{11}$ and have values
+	\begin{align}
+		\vec{m}^{00}&=(s_x,s_y)\\
+		\vec{m}^{10}&=(t_x,s_y)\\
+		\vec{m}^{01}&=(s_x,t_y)\\
+		\vec{m}^{11}&=(t_x,t_y)
+		\label{eq:corner_points}
+	\end{align}
+\end{newdef}
+In Figure \ref{fig:example_path} we see an illustration of a scene $\Omega$ of size $R_x\times R_y$ containing two obstacles $M_1$ and $M_2$ with shapes $[\vec{s}_{M_1},\vec{t}_{M_1}]$ and $[\vec{s}_{M_2},\vec{t}_{M_2}]$. We seek a path for agent $a$ at location $\vec{x}_a$ to the exit $E$ with coordinates $\vec{x}_E$. 
+Let $G = (V,E)$ be a weighted graph. For every obstacle $M_i$ we add all corner points $\vec{m}_i^{\cdot\cdot}$ to $V$. We also add agent position $\vec{x}_a$ and exit $E$.
 
 \ \\
-The planner computes the line segment corresponding to the aforementioned distance and detects if any obstacles \emph{hinder} the path. These obstacles are examined and the planner tries to find a sub-path avoiding the obstacles that deviates as little as possible from the original path. After determining this sub-path, the planner goes on to repeat the process starting from the end of the new sub-path. It does so until a new location has been found and \underline{errors} if no path has been found after too many iterations.
+For each two nodes $v_i,v_j\in V$ we add edge $(v_i,v_j)$ to edge set $E$ if and only if the line segment between these points is contained in $\Omega$ and unhindered by other obstacles. The algorithm used to deduce whether a path is free of obstacles is described in Section \ref{sec:crosses_obstacle}. We choose the weight of the edge equal to the distance between the nodes. The result is a graph as depicted in Figure \ref{fig:example_graph}.
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{images/obstacle_graph.pdf}
+	\caption{Example of the weighted graph corresponding to the scene in Figure \ref{fig:example_path}. The unmarked nodes correspond to the corners of the obstacles. The weights are not shown in the figure, but are equal to the distance between the two nodes.}
+	\label{fig:example_graph}
+\end{figure}\\
+In Figure \ref{fig:example_graph} we see all the corners of the obstacles $M_i$ represented as nodes. The exit obstacle is represented by a single node. Now, any path from node $\vec{x}_a$ to exit $\vec{x}E$ is a feasible path free of obstacles, since the edges are not hindered by obstacles.
+
+\ \\
+After obtaining this graph, we apply the $A^*$-algorith to the graph to find the shortest path from $\vec{x}_a$ to $\vec{x}_E$ and store it.
+\newpage
 \subsection{Determining hindering obstacles}
-A path is hindered by an obstacle if that obstacle and the path have common points \underline{Figure}. Because sub-paths are line segments, they can be expressed as a simple linear parameter equation. The rectangular obstacles are solely determined by two points in the plain $\mathbb{R}^2$. Determining a hindering objects then can be reduced to finding a parameter for which the parameter equation of the sub-path lies between the points of the object.
-
+\label{sec:crosses_obstacle}
+To find whether a line segment is free of obstacles, we use some basic linear algebra. Specifically, we use hyperplanes and \emph{bounding rectangles}. 
 \ \\
-There are several ways to solve this problem. Because it has to be solved frequently, we use a solution that can be vectorized to solve simultaneously for large numbers of agents.
-We represent the line segment with coordinates $r_1$ and $r_2$. The parameter equation becomes $r_1 + \lambda(r_2 - r_1)$ for $\lambda \in [0,1]$. We represent the obstacle with points $a_1$ and $a_2$ (\underline{Figure}). We perform several translations on the line segment (and obstacle) to reduce the obstacle to the unit square with respect to the Manhattan norm. This reduces our problem to finding a parameter $\lambda$ such that our parameter equation has a Manhattan norm of 1. In detail, the following happens:
-\begin{itemize}
-\item The line segment is translated with vector $-\frac{(a_0+a_1)}{2}$. This centers the obstacle.
-\item The line segment is scaled with factor $(a_0-a_1)$. This transforms the (rectangular) obstacle to the unit square with respect to the infinity-norm
-\item The line segment is rotated with respect to the origin over an angle of $\frac{\pi}{4}$. This transforms the obstacle to the unit square with respect to the 1-norm.
-\end{itemize}
-Note that these computations are not actually performed on the obstacle itself, only on the line segments.
-\ \\
-The result is a translation of the line segment as in Figure \ref{}. Now we solve 
-$$||\hat{r}_1 + \lambda(\hat{r}_2-\hat{r}_1)||_1<1$$
-which is equivalent to 
-$$\sum_{j\in\{x,y\}}|\hat{r}_{1j} + \lambda(\hat{r}_{2j}-\hat{r}_{1j})|<1.$$
-This resulting function is convex and piecewise linear, resulting in an accurate numerical solution to the inequality
-\ \\
-If such a $\lambda\in[0,1]$ is found, the obstacle hinders the sub-path. Otherwise, the sub-path is free.
-\subsection{Dodging obstacles}
-We solve the pathplanning problem by converting objects into a graph and using the \texttt{networkx} library \cite{networkx} to find the shortest path\dots
+First, some definitions:
+\begin{newdef}
+	Let $\Omega \in \mathbb{R}^2$ be a scene.
+	Let $l\subset \Omega$ be a line segment from $\vec{p}$ to $\vec{q}$ with $\vec{p},\vec{q} \in \mathbb{R}^2$. Then the corresponding hyperplane $L$ is defined as the set of all $\vec{x}\in\mathbb{R}^2$ satisfying
+	\begin{equation}
+		(\vec{a},\vec{x})=b
+	\end{equation}
+	where $\vec{a},b$ equal 
+	\begin{align}
+		\vec{a} &= \left( -(p_y-q_y),(p_x-q_x)\right)\\
+		b   &=  p_y(p_x - q_x) - p_x(p_y - q_y)
+	\end{align}
+\end{newdef}
+A hyperplane separates the space $\Omega$ into two half-spaces $\Omega_{L^+}$ and $\Omega_{L^-}$. It is a simple task to determine whether a point $\vec{x}$ belongs to either one of the subspaces (or the hyperplane itself) by computing the inner product with $\vec{a}$.
+\begin{newdef}
+	Let $\vec{x}$ be a point in $\mathbb{R}^2$. Let $L$ be a hyperplane separating $\Omega$ into half-spaces $\Omega_{L^+}$ and $\Omega_{L^-}$. We have the following result:
+	\begin{equation}
+		\begin{cases}
+			\vec{x} \in L&\mbox{ if }(a,x) = b\\
+			\vec{x}  \in \Omega_{L^-} &\mbox{ if }(a,x) < b\\
+			\vec{x}  \in \Omega_{L^+} &\mbox{ if }(a,x) > b\\
+		\end{cases}
+		\label{eq:separation}
+	\end{equation}
+\end{newdef}
+\begin{newdef}
+	Let $l$ be a line segment from $p$ to $q$. The bounding rectangle $P_l$ is defined as the smallest rectangle containing $l$:
+	\begin{equation}
+		P_l = \left\{ w\in\mathbb{R}^2| \min\{p_x,q_x\} \leq w_x \leq \max\{p_x,q_x\}, \min\{p_y,q_y\} \leq w_y \leq \max\{p_y,q_y\}  \right\}
+		\label{eq:bounding_rect}
+	\end{equation}
+\end{newdef}
+\begin{newthm}
+	The intersection $A\cap B$ is nonempty if and only if 
+	$$m^{ij}_A < m^{ji}_B \mbox{ or } m^{ij}_B < m^{ji}_A$$
+	for $i \neq j \in \{0,1\}$
+\end{newthm}
+\begin{newthm}
+	Let $l$ be a line segment from $p$ to $q$ and $m$ be an obstacle with coordinates $m_1,m_2$. Then $l \cap m = \o$ if and only if $P_l \cap m$ and $m_1,\cdots,m_4 \in \Omega_{L^+}$ or $m_1,\cdots,m_4 \in \Omega_{L^-}$ 
+	\label{thm:sep}
+\end{newthm}
 \newpage
 \section{Continuum aspects}
+\label{sec:continuum}
 This section will elaborate on the continuum part of the implementation; converting the agents to a continuum and computing its properties.
 \subsection{Overview}
 The \underline{continuum solver} uses the following partial differential equation, based on the continuity equation for mass but adapted with a pressure term.
