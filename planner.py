@@ -74,6 +74,7 @@ class Planner:
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
     def collective_update(self):
+        self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
@@ -133,8 +134,8 @@ class GraphPlanner(Planner):
             if obstacle.in_interior and not obstacle.permeable:
                 ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
                 for point in ordered_list:
-                    if all(point.array < self.scene.size.array):
-                        self.graph.add_node(point)
+                    # if all(point.array < self.scene.size.array): # Hypocrite check.
+                    self.graph.add_node(point)
         for node in self.graph.nodes():
             if node is not goal_obstacle:
                 self._fill_with_required_edges(node, self.graph, goal_obstacle)
@@ -150,7 +151,8 @@ class GraphPlanner(Planner):
         if path_free:
             graph.add_edge(u=node, v=goal_obstacle, weight=line_to_goal.length)
         for other_node in graph.nodes():
-            if (other_node is not node) and (other_node is not goal_obstacle):
+            if (other_node is not node) and (other_node is not goal_obstacle) and self.scene.is_within_boundaries(
+                    other_node):
                 path = LineSegment([node, other_node])
                 path_free = True
                 for obstacle in self.scene.obstacle_list:
@@ -160,33 +162,30 @@ class GraphPlanner(Planner):
                 if path_free:
                     graph.add_edge(u=node, v=other_node, weight=path.length)
 
-    def draw_graph(self, graph):
+    def draw_graph(self, graph, pedestrian=None):
         pos = {}
-        for node in graph.nodes():
+        labeling = {}
+        node_colors = []
+        draw_graph = nx.Graph(graph)
+        if pedestrian:
+            draw_graph.add_node(pedestrian.position)
+            labeling[pedestrian.position] = r'$a$'
+            self._fill_with_required_edges(pedestrian.position, draw_graph, self.scene.exit_obs)
+        for node in draw_graph.nodes():
             position = None
-            if isinstance(node, Coordinate):
+            if pedestrian and node == pedestrian.position:
+                node_colors.append('gray')
+                position = node.array
+            elif isinstance(node, Coordinate):
+                node_colors.append('black')
                 position = node.array
             elif isinstance(node, Obstacle):
                 position = (node.begin + node.end) * 0.5
+                node_colors.append('red')
             else:
                 raise ValueError("Unable to plot %s node type" % type(node))
             pos[node] = position
-        nx.draw_networkx_nodes(graph, pos)
-        nx.draw_networkx_edges(graph, pos)
-
-        # def line_crosses_no_obstacles(self, line: LineSegment) -> bool:
-        #     for obstacle in self.scene.obstacle_list:
-        #         if obstacle.in_interior and line.crosses_obstacle(obstacle, open_sets=True):
-        #             return False
-        #     return True
-
-
-if __name__ == '__main__':
-    from geometry import Size
-    import scene
-    from planner import GraphPlanner
-
-    scene = scene.Scene(size=Size([70, 70]), obstacle_file='demo_obstacle_list.json',
-                        pedestrian_number=1)
-    planner = GraphPlanner(scene)
-    planner.draw_graph(planner.graph)
+        labeling[self.scene.exit_obs] = r'$E$'
+        nx.draw_networkx_nodes(draw_graph, pos, node_color=node_colors, label=labeling, node_size=500)
+        nx.draw_networkx_edges(draw_graph, pos)
+        nx.draw_networkx_labels(draw_graph, pos, labeling, font_size=16)

@@ -26,6 +26,7 @@ class Scene:
         self.size = size
         self.pedestrian_number = pedestrian_number
         self.dt = dt
+        self.time = 0
         self.obstacle_list = []
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])

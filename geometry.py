@@ -113,7 +113,7 @@ class Interval(object):
 class LineSegment(object):
     def __init__(self, coords):
         self.array = np.array(coords)
-        self.color = 'blue'
+        self.color = 'gray'
 
     length = property(lambda s: np.linalg.norm(s[0] - s[1]))
     begin = property(lambda s: s[0])

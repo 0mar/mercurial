@@ -92,6 +92,15 @@ class VisualScene:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()
 
+    def store_scene(self, name=None):
+        dir = 'images'
+        if not name:
+            import time
+
+            name = "scene#%d" % time.time()
+        filename = "%s/%s-%d.eps" % (dir, name, self.scene.time)
+        self.canvas.postscript(file=filename)
+
     def draw_pedestrians(self):
         """
         Draws all the pedestrians in the scene using the visual_pedestrian coordinates.
@@ -170,7 +179,7 @@ class VisualScene:
         """
         x_0 = self.convert_relative_coordinate(line_segment.begin / self.scene.size)
         x_1 = self.convert_relative_coordinate(line_segment.end / self.scene.size)
-        self.canvas.create_line(tuple(x_0) + tuple(x_1), fill=line_segment.color)
+        self.canvas.create_line(tuple(x_0) + tuple(x_1), fill=line_segment.color, width=2)
 
     def draw_path(self, path: Path):
         """
@@ -184,7 +193,8 @@ class VisualScene:
     def convert_relative_coordinate(self, coord):
         """
         Converts relative coordinates (from [0,1]x[0,1]) to screen size coordinates.
-        Should raise an error when coordinates fall from scene, but method is so frequently used I'd rather not
+        Should raise an error when coordinates fall from scene,
+        but method is so frequently used I'd rather not make the computation
         Also changes the orientation to a Carthesian coordinate system
         :param coord: coordinates (fractions to be converted)
         :return: a Size with the coordinates of screen

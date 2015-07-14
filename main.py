@@ -10,7 +10,7 @@ from planner import GraphPlanner
 
 
 # Default parameters
-number_of_pedestrians = 1
+number_of_pedestrians = 100
 domain_width = 70
 domain_height = 70
 obstacle_file = 'demo_obstacle_list.json'
@@ -30,10 +30,10 @@ parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containin
 args = parser.parse_args()
 
 # Initialization
-scene = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
-planner = GraphPlanner(scene)
-grid = GridComputer(scene, show_plot=args.plot, apply=args.apply)
+planner = GraphPlanner(scene_obj)
+grid = GridComputer(scene_obj, show_plot=args.plot, apply=args.apply)
 
 # Methods inserted on every update
 def step():
@@ -41,7 +41,7 @@ def step():
     grid.step()
 
 
-vis = VisualScene(scene, 1500, 1000, step=step, loop=not args.step,delay=args.delay)
+vis = VisualScene(scene_obj, 1500, 1000, step=step, loop=not args.step, delay=args.delay)
 
 # Running
 vis.loop()

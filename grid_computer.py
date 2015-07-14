@@ -124,7 +124,7 @@ class GridComputer:
             result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
             flat_p = result['x']
         except ValueError as e:
-            warn(str(e))
+            warn("CVXOPT Error: " + str(e))
             flat_p = np.zeros([1, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
