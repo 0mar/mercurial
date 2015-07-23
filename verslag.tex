@@ -11,7 +11,6 @@
 \usetikzlibrary{calc}
 \title{Description Capita Selecta}
 \author{Omar Richardson}
-\date{March 2015}
 \let\oldhat\hat
 \let\oldtil\tilde
 \DeclareMathOperator{\diag}{diag}
@@ -32,21 +31,19 @@ Crowd dynamics is an emerging field of research. With more computational power a
 These ways of modelling has proven to work well for small crowds. When crowds become dense, other options become available as well. One of these options is to combine both a global as a local approach in the model, where the global approach models the crowd as a fluid, and the local approach models agents as individual agents. Using the right simulation architecture, this way of modelling is able to handle crowds with a large number of agents at a relatively low computational cost.
 
 \ \\
-The goal of this capita selecta is to implement this method and check its performance in the case of a large crowd in need of evacuation. If time permits it, we will make a comparison to other models in order to evaluate performance.
+The goal of this capita selecta is to implement this method and check its performance in the case of a large crowd in need of evacuation. 
 
 \newpage
 \section{Implementation overview}
-The simulation of this model is composed of several modules. These modules will be implemented separately. This will enable us to swap or upgrade modules without having to adapt the rest, in order to keep the simulation improvable and maintainable.
+This model is composed of several modules. These modules will be implemented disjointly. This will enable us to swap or upgrade modules without having to adapt the rest, and keep the implementation improvable and maintainable.
 \begin{enumerate}
-\item \textbf{Geometry}\\
-This part models the scenario in which the agents are placed, the obstacles present, and the exits they are headed to.
-\item \textbf{Global planner}\\
-This module determines the destinations of the agents. From these destinations and the geometry, it determines the desired speed and direction of every agent.
-\item \textbf{Conversion of agents to fluid model}\\
-This module is responsible for translating the position and speed of the agent to a continuous representation (limited to a grid). The resulting flow field can be used for determining global behaviour of the agents.
-\item \textbf{Fluid flow solver}\\
-This module is responsible for determining the global direction of the agents. Every agent is confined this direction in a certain degree. The denser the crowd, the less influence one agent has over its direction.
-This module also contains the incompressibility constraint to prevent agents from colliding.
+	\item \textbf{Geometry}\\
+	This part models the scenario in which the agents are placed, the obstacles they have to avoid, and the goal they are headed to.
+	\item \textbf{Global planner}\\
+	This module determines the paths of the agents that brings them to their goal. From these destinations and the geometry, it determines the desired speed and direction of every agent.
+	\item \textbf{Continuum aspects}\\
+	This module converts the agents mass and velocity to a global density and velocity field, which will be used to influence the agents individual velocity. 
+	This module also applies a incompressibility constraint to the global representation to ensure local densities do not exceed a maximum.
 \end{enumerate}
 The model will be implemented in Python. Motivation behind this language is that it has dependable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also has the advantage of an object oriented structure, which will make working with agents on a local level more manageable.
 \newpage
@@ -59,15 +56,15 @@ The geometry consists of a scene filled with multiple obstacles. The scene is th
 The geometry is divided into a computational component and a visual component. The computational component handles the computations of the next time step of the scene. The visual component acts separately and displays the geometry (and the agents) at every time step. This part can be suppressed to increase simulation capacity.
 
 \subsection{Obstacles}
-The scene can be filled with an arbitrary number of objects, provided that all agents spawned are able to reach the exit given their initial location. The objects have a rectangular shape. This choice is motivated by their relative ease in modelling and calculating. In addition, rectangular objects can easily be aggregated to more general shapes.
+The scene can be filled with an arbitrary number of objects, provided that all agents spawned are able to reach the exit given their initial location. The objects all have a rectangular shape. This choice is motivated by their relative ease in modelling and calculating. In addition, rectangular objects can easily be aggregated to more general shapes.
 \ \\
-A scene contains both an entrance and an exit. The entrance is modelled as an obstacle with a certain \underline{inflow} of agents (this allows us to imitate a PDE-like boundary condition) and the exit is modelled as a penetrable obstacle. By default, a scene is surrounded by objects functioning as walls. Whenever an exit or entrance is defined, it replaces the walls.
+A scene contains both an entrance and an exit. The entrance is modelled as an obstacle with a certain \underline{inflow} of agents (this allows us to imitate a PDE-like boundary condition) and the exit is modelled as a penetrable obstacle. By default, a scene is surrounded by walls. Whenever an exit or entrance is defined, it replaces the walls.
 \subsection{Agents}
-The agents are modelled as agents with a position and a velocity. The position and velocity are stored locally for now. We keep in mind that storing and manipulating this information on a global level will improve computational speed.
-The agents have a maximum speed which varies among them.
+The agents are modelled as particles with a position and a velocity. The agents are able to assume any position in the scene where no obstacles are present. Agents can only leave the scene through an exit.
+The agents have a maximum speed, randomly drawn from a specified interval.
 
 \ \\
-The agents are displayed in the geometry by colored circles. Optionally, it is possible to display the agents as directed triangles, to indicate their movement direction. This, again, has a \underline{higher computational cost}.
+The agents are displayed in the geometry by colored circles. Optionally, it is possible to display the agents as directed triangles, to indicate their movement direction.
 \newpage
 \section{Global planner}
 \subsection{Summary}
@@ -93,21 +90,31 @@ We will explain the algorithm by example. We model our scene as a two-dimensiona
 		\label{eq:corner_points}
 	\end{align}
 \end{newdef}
-In Figure \ref{fig:example_path} we see an illustration of a scene $\Omega$ of size $R_x\times R_y$ containing two obstacles $M_1$ and $M_2$ with shapes $[\vec{s}_{M_1},\vec{t}_{M_1}]$ and $[\vec{s}_{M_2},\vec{t}_{M_2}]$. We seek a path for agent $a$ at location $\vec{x}_a$ to the exit $E$ with coordinates $\vec{x}_E$. 
-Let $G = (V,E)$ be a weighted graph. For every obstacle $M_i$ we add all corner points $\vec{m}_i^{\cdot\cdot}$ to $V$. We also add agent position $\vec{x}_a$ and exit $E$.
+In Figure \ref{fig:example_path} we see an illustration of a scene $\Omega$ of size $R_x\times R_y$ containing $N_o = 2$ obstacles $M_1$ and $M_2$ with shapes $[\vec{s}_{M_1},\vec{t}_{M_1}]$ and $[\vec{s}_{M_2},\vec{t}_{M_2}]$. We seek a path for agent $a$ at location $\vec{x}_a$ to the exit $E$.
 
 \ \\
-For each two nodes $v_i,v_j\in V$ we add edge $(v_i,v_j)$ to edge set $E$ if and only if the line segment between these points is contained in $\Omega$ and unhindered by other obstacles. The algorithm used to deduce whether a path is free of obstacles is described in Section \ref{sec:crosses_obstacle}. We choose the weight of the edge equal to the distance between the nodes. The result is a graph as depicted in Figure \ref{fig:example_graph}.
+Let $G = (V,A)$ be a weighted, undirected graph. 
+Our vertex set $V$ is constructed by joining the set of all corner points with the pedestrian location and the exit.
+\begin{equation}
+	V = \left\{\left.\vec{m}^{ij}_k \right| i,j \in \{0,1\}, k = 1,\dots,N_o \right\} \cup \{E,a\}
+	\label{eq:vertex_set_construction}
+\end{equation}
+
+\ \\
+For each two nodes $v_i,v_j\in V$ we add edge $(v_i,v_j)$ to edge set $A$ if and only if the line segment between these points is contained in $\Omega$ and unhindered by other obstacles. The algorithm used to deduce whether a path is free of obstacles is described in Section \ref{sec:crosses_obstacle}. We choose the weight of the edge equal to the distance between the nodes. The result is a graph as depicted in Figure \ref{fig:example_graph}.
+
+\ \\
+We chose to model the exit obstacle as a single node. This is motivated by wanting the pedestrians to find the fastest way to leave the scene, and we do not want to restrict their paths to the corners of the exit. The distance between an obstacle corner point and the exit is computed as the distance between a point and a set.
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{images/obstacle_graph.pdf}
-	\caption{Example of the weighted graph corresponding to the scene in Figure \ref{fig:example_path}. The unmarked nodes correspond to the corners of the obstacles. The weights are not shown in the figure, but are equal to the distance between the two nodes.}
+	\caption{Example of the weighted graph corresponding to the scene in Figure \ref{fig:example_path}. The unmarked nodes correspond to the corners of the obstacles.}
 	\label{fig:example_graph}
 \end{figure}\\
-In Figure \ref{fig:example_graph} we see all the corners of the obstacles $M_i$ represented as nodes. The exit obstacle is represented by a single node. Now, any path from node $\vec{x}_a$ to exit $\vec{x}E$ is a feasible path free of obstacles, since the edges are not hindered by obstacles.
+In Figure \ref{fig:example_graph} we see the complete graph representation of the scene. Now, any path from node $\vec{x}_a$ to exit $E$ is a feasible path free of obstacles, since the edges are not hindered by obstacles.
 
 \ \\
-After obtaining this graph, we apply the $A^*$-algorith to the graph to find the shortest path from $\vec{x}_a$ to $\vec{x}_E$ and store it.
+After obtaining this graph, we apply the $A^*$-algorithm to the graph to find the shortest path from $\vec{x}_a$ to $E$ and store it.
 \newpage
 \subsection{Determining hindering obstacles}
 \label{sec:crosses_obstacle}
@@ -116,19 +123,26 @@ To find whether a line segment is free of obstacles, we use some basic linear al
 First, some definitions:
 \begin{newdef}
 	Let $\Omega \in \mathbb{R}^2$ be a scene.
-	Let $l\subset \Omega$ be a line segment from $\vec{p}$ to $\vec{q}$ with $\vec{p},\vec{q} \in \mathbb{R}^2$. Then the corresponding hyperplane $L$ is defined as the set of all $\vec{x}\in\mathbb{R}^2$ satisfying
+	Let $l\subset \Omega$ be a line segment from $\vec{p}$ to $\vec{q}$ with $\vec{p},\vec{q} \in \mathbb{R}^2$. Then the corresponding hyperplane $L$ (i.e., the hyperplane that covers the line segment) is defined as the set of all $\vec{x}\in\mathbb{R}^2$ satisfying
 	\begin{equation}
 		(\vec{a},\vec{x})=b
 	\end{equation}
-	where $\vec{a},b$ equal 
+	where $\vec{a}$ and $b$ equal 
 	\begin{align}
 		\vec{a} &= \left( -(p_y-q_y),(p_x-q_x)\right)\\
 		b   &=  p_y(p_x - q_x) - p_x(p_y - q_y)
 	\end{align}
 \end{newdef}
-A hyperplane separates the space $\Omega$ into two half-spaces $\Omega_{L^+}$ and $\Omega_{L^-}$. It is a simple task to determine whether a point $\vec{x}$ belongs to either one of the subspaces (or the hyperplane itself) by computing the inner product with $\vec{a}$.
+\noindent
+A hyperplane separates the set $\Omega$ into two sets $\Omega_{L^+}$ and $\Omega_{L^-}$ such that
+\begin{align}
+\Omega = \Omega_{L^+} \cup \Omega_{L^-} \cup L\\
+\Omega_{L^+}\cap\Omega_{L^+}=\emptyset.
+	\label{def:hyp}
+\end{align}
+It is a simple task to determine whether a point $\vec{x}$ belongs to either one of the subsets (or the hyperplane itself) by computing the inner product with $\vec{a}$.
 \begin{newdef}
-	Let $\vec{x}$ be a point in $\mathbb{R}^2$. Let $L$ be a hyperplane separating $\Omega$ into half-spaces $\Omega_{L^+}$ and $\Omega_{L^-}$. We have the following result:
+	Let $\vec{x}$ be a point in $\mathbb{R}^2$. Let $L$ be a hyperplane separating $\Omega$ into subsets $\Omega_{L^+}$ and $\Omega_{L^-}$. These sets are defined in the following way:
 	\begin{equation}
 		\begin{cases}
 			\vec{x} \in L&\mbox{ if }(a,x) = b\\
@@ -139,21 +153,78 @@ A hyperplane separates the space $\Omega$ into two half-spaces $\Omega_{L^+}$ an
 	\end{equation}
 \end{newdef}
 \begin{newdef}
-	Let $l$ be a line segment from $p$ to $q$. The bounding rectangle $P_l$ is defined as the smallest rectangle containing $l$:
+	Let $l$ be a line segment from $\vec{p}$ to $\vec{q}$. The bounding rectangle $P_l$ is defined as the smallest rectangle containing $l$:
 	\begin{equation}
 		P_l = \left\{ w\in\mathbb{R}^2| \min\{p_x,q_x\} \leq w_x \leq \max\{p_x,q_x\}, \min\{p_y,q_y\} \leq w_y \leq \max\{p_y,q_y\}  \right\}
 		\label{eq:bounding_rect}
 	\end{equation}
 \end{newdef}
+\noindent
+An example of a bounding rectangle is illustrated in Figure \ref{fig:bounding_rect_ex}.
+\begin{figure}
+	\centering
+	\begin{tikzpicture}
+		\draw[step=2cm,black,thin] (1,4) node[anchor=south] {$(p_x,p_y)$} -- node[anchor=west]{$l$} (3,1) node[anchor=north] {$(q_x,q_y)$};
+		\draw[thick,red] (1,1) rectangle (3,4) node[anchor=north west]{$P_l$};
+		\draw[step=2cm,black,thin] (1,1) node[anchor=north,red] {$(p_x,q_y)$};
+		\draw[step=2cm,black,thin] (3,4) node[anchor=south,red] {$(q_x,p_y)$};
+		\draw[thick,->] (0,0) -- (5,0) node[anchor=north west] {$x$};
+		\draw[thick,->] (0,0) -- (0,5) node[anchor=south east] {$y$};
+	\end{tikzpicture}
+	\captionof{figure}[Caption]{Line segment $l$ and the corresponding bounding rectangle $P_l$ with shape $[(p_x,q_y),(q_x,p_y)]$}
+	\label{fig:bounding_rect_ex}
+\end{figure}
+
 \begin{newthm}
-	The intersection $A\cap B$ is nonempty if and only if 
-	$$m^{ij}_A < m^{ji}_B \mbox{ or } m^{ij}_B < m^{ji}_A$$
-	for $i \neq j \in \{0,1\}$
+	Let $A$ and $B$ be two rectangles with shapes $[\vec{s}_A,\vec{t}_A]$ and $[\vec{s}_B,\vec{t}_B]$. Then the intersection $A\cap B$ is non-empty if and only if
+	\begin{equation}
+		\vec{t}_{Ai} < \vec{s}_{Bi} \mbox{ or }	\vec{t}_{Bi} < \vec{s}_{Ai}\, \forall i \in \{1,2\}
+		\label{eq:intersection}
+	\end{equation}
+	
 \end{newthm}
 \begin{newthm}
-	Let $l$ be a line segment from $p$ to $q$ and $m$ be an obstacle with coordinates $m_1,m_2$. Then $l \cap m = \o$ if and only if $P_l \cap m$ and $m_1,\cdots,m_4 \in \Omega_{L^+}$ or $m_1,\cdots,m_4 \in \Omega_{L^-}$ 
+	Let $l\subset \Omega$ be a line segment and $M \subset \Omega$ be an obstacle. Then the following statements are equivalent:
+		\begin{enumerate}
+			\item $l \cap M = \emptyset$
+			\item $P_l \cap M = \emptyset \mbox{ or } M \subset \Omega_{L^+} \mbox{ or } M \subset \Omega_{L^-}$
+		\end{enumerate}
 	\label{thm:sep}
 \end{newthm}
+\begin{proof}
+	(2) $\implies$ (1):\\
+	Assume $P_l \cap M = \emptyset$. We know $l \subset P_l$ and therefore $l \cap M = \emptyset$.\\
+	Otherwise, without loss of generality, assume $M \subset \Omega_{L^+}$. We know $\Omega_{L^+} \cap l = \emptyset$ so $M \cap l = \emptyset$.
+
+	\ \\
+	$\neg (2) \implies \neg (1)$:\\
+	Assume $P_l \cap M \neq \emptyset,\, M \not\subset \Omega_{L^+} \mbox{ and } M \not\subset \Omega_{L^-}$.\\
+	Let $C := P_l \cap M$. $C$ is the intersection of two rectangular sets and therefore rectangular itself.\\
+	Let $C^+:=P_l \cap M \cap \Omega^{L^+}$ and $C^-:= P_l \cap M \cap \Omega^{L^-}$. By construction (\emph{needs more argument}), we know $C^+$ and $C^-$ are non-empty sets.
+	
+	\ \\
+	We can pick $\vec{c}^+ \in C^+$ and $\vec{c}^- \in C^-$ and construct line segment $c$ from $\vec{c}^+$ to $\vec{c}^-$. Since $C^+,C^- \subset C$ and $C$ is a convex set, we know $c \subset C$. But since $\vec{c}^+ \in \Omega_{L^+}$ and $\vec{c}^- \in \Omega_{L^-}$ we know $c$ intersects $l$, so $l \cap M \neq \emptyset$.
+\end{proof}
+\newpage
+\noindent
+Using these theorems, we have an computationally efficient way to determine the obstacles crossing a line segment.
+In Figure \ref{fig:crosses_obstacle} we see an example of an obstacle and a line segment which do not intersect.
+Since a rectangle is a convex set, checking $M \subset A$ reduces to checking $\vec{m}^{ij} \in A$ for $i,j \in \{0,1\}$.
+\emph{Maybe say something about the efficiency of the calculation}
+\\ \
+\begin{figure}[ht]
+	\centering
+	\begin{tikzpicture}
+		\draw[step=2cm,black,thin] (1,4) node[anchor=south] {$(p_x,p_y)$} -- node[anchor=west]{$l$} (3,1) node[anchor=north] {$(q_x,q_y)$};
+		\draw[step=2cm,black,thin,dashed] (0,5.5) -- (3.67,0) node[anchor=west]{$L$};
+		\draw[thick,red] (1,1) rectangle (3,4) node[anchor=north west]{$P_l$};
+		\draw[thick,blue] (0.1,0.5) rectangle (2,2) node[anchor=north west]{$M$};
+		\draw[thick,->] (0,0) -- (5,0) node[anchor=north west] {$x$};
+		\draw[thick,->] (0,0) -- (0,5) node[anchor=south east] {$y$};
+	\end{tikzpicture}
+	\captionof{figure}[Caption]{Line segment $l$ and obstacle $M$. There is a non-empty intersection between $P_l$ and $M$, but no intersection between $l$ and $M$ because all of $M$ lies on the same side of the hyperplane $L$.}
+	\label{fig:crosses_obstacle}
+\end{figure}\\
 \newpage
 \section{Continuum aspects}
 \label{sec:continuum}
@@ -265,8 +336,20 @@ This approximation has some nice computational properties in comparison to other
 which is a single case function requiring only addition, multiplication, and a $\max$ function. This provides a welcome computational benefit, since a kernel convolution is a common operation in this implementation.
 
 \ \\
-To find the total density and total velocity in the cell centres for each cell, we sum over the densities and velocities of the agents in the (up to 8) neighbouring cells. This method is equivalent to the particle-in-cell method as described in \cite{zhu13}
-
+To find the total density and total velocity in the cell centres for each cell, we sum over the densities and velocities of the agents in the (up to 8) neighbouring cells. This method is equivalent to the particle-in-cell method as described in \cite{zhu13}.\\
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.65\textwidth]{images/scene.png}
+	\caption{Scene initiated with 1000 agents being directed to the exit south}
+	\label{fig:cont_ex_scene}
+\end{figure}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.85\textwidth]{images/flow_fields.png}
+	\caption{Continuous representation of the scene: density and velocity}
+	\label{fig:cont_flow_field}
+\end{figure}\\
+In Figure \ref{fig:cont_ex_scene} we see an example scene with agents. In Figure \ref{fig:cont_flow_field} we see the corresponding density and velocity fields.
 \subsection{Scheme}
 \label{sec:scheme}
 To discretize our partial differential equation we use a second order central difference scheme. So for scalar field $u$ we have the following gradient approximation:
@@ -433,7 +516,7 @@ The result is our final grid velocity $\tilde{v}^n$ satisfying
 	\label{eq:finvelocity}
 \end{equation}
 We use $\tilde{v}^n$ to steer the velocity of the agents. First we interpolate the final crowd velocity $\tilde{v}^n_{a_i}$ at the agents location $(x_{a_i},y_{a_i})$ by applying bilinear interpolation from the 4 surrounding cell values\footnote{check in implementation}. We determine the individual velocity $v^{n+1}_{a_i}$ by computing the weighted average as described in \eqref{eq:dens_velo}.
-
+\newpage
 \bibliographystyle{abbrv}
 \bibliography{bib} 
 \end{document}
