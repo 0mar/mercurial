@@ -50,8 +50,10 @@ class Pedestrian(object):
 
     def update_position(self):
         """
-        Updates the position of the pedestrian by checking its accessibility in the corresponding cell.
-        If the position is not accessible, the pedestrian does not move.
+        Updates the position of the pedestrian from the scene position array
+        by checking its accessibility in the corresponding cell.
+        If the position is not accessible, the pedestrian does not move
+        and the scene position array entry is reset.
         :return: None
         """
         new_point = Point(self.scene.position_array[self.counter])
@@ -61,6 +63,12 @@ class Pedestrian(object):
             self.scene.position_array[self.counter] = self._position.array
 
     def manual_move(self, position,at_start = False):
+        """
+        Move the pedestrian to the give position manually; independent on the scene position array.
+        :param position: new pedestrian position (will still be checked)
+        :param at_start: Time of moving
+        :return: True when move is allowed and executed, false otherwise
+        """
         # Should a whole scene check take too much time, then this should be replaced
         if self.scene.is_accessible(position,at_start):
             self.position = position
@@ -76,8 +84,6 @@ class Pedestrian(object):
         Higher level updating of the pedestrian. Checks whether the position is reachable this time step.
         If so, moves to that position. Directly attaining the position within the current radius enables us
         to be less numerically accurate with the velocity directing to the goal.
-        This has not yet proven to be a problem, luckily.
-        We will need to correct for the UIC though.
         :param position: Position that should be attained
         :param dt: time step
         :return: True when position is attained, false otherwise

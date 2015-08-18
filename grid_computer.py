@@ -129,12 +129,24 @@ class GridComputer:
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
     def adjust_velocity(self):
+        """
+        Adjusts the velocity field for the pressure gradient
+        :return: None
+        """
         self.grad_p_x = GridComputer.get_gradient(self.p, 'x')
         self.grad_p_y = GridComputer.get_gradient(self.p, 'y')
         self.v_x -= self.grad_p_x
         self.v_y -= self.grad_p_y
 
     def interpolate_pedestrians(self):
+        """
+        Method that reconverts the velocity field to individual pedestrian positions.
+        Input are the velocity x/y fields. We use a bivariate spline interpolation method
+        to interpolate the velocities at the pedestrians position.
+        These velocities are then weighed to the densities (NYI)
+        and added to the velocity field.
+        :return: None
+        """
         v_x_func = RBS(self.x_range, self.y_range, self.v_x)
         v_y_func = RBS(self.x_range, self.y_range, self.v_y)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
@@ -145,6 +157,14 @@ class GridComputer:
         # todo: should be max vel
 
     def step(self):
+        """
+        Performs one time step for the fluid simulator.
+        Computes and interpolates the grid fields (density and velocity)
+        Solves the LCP to compute the pressure field
+        Adjusts the velocity field according to the pressure
+        Adjusts the velocities of the pedestrians according to the velocity field
+        :return: None
+        """
         self.get_grid_values()
         if self.apply:
             self.solve_LCP()
@@ -176,6 +196,14 @@ class GridComputer:
 
     @staticmethod
     def get_gradient(field, direction):
+        """
+        Computes a gradient component of the discrete 2D vector field.
+        The vector field contains values of the cell centers
+        We use a simple 2-point second order central difference scheme.
+        :param field: vector field with a Carthesian indexing
+        :param direction: 'x' or 'y'
+        :return: vector field representing gradient component.
+        """
         assert all(dim > 2 for dim in field.shape)
         if direction == 'x':
             grad_field_x = np.zeros(field.shape)

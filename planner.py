@@ -74,7 +74,16 @@ class Planner:
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
     def collective_update(self):
+        """
+        The update step of the simulation
+        #1: Progresses one time step
+        #2: Moves the pedestrians.
+            Blunt move, that still needs to be corrected for obstacles, people, and exits.
+        :return: None
+        """
+        # 1
         self.scene.time += self.scene.dt
+        #2
         self.scene.move_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
