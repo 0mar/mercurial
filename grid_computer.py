@@ -5,11 +5,18 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as RBS
 import cvxopt
-
 from functions import *
 
 
 class GridComputer:
+    """
+    Class responsible for the fluid-dynamic calculations of the crowd.
+    Main tasks:
+    1. Interpolating velocity on grid points
+    2. Computing pressure
+    3. Adapting global veloctity field with pressure gradient
+    4. Adapting individual velocity by global velocity field.
+    """
     def __init__(self, scene, show_plot, apply):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
@@ -50,17 +57,24 @@ class GridComputer:
         nx, ny = self.cell_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
-        Adxx = np.diag(-ex[:-1], 1) + np.diag(ex[:-1], -1)
-        Adyy = np.diag(-ey[:-1], 1) + np.diag(ey[:-1], -1)
+        Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
+        Adyy = np.diag(ey[:-1], 1) + np.diag(-ey[:-1], -1)
         self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(len(ey)))
         self.Ay = 1 / (4 * self.dy ** 2) * np.kron(np.eye(len(ex)), Adyy)
 
-        Bdxx = np.diag(-ex[:-1], 1) + np.diag(2 * ex) + np.diag(-ex[:-1], -1)
-        Bdyy = np.diag(-ey[:-1], 1) + np.diag(2 * ey) + np.diag(-ey[:-1], -1)
+        Bdxx = np.diag(ex[:-1], 1) + np.diag(-2 * ex) + np.diag(ex[:-1], -1)
+        Bdyy = np.diag(ey[:-1], 1) + np.diag(-2 * ey) + np.diag(ey[:-1], -1)
         self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(len(ey)))
         self.By = 1 / (self.dy ** 2) * np.kron(np.eye(len(ex)), Bdyy)
 
     def get_grid_values(self):
+        """
+        Interpolates the grid values for the discrete density and velocity fields
+        Interpolation happens per grid cell, by indexing all surrounding grid cells and summing
+        over the density of each pedestrian.
+        Pedestrian density is computed by convolving the mass with a gaussian kernel approximation
+        :return:
+        """
         cell_dict = self.scene.cell_dict
         for cell_location in cell_dict:
             relevant_pedestrian_set = set()
@@ -82,10 +96,13 @@ class GridComputer:
             self.v_y[cell_location] = np.sum(vel_array[:, 1])
         if self.show_plot:
             self.plot_grid_values()
-        print(self.max_density)
-        print(self.orientation_correct_str(self.rho, True))
 
     def plot_grid_values(self):
+        """
+        Plot the density, velocity field, pressure, and pressure gradient.
+        Plot is opened in a separate window and automatically updated.
+        :return:
+        """
         for graph in self.graphs.flatten():
             graph.cla()
         self.graphs[0, 0].imshow(np.rot90(self.rho))
@@ -100,7 +117,12 @@ class GridComputer:
 
     def solve_LCP(self):
         """
-        We solve min {1/2x^TAx+x^Tq}
+        We solve min {1/2x^TAx+x^Tq}.
+        First we convert the 2D fields to vectors.
+        Then we construct the matrices from the base matrices made on initialization.
+        These matrices can be validated from the theory in the report
+        Then we convert the matrix system to a quadratic program and throw it into cvxopt solver.
+        Finally we (hopefully) find a pressure and reconvert it to a 2D store.
 
         :return:
         """
@@ -109,9 +131,10 @@ class GridComputer:
         flat_rho = self.rho.flatten(order='F') + 0.1
         grad_rho_x = GridComputer.get_gradient(self.rho, 'x')
         grad_rho_y = GridComputer.get_gradient(self.rho, 'y')
-        A = -(self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F'))
-        B = -(self.Bx + self.By) * flat_rho
-        cvx_M = cvxopt.matrix(2 * self.dt * (A + B))
+        A = (self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F'))
+        B = (self.Bx + self.By) * flat_rho
+        C = A + B
+        cvx_M = cvxopt.matrix(-C * self.dt)
 
         grad_v_rho_x = GridComputer.get_gradient(self.rho * self.v_x, 'x')
         grad_v_rho_y = GridComputer.get_gradient(self.rho * self.v_y, 'y')
@@ -119,7 +142,7 @@ class GridComputer:
         b = self.max_density - flat_rho + (grad_v_rho_x.flatten(order='F') + grad_v_rho_y.flatten(order='F')) * self.dt
         cvx_b = cvxopt.matrix(b)
         I = np.eye(nx * ny)
-        cvx_G = cvxopt.matrix(np.vstack((-(A + B) * self.dt, -I)))
+        cvx_G = cvxopt.matrix(np.vstack((C * self.dt, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
         try:

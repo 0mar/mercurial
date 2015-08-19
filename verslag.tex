@@ -14,6 +14,7 @@
 \let\oldhat\hat
 \let\oldtil\tilde
 \DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\D}{D}
 \renewcommand{\vec}[1]{\mathbf{#1}}
 \newcommand{\gvec}[1]{\boldsymbol#1}
 \renewcommand{\tilde}[1]{\oldtil{\mathbf{#1}}}
@@ -384,7 +385,7 @@ Our resulting scheme is presented below:
 	\end{split}
 	\label{eq:scheme}
 \end{equation}
-It is suitable to express our scheme in matrices and vectors. Not only does this provide us with an efficient way to implement our scheme, it also sets us up for an efficient way of solving the PDE (as explained in Section \ref{sec:lcp})
+It is suitable to express our scheme in terms of matrices and vectors. Not only does this provide us with an efficient way to implement our scheme, it also sets us up for an efficient way of solving the PDE (as explained in Section \ref{sec:lcp})
 
 \ \\
 Before reformulating our scheme, we introduce \emph{Kronecker} products and vector gradients.
@@ -408,8 +409,8 @@ The Kronecker product will prove valuable in notation and computation of our mat
 % 	\end{pmatrix}.
 % \end{equation*}
 % Each of the terms \eqref{eq:scheme1}, \eqref{eq:scheme1}, \eqref{eq:scheme3}, and \eqref{eq:scheme4} can be expressed separately by a combination of Kronecker products.
-\subsubsection{Vector gradient}
-In Section \ref{sec:scheme} we defined the discretization of the gradient. We would like to compute a gradient for every cell in the scene, even for the boundary. Therefore we surround our scene with a extra layer of cells. These virtual cells are meant to ensure the presence of 8 neighbour cells for all the cells in the scene. We fix the density and velocity in these virtual cells to 0. 
+\subsubsection{Vector difference operator}
+In Section \ref{sec:scheme} we defined the discretization of the gradient. We would like to compute a gradient for every cell in the scene, even for the boundary. We introduce a directional \emph{difference operator} that will aid us in computing the gradient approximation. First we surround our scene with a extra layer of cells. These virtual cells are meant to ensure the presence of 8 neighbour cells for all the cells in the scene. We fix the density and velocity in these virtual cells to 0. 
 For a discrete field $\vec{u}\in \mathbb{R}^{N_xN_y}$ let the auxiliary extended field be denoted by $\vec{\tilde{u}} \in \mathbb{R}^{(N_x+2)(N_y+2)}$ defined such that:
 \begin{equation}
 	\vec{\tilde{u}}_{(i,j)} = \begin{cases}
@@ -418,30 +419,31 @@ For a discrete field $\vec{u}\in \mathbb{R}^{N_xN_y}$ let the auxiliary extended
 	\end{cases}.
 	\label{def:gradient}
 \end{equation}
-Now we can define a gradient for every cell in the scene.
+We define our difference operators $\D_x, \D_y:\mathbb{R}^{N_xN_y}\to\mathbb{R}^{N_xN_y}$ as follows:
 \begin{align*}
-	\nabla_x\vec{u}_{(i,j)} &= \vec{\tilde{u}}_{(i+1,j)}-\vec{\tilde{u}}_{(i-1,j)}\\
-	\nabla_y\vec{u}_{(i,j)} &= \vec{\tilde{u}}_{(i,j+1)}-\vec{\tilde{u}}_{(i,j-1)}
+	\left( \D_x\vec{u} \right)_{(i,j)} &= \vec{\tilde{u}}_{(i+1,j)}-\vec{\tilde{u}}_{(i-1,j)}\\
+	\left( \D_y\vec{u} \right)_{(i,j)}  &= \vec{\tilde{u}}_{(i,j+1)}-\vec{\tilde{u}}_{(i,j-1)}
+	%&\forall i\in \left\{ 1,\dots,N_x \right\},\,\forall j \in \left\{ 1,\dots,N_y \right\}
 \end{align*}
 \subsubsection{Matrix composition}
 We first define two tridiagonal matrices $P_{m},Q_{m}\in \mathbb{R}^{m\times m}$
 \begin{align*}
 	P_{m} &= \begin{pmatrix}
-		0 & -1 &  & &  \\
-		1 & 0 & -1 &   &  \\
-		  & 1 & \ddots & \ddots &  \\
-		  &  & \ddots & \ddots &-1 \\
-		 & &  & 1 & 0
+		0 & 1 &  & &  \\
+		-1 & 0 & 1 &   &  \\
+		  & -1 & \ddots & \ddots &  \\
+		  &  & \ddots & \ddots &1 \\
+		 & &  & -1 & 0
 	\end{pmatrix}\\
 	Q_{m} &= \begin{pmatrix}
-		2 & -1 &  & &  \\
-		-1 & 2 & -1 &   &  \\
-		  & -1 & \ddots & \ddots &  \\
-		  &  & \ddots & \ddots &-1 \\
-		 & &  & -1 & 2
+		-2 & 1 &  & &  \\
+		1 & -2 & 1 &   &  \\
+		  & 1 & \ddots & \ddots &  \\
+		  &  & \ddots & \ddots &1 \\
+		 & &  & 1 & -2
 	\end{pmatrix}
 \end{align*}
-Let $I_m$ be the identity matrix of rank $m$. Let $\diag:\mathbb{R}^n\rightarrow\mathbb{R}^{n\times n}$ be the operator that converts a vector $\vec{p}$ to a diagonal matrix:
+Let $I_m$ be the identity matrix of rank $m$. Let $\diag:\mathbb{R}^n\to\mathbb{R}^{n\times n}$ be the operator that converts a vector $\vec{p}$ to a diagonal matrix:
 \begin{equation}
 	\diag(\vec{p}) = \begin{pmatrix}
 		\vec{p}_1\\
@@ -453,8 +455,8 @@ Let $I_m$ be the identity matrix of rank $m$. Let $\diag:\mathbb{R}^n\rightarrow
 \end{equation}
 Finally we can define our scheme with two matrices for each divergence term in \eqref{eq:scheme}.
 \begin{align*}
-	A_x &= \frac{1}{4h_x^2}\diag(\nabla_x\gvec{\rho}^n)(P_{N_x}\otimes I_{N_y})\\
-	A_y &= \frac{1}{4h_y^2}\diag(\nabla_y\gvec{\rho}^n)(I_{N_x}\otimes P_{N_y})\\
+	A_x &= \frac{1}{4h_x^2}\diag(\D_x\gvec{\rho}^n)(P_{N_x}\otimes I_{N_y})\\
+	A_y &= \frac{1}{4h_y^2}\diag(\D_y\gvec{\rho}^n)(I_{N_x}\otimes P_{N_y})\\
 	B_x &= \frac{1}{h_x^2}\diag(\gvec{\rho})(Q_{N_x}\otimes I_{N_y})\\
 	B_y &= \frac{1}{h_y^2}\diag(\gvec{\rho})(I_{N_x}\otimes Q_{N_y})
 \end{align*}
@@ -463,13 +465,17 @@ Our final matrix $C$ becomes
 	C = A_x + A_y + B_x + B_y 
 	\label{eq:total_matrix}
 \end{equation}
-\emph{I will find more suitable names for these matrices.}
-\ \\
 We can define a vector $\vec{b}$ to express the \underline{velocity divergence} term:
 \begin{equation}
-	\vec{b} = -\left( \nabla_x(\vec{v}^n_{x(i,j)}\gvec{\rho}^n_{(i,j)}) + \nabla_y(\vec{v}^n_{y(i,j)}\gvec{\rho}^n_{(i,j)})\right)
+	\vec{b} = -\left( \frac{1}{2h_x}\D_x(\vec{v}^n_{x(i,j)}\gvec{\rho}^n_{(i,j)}) + \frac{1}{2h_y}\D_y(\vec{v}^n_{y(i,j)}\gvec{\rho}^n_{(i,j)})\right)
 	\label{def:vector}
 \end{equation}
+Combining \eqref{eq:total_matrix} and \eqref{def:vector} we obtain the following matrix-vector system
+\begin{equation}
+	\gvec{\rho}^{n+1}=\gvec{\rho}^{n}+(C\vec{p}^n + \vec{b})\Delta t.
+	\label{eq:matr_vec_scheme}
+\end{equation}
+
 \section{Linear complementary problem}
 \label{sec:lcp}
 This system is linear in both $\vec{p}$ and $\gvec{\rho}$. Combining this with the complementarity between $\vec{p}$ and $\gvec{\rho}$ we can solve this system efficiently by reformulating it to fit a linear complementarity problem (LCP).
@@ -485,13 +491,14 @@ Positive semidefiniteness of $M$ is a sufficient condition to solve this problem
 We choose the following expressions:
 \begin{align}
 	\vec{w} &= \rho_{\max}-\gvec{\rho}^{n+1}\\
-	\vec{q} &= \rho_{\max}-\gvec{\rho}^n+\left(\nabla_x(\gvec{\rho}^n\vec{v}^n)+\nabla_y(\gvec{\rho}^n\vec{v}^n)\right)\Delta t\\
+	\vec{q} &= \rho_{\max}-\gvec{\rho}^n+\left(\D_x(\gvec{\rho}^n\vec{v}^n)+\D_y(\gvec{\rho}^n\vec{v}^n)\right)\Delta t\\
 	\vec{z} &= \vec{p}^n\\
 	M &= C\Delta t\\
 	\label{eq:lcp}
 \end{align}
 Using these expressions, we have reformulated our scheme to an LCP.
-\emph{Here should follow some analysis as to why $C$ is not far from symmetric and positive definite. I used a minimum value on $\gvec{\rho}$ which should ensure positive eigenvalues on $C$.}
+\emph{Here should follow some analysis as to why $C$ is not far from symmetric and positive definite. I used a minimum value on $\gvec{\rho}$ which should ensure positive eigenvalues on $C$.
+I did some analysis on $C$ and found that the real part of all eigenvalues is positive and the matrix is 'almost' symmetric. I am not sure if it is doable to perform a theoretical analysis, but I could provide some plots and numerical eigenvalues\dots}
 \subsection{Quadratic program}
 There are several ways to solve linear complementary problems. If  matrix $M$ is positive definite, LCPs can be solved by a quadratic program (QP) solver, of which there exist many. Since we asserted $M$ to be positive definite, we rewrite our LCP to a quadratic program and solve it using the Python library \texttt{cxvopt} \cite{cvxopt}.
 \ \\
