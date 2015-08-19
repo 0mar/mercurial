@@ -17,8 +17,8 @@ class GridComputer:
         self.dt = self.scene.dt
         self.interpolation_factor = 4
         self.packing_factor = 0.8
-        self.minimal_distance = 1
-        self.max_pressure = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance)
+        self.minimal_distance = 1 / 6
+        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -82,6 +82,8 @@ class GridComputer:
             self.v_y[cell_location] = np.sum(vel_array[:, 1])
         if self.show_plot:
             self.plot_grid_values()
+        print(self.max_density)
+        print(self.orientation_correct_str(self.rho, True))
 
     def plot_grid_values(self):
         for graph in self.graphs.flatten():
@@ -107,17 +109,17 @@ class GridComputer:
         flat_rho = self.rho.flatten(order='F') + 0.1
         grad_rho_x = GridComputer.get_gradient(self.rho, 'x')
         grad_rho_y = GridComputer.get_gradient(self.rho, 'y')
-        A = self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F')
-        B = (self.Bx + self.By) * flat_rho
-        cvx_M = cvxopt.matrix(A + B)
+        A = -(self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F'))
+        B = -(self.Bx + self.By) * flat_rho
+        cvx_M = cvxopt.matrix(2 * self.dt * (A + B))
 
         grad_v_rho_x = GridComputer.get_gradient(self.rho * self.v_x, 'x')
         grad_v_rho_y = GridComputer.get_gradient(self.rho * self.v_y, 'y')
 
-        b = self.max_pressure + flat_rho - self.dt * (grad_v_rho_x.flatten(order='F') + grad_v_rho_y.flatten(order='F'))
+        b = self.max_density - flat_rho + (grad_v_rho_x.flatten(order='F') + grad_v_rho_y.flatten(order='F')) * self.dt
         cvx_b = cvxopt.matrix(b)
         I = np.eye(nx * ny)
-        cvx_G = cvxopt.matrix(np.vstack((A + B, -I)))
+        cvx_G = cvxopt.matrix(np.vstack((-(A + B) * self.dt, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
         try:
@@ -127,6 +129,7 @@ class GridComputer:
             warn("CVXOPT Error: " + str(e))
             flat_p = np.zeros([1, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
+
 
     def adjust_velocity(self):
         """
@@ -185,14 +188,21 @@ class GridComputer:
         return weight * norm_constant
 
     @staticmethod
-    def print_field_with_orientation(field):
+    def orientation_correct_str(field, full=False):
         """
         Prints the field, but places (1,1) in the lower left corner
         and (m,n) in the upper right corner), column major indexing
         :param field: 2d array to be printed
         :return: string with correct field formatting
         """
-        return str(np.rot90(field))
+        correct_repr = np.rot90(field)
+        if not full:
+            return str(correct_repr)
+        else:
+            field_repr = ""
+            for row in correct_repr:
+                field_repr += " [%s]\n" % "\t".join(["%4.2f" % val for val in row])
+            return "[%s]" % field_repr[1:-1]
 
     @staticmethod
     def get_gradient(field, direction):

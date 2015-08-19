@@ -185,6 +185,9 @@ class Path(object):
     def length(self):
         return sum([line.length for line in self.list])
 
+    def __len__(self):
+        return len(self.list)
+
     def _check_connectivity(self, ls1: LineSegment, ls2: LineSegment):
         connected = np.allclose(ls1.end, ls2.begin)
         if not connected:

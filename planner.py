@@ -56,7 +56,7 @@ class Planner:
 
     @staticmethod
     def get_intermediate_goal(start, angle_to_goal, obstacles, safe_distance=3.):
-        # In this method, 0 == False == Left, 1 == True == Right
+        # In this method, 0 === False === Left, 1 === True === Right
         corner_points = [None, None]  # max corners left and right from destination
         max_angles = [0, 0]
         for obstacle in obstacles:
@@ -76,29 +76,47 @@ class Planner:
     def collective_update(self):
         """
         The update step of the simulation
-        #1: Progresses one time step
-        #2: Moves the pedestrians.
-            Blunt move, that still needs to be corrected for obstacles, people, and exits.
+        #1: Progresses one time step.
+        #2: Moves the pedestrians bluntly, UIC included.
+        #3: Corrects for obstacles, exits, other pedestrians (NIY).
+        #4: Provides the new desired velocity.
+
         :return: None
         """
         # 1
         self.scene.time += self.scene.dt
         #2
         self.scene.move_pedestrians()
+        #3
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
                 pedestrian.update_position()
+
                 # assert self.scene.is_accessible(pedestrian.position)
                 checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
-                if checkpoint_reached:
-                    done = pedestrian.is_done()
-                    if done:
-                        self.scene.remove_pedestrian(pedestrian)
-                    else:
-                        pedestrian.line = pedestrian.path.pop_next_segment()
-                        pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+                done = pedestrian.is_done()
+                if done:
+                    self.scene.remove_pedestrian(pedestrian)
+                    continue
+                if checkpoint_reached:  # and not done
+                    pedestrian.line = pedestrian.path.pop_next_segment()
+                    pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
                 else:
-                    pass
+                    # 4
+                    # Check which point should be the next checkpoint
+                    if pedestrian.path:
+                        next_checkpoint = pedestrian.path[0].end
+                        shortcut_line = LineSegment([pedestrian.position, next_checkpoint])
+                        shortcut_free = not any([shortcut_line.crosses_obstacle(obs)
+                                                 for obs in self.scene.obstacle_list])
+                        if shortcut_free:
+                            pedestrian.path.pop_next_segment()
+                            pedestrian.line = shortcut_line
+                    # Set our new desired velocity
+                    pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)  # Expensive...
+
+
+
 
 
 class GraphPlanner(Planner):
