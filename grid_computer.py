@@ -22,8 +22,8 @@ class GridComputer:
         self.cell_dimension = self.scene.number_of_cells
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
-        self.interpolation_factor = 4
-        self.packing_factor = 0.8
+        self.interpolation_factor = 3
+        self.packing_factor = 1
         self.minimal_distance = 1 / 6
         self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance)
         cvxopt.solvers.options['show_progress'] = False
@@ -129,17 +129,17 @@ class GridComputer:
         nx = self.cell_dimension[0]
         ny = self.cell_dimension[1]
         flat_rho = self.rho.flatten(order='F') + 0.1
-        grad_rho_x = GridComputer.get_gradient(self.rho, 'x')
-        grad_rho_y = GridComputer.get_gradient(self.rho, 'y')
-        A = (self.Ax * grad_rho_x.flatten(order='F') + self.Ay * grad_rho_y.flatten(order='F'))
+        diff_rho_x = GridComputer.get_dir_difference(self.rho, 'x')
+        diff_rho_y = GridComputer.get_dir_difference(self.rho, 'y')
+        A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
         B = (self.Bx + self.By) * flat_rho
         C = A + B
         cvx_M = cvxopt.matrix(-C * self.dt)
 
-        grad_v_rho_x = GridComputer.get_gradient(self.rho * self.v_x, 'x')
-        grad_v_rho_y = GridComputer.get_gradient(self.rho * self.v_y, 'y')
+        diff_v_rho_x = GridComputer.get_dir_difference(self.rho * self.v_x, 'x')
+        diff_v_rho_y = GridComputer.get_dir_difference(self.rho * self.v_y, 'y')
 
-        b = self.max_density - flat_rho + (grad_v_rho_x.flatten(order='F') + grad_v_rho_y.flatten(order='F')) * self.dt
+        b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
         cvx_b = cvxopt.matrix(b)
         I = np.eye(nx * ny)
         cvx_G = cvxopt.matrix(np.vstack((C * self.dt, -I)))
@@ -159,8 +159,8 @@ class GridComputer:
         Adjusts the velocity field for the pressure gradient
         :return: None
         """
-        self.grad_p_x = GridComputer.get_gradient(self.p, 'x')
-        self.grad_p_y = GridComputer.get_gradient(self.p, 'y')
+        self.grad_p_x = GridComputer.get_dir_difference(self.p, 'x') / (2 * self.dx)
+        self.grad_p_y = GridComputer.get_dir_difference(self.p, 'y') / (2 * self.dx)
         self.v_x -= self.grad_p_x
         self.v_y -= self.grad_p_y
 
@@ -175,10 +175,15 @@ class GridComputer:
         """
         v_x_func = RBS(self.x_range, self.y_range, self.v_x)
         v_y_func = RBS(self.x_range, self.y_range, self.v_y)
+        dens_func = RBS(self.x_range, self.y_range, self.rho)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),
+                                self.max_density)
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
-        self.scene.velocity_array = (self.scene.velocity_array + solved_velocity * 0.5) / 1.5
+        self.scene.velocity_array = self.scene.velocity_array \
+                                    + local_dens[:, None] / self.max_density * (
+        solved_velocity - self.scene.velocity_array)
         self.scene.velocity_array /= np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / 2
         # todo: should be max vel
 
@@ -228,7 +233,7 @@ class GridComputer:
             return "[%s]" % field_repr[1:-1]
 
     @staticmethod
-    def get_gradient(field, direction):
+    def get_dir_difference(field, direction):
         """
         Computes a gradient component of the discrete 2D vector field.
         The vector field contains values of the cell centers
