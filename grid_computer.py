@@ -14,7 +14,7 @@ class GridComputer:
     Main tasks:
     1. Interpolating velocity on grid points
     2. Computing pressure
-    3. Adapting global veloctity field with pressure gradient
+    3. Adapting global velocity field with pressure gradient
     4. Adapting individual velocity by global velocity field.
     """
     def __init__(self, scene, show_plot, apply):
@@ -23,9 +23,9 @@ class GridComputer:
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
         self.interpolation_factor = 3
-        self.packing_factor = 1
-        self.minimal_distance = 1 / 6
-        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance)
+        self.packing_factor = 0.8
+        self.minimal_distance = 1 / 4  # Can we make this depend on the velocity?
+        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance ** 2)  # Needs size.
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -52,7 +52,7 @@ class GridComputer:
         """
         Creates the matrix for solving the LCP using kronecker sums and the finite difference scheme
         The matrix returned is sparse and in cvxopt format.
-        :return: \delta t/\delta x^2*'ones'. Matrices are ready apart from multiplication with density.
+        :return: \Delta t/\Delta x^2*'ones'. Matrices are ready apart from multiplication with density.
         """
         nx, ny = self.cell_dimension
         ex = np.ones(nx)
@@ -88,12 +88,14 @@ class GridComputer:
                         relevant_pedestrian_set |= cell_dict[neighbour_cell_location].pedestrian_set
             distance_array = np.linalg.norm(self.scene.position_array - cell.center, axis=1)
             weights = GridComputer.weight_function(distance_array / self.interpolation_factor) * self.scene.alive_array
-            density = np.sum(weights)
+            density = np.sum(weights) + 0.01
             self.rho[cell_location] = density
 
             vel_array = self.scene.velocity_array * weights[:, None]
-            self.v_x[cell_location] = np.sum(vel_array[:, 0])
-            self.v_y[cell_location] = np.sum(vel_array[:, 1])
+            self.v_x[cell_location] = np.sum(vel_array[:, 0]) / density
+            self.v_y[cell_location] = np.sum(vel_array[:, 1]) / density
+        print(self.max_density)
+        print(self.orientation_correct_str(self.rho, True))
         if self.show_plot:
             self.plot_grid_values()
 
@@ -123,7 +125,7 @@ class GridComputer:
         These matrices can be validated from the theory in the report
         Then we convert the matrix system to a quadratic program and throw it into cvxopt solver.
         Finally we (hopefully) find a pressure and reconvert it to a 2D store.
-
+        We have to anticipate the case of a singular matrix
         :return:
         """
         nx = self.cell_dimension[0]
@@ -169,7 +171,7 @@ class GridComputer:
         Method that reconverts the velocity field to individual pedestrian positions.
         Input are the velocity x/y fields. We use a bivariate spline interpolation method
         to interpolate the velocities at the pedestrians position.
-        These velocities are then weighed to the densities (NYI)
+        These velocities are then weighed to the densities
         and added to the velocity field.
         :return: None
         """

@@ -2,12 +2,12 @@ __author__ = 'omar'
 
 import argparse
 
-from geometry import Size
+from geometry import Size, Point
 import scene
 from visualization import VisualScene
 from grid_computer import GridComputer
 from planner import GraphPlanner
-
+from scene_cases import ImpulseScene
 
 # Default parameters
 number_of_pedestrians = 100
@@ -27,10 +27,15 @@ parser.add_argument('-y', '--height', type=int, help='Height of the simulation d
 parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (in milliseconds)', default=1)
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
+parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestrians in an impulse')
 args = parser.parse_args()
 
 # Initialization
-scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+if args.impulse:
+    scene_obj = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+                             pedestrian_number=args.number, impulse_location=Point([50, 50]), impulse_size=3)
+else:
+    scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
 planner = GraphPlanner(scene_obj)
 grid = GridComputer(scene_obj, show_plot=args.plot, apply=args.apply)
