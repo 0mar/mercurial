@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from functions import *
-from geometry import Point, Size, Interval
+from geometry import Point, Interval
 
 __author__ = 'omar'
 
@@ -28,7 +28,7 @@ class Pedestrian(object):
         self.counter = counter
         self._position = self._velocity = None
         self.position = position
-        self.size = Size(np.array([0.4, 0.4]))
+        self.size = self.scene.pedestrian_size
         self.color = color
         self.max_speed = Interval([1,2]).random()
         self.goal = goal

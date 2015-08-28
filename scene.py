@@ -2,6 +2,7 @@ __author__ = 'omar'
 
 import random
 import pickle
+import itertools
 
 from functions import *
 from pedestrian import Pedestrian, EmptyPedestrian
@@ -34,20 +35,27 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
+        self.minimal_distance = 1 / 3
         self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
+        self.mde = True  # Minimum Distance Enforcement
         if cache == 'read':
             self._load_cells()
         else:
             self._create_cells()
         if cache == 'write':
             self._store_cells()
+        self.pedestrian_size = Size([0.4, 0.4])
+        self.pedestrian_list = []
+        self._init_pedestrians()
+        self.status = 'RUNNING'
+
+    def _init_pedestrians(self):
         self.pedestrian_list = [
             Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
             for counter in range(self.pedestrian_number)]
-
         self._fill_cells()
-        self.status = 'RUNNING'
+
     def _read_json_file(self, file_name: str):
         """
         Reads in a JSON file and stores the obstacle data in the scene.
@@ -66,10 +74,10 @@ class Scene:
             size = Size(self.size * obstacle_data['size'])
             name = obstacle_data["name"]
             self.obstacle_list.append(Obstacle(begin, size, name))
-        if len(data['exits']) ==0:
-            raise AttributeError('No exits specified in %s'%file_name)
-        elif len(data['exits'])>1:
-            raise NotImplementedError('Multiple exits specified in %s'%file_name)
+        if len(data['exits']) == 0:
+            raise AttributeError('No exits specified in %s' % file_name)
+        elif len(data['exits']) > 1:
+            raise NotImplementedError('Multiple exits specified in %s' % file_name)
         for exit_data in data['exits']:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])
@@ -188,6 +196,37 @@ class Scene:
                         pass
         self.pedestrian_cells = new_ped_cells
 
+    def obtain_smallest_pairs(self, min_distance):
+        """
+        Finds the pedestrian pairs that are closer than a specified distance.
+        Does so by comparing the distances of all pedestrians in a cell.
+        Note that distances between pedestrians from different cells are ignored,
+        we might fix this later.
+
+        :param min_distance:
+        :return:
+        """
+        list_a = list_b = []
+        for cell in self.cell_dict.values():
+            debug("Cell %s" % cell)
+            comb_length = len(cell.pedestrian_set) * (len(cell.pedestrian_set) - 1) / 2
+            comb_list_a = []
+            comb_list_b = []
+            for comb in itertools.combinations(cell.pedestrian_set, 2):
+                comb_list_a.append(comb[0].position.array)
+                comb_list_b.append(comb[1].position.array)
+            assert comb_length == len(comb_list_a)
+            list_a += comb_list_a
+            list_b += comb_list_b
+        array_a = np.array(list_a)
+        array_b = np.array(list_b)
+        difference = array_a - array_b
+        distance = np.linalg.norm(difference, axis=1)
+        indices = np.where(distance < min_distance)
+        debug("Indices: %s" % indices)
+        debug("Found %d too close pedestrians." % len(indices))
+        return indices
+
     def remove_pedestrian(self, pedestrian):
         """
         Removes a pedestrian from the scene by replacing it with an empty pedestrian
@@ -203,7 +242,7 @@ class Scene:
         self.pedestrian_list[counter] = empty_ped
         self.alive_array[counter] = 0
         if np.sum(self.alive_array) == 0:
-            self.status='DONE'
+            self.status = 'DONE'
 
     def is_within_boundaries(self, coord: Point) -> bool:
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)

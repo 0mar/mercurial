@@ -23,9 +23,8 @@ class GridComputer:
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
         self.interpolation_factor = 3
-        self.packing_factor = 0.8
-        self.minimal_distance = 1 / 4  # Can we make this depend on the velocity?
-        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.minimal_distance ** 2)  # Needs size.
+        self.packing_factor = 0.6
+        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -102,7 +101,7 @@ class GridComputer:
     def plot_grid_values(self):
         """
         Plot the density, velocity field, pressure, and pressure gradient.
-        Plot is opened in a separate window and automatically updated.
+        Plots are opened in a separate window and automatically updated.
         :return:
         """
         for graph in self.graphs.flatten():

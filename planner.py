@@ -85,9 +85,9 @@ class Planner:
         """
         # 1
         self.scene.time += self.scene.dt
-        #2
+        # 2
         self.scene.move_pedestrians()
-        #3
+        # 3
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
                 pedestrian.update_position()
@@ -102,8 +102,9 @@ class Planner:
                     pedestrian.line = pedestrian.path.pop_next_segment()
                     pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
                 else:
+                    # self.scene.obtain_smallest_pairs(self.scene.minimal_distance)
                     # 4
-                    # Check which point should be the next checkpoint
+                    # Check which point should be the next checkpoint. Todo: Not correct yet.
                     if pedestrian.path:
                         next_checkpoint = pedestrian.path[0].end
                         shortcut_line = LineSegment([pedestrian.position, next_checkpoint])

@@ -77,7 +77,7 @@ class VisualScene:
         fyi("Mouse location: %s" % scene_point)
         clicked_cell = self.scene.get_cell_from_position(scene_point)
         print(str(clicked_cell))
-        # for ped in self.scene.pedestrian_list:
+        # for ped in self.scene.pedestrian_list:p
         # fyi(str(ped))
         #     fyi("Origin: %s" % ped.origin)
 
@@ -88,6 +88,8 @@ class VisualScene:
         :return: None
         """
         self.canvas.delete('all')
+        # for cell in self.scene.cell_dict.values():
+        #     self.draw_cell(cell)
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()
@@ -120,7 +122,8 @@ class VisualScene:
         :return: relative start coordinates, relative end coordinates.
         """
         rel_pos_array = self.scene.position_array / self.scene.size.array
-        rel_size_array = np.ones([self.scene.pedestrian_number,2]) / self.scene.size.array/2 * self.size.array
+        rel_size_array = np.ones([self.scene.pedestrian_number,
+                                  2]) * self.scene.pedestrian_size.array / self.scene.size.array * self.size.array
         # Todo: Replace collective size by pedestrian size
         vis_pos_array = np.hstack((rel_pos_array[:, 0][:,None], 1 - rel_pos_array[:, 1][:,None]))* self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
