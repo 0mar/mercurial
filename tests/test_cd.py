@@ -191,3 +191,12 @@ class TestFunctions:
         start1, end1 = self.rec3
         start2, end2 = self.rec5
         assert not rectangles_intersect(start1, end1, start2, end2)
+
+
+class TestScene:
+    def __init__(self):
+        self.scene_obj = Scene(size=Size([20, 20]), obstacle_file='empty_obstacle_file.json',
+                               pedestrian_number=50)
+
+    def test_create_cells(self):
+        assert self.scene_obj.cell_dict[(1, 1)].begin == Point([0, 0])

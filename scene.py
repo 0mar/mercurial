@@ -35,7 +35,7 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.minimal_distance = 1 / 3
+        self.minimal_distance = 1.
         self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = True  # Minimum Distance Enforcement
@@ -196,36 +196,41 @@ class Scene:
                         pass
         self.pedestrian_cells = new_ped_cells
 
-    def obtain_smallest_pairs(self, min_distance):
+    def minimum_distance_enforcement(self, min_distance):
         """
-        Finds the pedestrian pairs that are closer than a specified distance.
-        Does so by comparing the distances of all pedestrians in a cell.
+        Finds the pedestrian pairs that are closer than the specified distance.
+        Does so by comparing the distances of all pedestrians a,b in a cell.
         Note that distances between pedestrians from different cells are ignored,
         we might fix this later.
 
-        :param min_distance:
-        :return:
+        :param min_distance: minimum distance between pedestrians
+        :return: list of pedestrian index pairs with distances lower than min_distance.
         """
-        list_a = list_b = []
+        list_a = []
+        list_b = []
+        index_list = []
         for cell in self.cell_dict.values():
-            debug("Cell %s" % cell)
-            comb_length = len(cell.pedestrian_set) * (len(cell.pedestrian_set) - 1) / 2
-            comb_list_a = []
-            comb_list_b = []
             for comb in itertools.combinations(cell.pedestrian_set, 2):
-                comb_list_a.append(comb[0].position.array)
-                comb_list_b.append(comb[1].position.array)
-            assert comb_length == len(comb_list_a)
-            list_a += comb_list_a
-            list_b += comb_list_b
+                list_a.append(comb[0].position.array)
+                list_b.append(comb[1].position.array)
+                index_list.append([comb[0].counter, comb[1].counter])
         array_a = np.array(list_a)
         array_b = np.array(list_b)
-        difference = array_a - array_b
-        distance = np.linalg.norm(difference, axis=1)
-        indices = np.where(distance < min_distance)
-        debug("Indices: %s" % indices)
-        debug("Found %d too close pedestrians." % len(indices))
-        return indices
+        array_index = np.array(index_list)
+        differences = array_a - array_b
+        distances = np.linalg.norm(differences, axis=1)
+        indices = np.where(distances < min_distance)[0]
+
+        mde_pairs = array_index[indices]
+        mde_corrections = (min_distance / distances[indices][:, None] - 1) * differences[indices] / 2
+        ordered_corrections = np.zeros([self.pedestrian_number, 2])
+        for it in range(len(mde_pairs)):
+            pair = mde_pairs[it]
+            ped_a = self.pedestrian_list[pair[0]]
+            ped_b = self.pedestrian_list[pair[1]]
+            ordered_corrections[ped_a.counter] += mde_corrections[it]
+            ordered_corrections[ped_b.counter] -= mde_corrections[it]
+        self.position_array += ordered_corrections
 
     def remove_pedestrian(self, pedestrian):
         """
@@ -271,6 +276,7 @@ class Scene:
         """
 
         self.position_array += self.velocity_array * self.dt
+        self.minimum_distance_enforcement(self.minimal_distance)
         self.update_cells()
 
 
@@ -278,7 +284,7 @@ class Cell:
     """
     Models a cell from the partitioned scene.
     This is to accommodate the UIC computations as well as to perform a more efficient scene evaluation.
-    We assume equal sized cells.
+    We assume equal sized grid cells.
     """
 
     def __init__(self, row: int, column: int, begin: Point, size: Size):

@@ -93,8 +93,8 @@ class GridComputer:
             vel_array = self.scene.velocity_array * weights[:, None]
             self.v_x[cell_location] = np.sum(vel_array[:, 0]) / density
             self.v_y[cell_location] = np.sum(vel_array[:, 1]) / density
-        print(self.max_density)
-        print(self.orientation_correct_str(self.rho, True))
+        # print(self.max_density)
+        # print(self.orientation_correct_str(self.rho, True))
         if self.show_plot:
             self.plot_grid_values()
 

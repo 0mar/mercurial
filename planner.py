@@ -7,6 +7,7 @@ from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
 from pedestrian import Pedestrian
 from scene import Obstacle
 
+
 class Planner:
     on_track = 0
     reached_checkpoint = 1
@@ -80,14 +81,15 @@ class Planner:
         #2: Moves the pedestrians bluntly, UIC included.
         #3: Corrects for obstacles, exits, other pedestrians (NIY).
         #4: Provides the new desired velocity.
-
+        #5: Enforce minimal distance between pedestrians.
         :return: None
         """
         # 1
         self.scene.time += self.scene.dt
-        # 2
+        #2
         self.scene.move_pedestrians()
-        # 3
+
+        #3
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
                 pedestrian.update_position()
@@ -102,8 +104,8 @@ class Planner:
                     pedestrian.line = pedestrian.path.pop_next_segment()
                     pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
                 else:
-                    # self.scene.obtain_smallest_pairs(self.scene.minimal_distance)
-                    # 4
+
+                    #4
                     # Check which point should be the next checkpoint. Todo: Not correct yet.
                     if pedestrian.path:
                         next_checkpoint = pedestrian.path[0].end

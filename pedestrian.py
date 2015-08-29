@@ -73,7 +73,7 @@ class Pedestrian(object):
         if self.scene.is_accessible(position,at_start):
             self.position = position
             self.scene.position_array[self.counter] = self.position.array
-            if self.cell:
+            if self.cell:  # Todo: Adding and removing is not needed if not switching cells.
                 self.cell.remove_pedestrian(self)
                 self.scene.get_cell_from_position(self.position).add_pedestrian(self)
             return True

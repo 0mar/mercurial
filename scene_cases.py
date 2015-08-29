@@ -20,13 +20,11 @@ class ImpulseScene(Scene):
         :param dt: update time step
         :return: scene instance.
         """
-        self.size = size
-        self.impulse_size = impulse_size
-        self.impulse_location = impulse_location
         if not all(impulse_location < size.array):
             raise ValueError("Impulse location not in scene")
+        self.impulse_size = impulse_size
+        self.impulse_location = impulse_location
         super().__init__(size, pedestrian_number, obstacle_file, dt, cache)
-        self.status = 'RUNNING'
 
     def _init_pedestrians(self):
         center = np.array(self.impulse_location)
