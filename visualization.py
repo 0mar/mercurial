@@ -88,8 +88,8 @@ class VisualScene:
         :return: None
         """
         self.canvas.delete('all')
-        # for cell in self.scene.cell_dict.values():
-        #     self.draw_cell(cell)
+        for cell in self.scene.cell_dict.values():
+            self.draw_cell(cell)
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()

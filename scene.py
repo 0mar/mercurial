@@ -15,7 +15,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, pedestrian_number, obstacle_file, dt=0.05, cache='read'):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, dt=0.05, cache='read'):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -38,7 +38,7 @@ class Scene:
         self.minimal_distance = 1.
         self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
-        self.mde = True  # Minimum Distance Enforcement
+        self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
             self._load_cells()
         else:
@@ -196,7 +196,7 @@ class Scene:
                         pass
         self.pedestrian_cells = new_ped_cells
 
-    def minimum_distance_enforcement(self, min_distance):
+    def _minimum_distance_enforcement(self, min_distance):
         """
         Finds the pedestrian pairs that are closer than the specified distance.
         Does so by comparing the distances of all pedestrians a,b in a cell.
@@ -218,6 +218,8 @@ class Scene:
         array_b = np.array(list_b)
         array_index = np.array(index_list)
         differences = array_a - array_b
+        if len(differences) == 0:
+            return
         distances = np.linalg.norm(differences, axis=1)
         indices = np.where(distances < min_distance)[0]
 
@@ -276,7 +278,8 @@ class Scene:
         """
 
         self.position_array += self.velocity_array * self.dt
-        self.minimum_distance_enforcement(self.minimal_distance)
+        if self.mde:
+            self._minimum_distance_enforcement(self.minimal_distance)
         self.update_cells()
 
 

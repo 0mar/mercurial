@@ -11,12 +11,13 @@ from visualization import VisualScene
 
 class ImpulseScene(Scene):
     def __init__(self, size: Size, pedestrian_number, obstacle_file,
-                 impulse_location, impulse_size, dt=0.05, cache='read'):
+                 impulse_location, impulse_size, mde=True, dt=0.05, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
         :param pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
+        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
         :param dt: update time step
         :return: scene instance.
         """
@@ -24,7 +25,7 @@ class ImpulseScene(Scene):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_location = impulse_location
-        super().__init__(size, pedestrian_number, obstacle_file, dt, cache)
+        super().__init__(size, pedestrian_number, obstacle_file, mde, dt, cache)
 
     def _init_pedestrians(self):
         center = np.array(self.impulse_location)
