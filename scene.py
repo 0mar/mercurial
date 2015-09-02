@@ -31,11 +31,12 @@ class Scene:
         self.obstacle_list = []
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])
+        self.last_position_array = np.zeros([self.pedestrian_number, 2])
         self.velocity_array = np.zeros([self.pedestrian_number, 2])
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.minimal_distance = 1.
+        self.minimal_distance = 0.5
         self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = mde  # Minimum Distance Enforcement
@@ -175,6 +176,13 @@ class Scene:
         raw_cell_locations = np.floor(self.position_array / self.cell_size)
         return raw_cell_locations
 
+    def get_stationary_pedestrians(self):
+        pos_difference = np.linalg.norm(self.position_array - self.last_position_array, axis=1)
+        not_moved = pos_difference == 0
+        # is_alive = np.array(self.alive_array,dtype=bool) # Not necessary, we check in planner anyway
+        # combined_stationary_information = np.hstack([not_moved[:,None],is_alive[:,None]])
+        return not_moved
+
     def update_cells(self):
         """
         Update all the pedestrians, but by looking per cell what the new situation is.
@@ -200,7 +208,7 @@ class Scene:
         """
         Finds the pedestrian pairs that are closer than the specified distance.
         Does so by comparing the distances of all pedestrians a,b in a cell.
-        Note that distances between pedestrians from different cells are ignored,
+        Note that intercellullar pedestrian pairs are ignored,
         we might fix this later.
 
         :param min_distance: minimum distance between pedestrians
@@ -224,7 +232,8 @@ class Scene:
         indices = np.where(distances < min_distance)[0]
 
         mde_pairs = array_index[indices]
-        mde_corrections = (min_distance / distances[indices][:, None] - 1) * differences[indices] / 2
+        # Todo: Change perturbation to eps
+        mde_corrections = (min_distance / (distances[indices][:, None] + 0.001) - 1) * differences[indices] / 2
         ordered_corrections = np.zeros([self.pedestrian_number, 2])
         for it in range(len(mde_pairs)):
             pair = mde_pairs[it]
@@ -276,7 +285,7 @@ class Scene:
         Assumes that all the velocities have been set accordingly.
         :return: None
         """
-
+        self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
             self._minimum_distance_enforcement(self.minimal_distance)
@@ -376,7 +385,7 @@ class Obstacle:
         self.color = 'black'
         self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
         # Safety margin for around the obstacle corners.
-        self.margin_list = [Point(np.sign([x - 0.5, y - 0.5])) * 3 for x in range(2) for y in range(2)]
+        self.margin_list = [Point(np.sign([x - 0.5, y - 0.5])) for x in range(2) for y in range(2)]
         self.in_interior = True
         self.center = self.begin + self.size * 0.5
 

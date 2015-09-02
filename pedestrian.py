@@ -29,8 +29,8 @@ class Pedestrian(object):
         self._position = self._velocity = None
         self.position = position
         self.size = self.scene.pedestrian_size
-        self.color = color
         self.max_speed = Interval([1,2]).random()
+        self.color = self._convert_speed_to_color()
         self.goal = goal
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
@@ -48,7 +48,17 @@ class Pedestrian(object):
     def __repr__(self):
         return "Pedestrian#%d" % self.counter
 
-    def update_position(self):
+    def _convert_speed_to_color(self):
+        start = 1
+        end = 2
+        max_val = 255
+        speed = self.max_speed
+        red = max_val * (speed - start) / (end - start)
+        green = 0
+        blue = max_val * (speed - end) / (start - end)
+        return "#%02x%02x%02x" % (red, green, blue)
+
+    def correct_for_geometry(self):
         """
         Updates the position of the pedestrian from the scene position array
         by checking its accessibility in the corresponding cell.
@@ -149,5 +159,5 @@ class EmptyPedestrian(Pedestrian):
     def __str__(self):
         return "Finished Pedestrian %d" % self.counter
 
-    def update_position(self, dt):
+    def correct_for_geometry(self, dt):
         pass

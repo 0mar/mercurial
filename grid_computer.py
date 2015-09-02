@@ -23,8 +23,8 @@ class GridComputer:
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
         self.interpolation_factor = 3
-        self.packing_factor = 0.6
-        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
+        self.packing_factor = 0.9
+        self.max_density = 2 * 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -93,8 +93,8 @@ class GridComputer:
             vel_array = self.scene.velocity_array * weights[:, None]
             self.v_x[cell_location] = np.sum(vel_array[:, 0]) / density
             self.v_y[cell_location] = np.sum(vel_array[:, 1]) / density
-        # print(self.max_density)
-        # print(self.orientation_correct_str(self.rho, True))
+        print(self.max_density)
+        print(self.orientation_correct_str(self.rho, True))
         if self.show_plot:
             self.plot_grid_values()
 

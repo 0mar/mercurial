@@ -33,7 +33,7 @@ args = parser.parse_args()
 # Initialization
 if args.impulse:
     scene_obj = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                             pedestrian_number=args.number, impulse_location=Point([50, 50]), impulse_size=3)
+                             pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=50)
 else:
     scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                     pedestrian_number=args.number)
