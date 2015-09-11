@@ -21,7 +21,10 @@ parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in s
                     default=number_of_pedestrians)
 parser.add_argument('-s', '--step', action='store_true', help='Let simulation progress on mouse click only')
 parser.add_argument('-p', '--plot', action='store_true', help='Let simulation plot global values on each time step')
-parser.add_argument('-a', '--apply', action='store_true', help='Let simulation apply UIC to the pedestrians')
+parser.add_argument('-c', '--apply-interpolation', action='store_true',
+                    help='Let simulation impose swarm behaviour to the pedestrians')
+parser.add_argument('-u', '--apply-pressure', action='store_true',
+                    help='Let simulation impose UIC (pressure term) to the pedestrians (-c implied)')
 parser.add_argument('-x', '--width', type=int, help='Width of the simulation domain', default=domain_width)
 parser.add_argument('-y', '--height', type=int, help='Height of the simulation domain', default=domain_height)
 parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (in milliseconds)', default=1)
@@ -36,9 +39,11 @@ if args.impulse:
                              pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=50)
 else:
     scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                    pedestrian_number=args.number)
+                            pedestrian_number=args.number)
 planner = GraphPlanner(scene_obj)
-grid = GridComputer(scene_obj, show_plot=args.plot, apply=args.apply)
+grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
+                    apply_pressure=args.apply_pressure)
+
 
 # Methods inserted on every update
 def step():

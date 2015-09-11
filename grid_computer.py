@@ -17,7 +17,8 @@ class GridComputer:
     3. Adapting global velocity field with pressure gradient
     4. Adapting individual velocity by global velocity field.
     """
-    def __init__(self, scene, show_plot, apply):
+
+    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure):
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx, self.dy = self.scene.cell_size
@@ -30,7 +31,8 @@ class GridComputer:
         self._create_matrices()
 
         self.show_plot = show_plot
-        self.apply = apply
+        self.apply_interpolation = apply_interpolation
+        self.apply_pressure = apply_pressure
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
@@ -198,9 +200,10 @@ class GridComputer:
         :return: None
         """
         self.get_grid_values()
-        if self.apply:
-            self.solve_LCP()
-            self.adjust_velocity()
+        if self.apply_interpolation:
+            if self.apply_pressure:
+                self.solve_LCP()
+                self.adjust_velocity()
             self.interpolate_pedestrians()
 
     @staticmethod
