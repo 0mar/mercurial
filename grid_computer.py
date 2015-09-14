@@ -3,7 +3,7 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from scipy.interpolate import RectBivariateSpline as RBS
+from scipy.interpolate import RectBivariateSpline as Rbs
 import cvxopt
 from functions import *
 
@@ -176,9 +176,9 @@ class GridComputer:
         and added to the velocity field.
         :return: None
         """
-        v_x_func = RBS(self.x_range, self.y_range, self.v_x)
-        v_y_func = RBS(self.x_range, self.y_range, self.v_y)
-        dens_func = RBS(self.x_range, self.y_range, self.rho)
+        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)
+        v_y_func = Rbs(self.x_range, self.y_range, self.v_y)
+        dens_func = Rbs(self.x_range, self.y_range, self.rho)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),

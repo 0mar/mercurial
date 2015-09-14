@@ -36,7 +36,7 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.minimal_distance = 0.5
+        self.minimal_distance = 0.7
         self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = mde  # Minimum Distance Enforcement
