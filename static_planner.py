@@ -8,7 +8,7 @@ from pedestrian import Pedestrian
 from scene import Obstacle
 
 
-class Planner:
+class StaticPlanner:
     on_track = 0
     reached_checkpoint = 1
     other_state = 2
@@ -24,7 +24,7 @@ class Planner:
         path_to_exit = Path([])
         sub_start = pedestrian.position
         while not (sub_start in goal_obstacle):
-            goal = Planner.get_goal(sub_start, goal_obstacle)
+            goal = StaticPlanner.get_goal(sub_start, goal_obstacle)
             line_to_goal = LineSegment([sub_start, goal])
             angle_to_goal = (goal - sub_start).angle
             colliding_obstacles = []
@@ -130,8 +130,7 @@ class Planner:
                 pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
 
-
-class GraphPlanner(Planner):
+class GraphPlanner(StaticPlanner):
     def __init__(self, scene):
         self.scene = scene
         self.graph = None
@@ -157,7 +156,7 @@ class GraphPlanner(Planner):
             line = LineSegment([prev_point, point])
             path_to_exit.append(line)
             prev_point = point
-        finish_point = Planner.get_goal(prev_point, goal_obstacle)
+        finish_point = StaticPlanner.get_goal(prev_point, goal_obstacle)
         line_to_finish = LineSegment([prev_point, finish_point])
         # assert self.line_crosses_no_obstacles(line_to_finish)
         path_to_exit.append(line_to_finish)
@@ -178,7 +177,7 @@ class GraphPlanner(Planner):
                 self._fill_with_required_edges(node, self.graph, goal_obstacle)
 
     def _fill_with_required_edges(self, node: Point, graph, goal_obstacle):
-        goal_point = Planner.get_goal(node, goal_obstacle)
+        goal_point = StaticPlanner.get_goal(node, goal_obstacle)
         line_to_goal = LineSegment([node, goal_point])
         path_free = True
         for obstacle in self.scene.obstacle_list:
