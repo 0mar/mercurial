@@ -12,6 +12,8 @@ class DynamicPlanner:
         self.grid_computer = grid_computer
         self.scene = self.grid_computer.scene
         self.grid_dimension = (20, 20)
+        self.dx, self.dy = self.scene.size.array / self.grid_dimension
+
         self.cell_center_dims = self.grid_dimension
         self.horizontal_faces_dims = (self.grid_dimension[0], self.grid_dimension[1] + 1)
         self.vertical_faces_dims = (self.grid_dimension[0] + 1, self.grid_dimension[1])
@@ -20,6 +22,43 @@ class DynamicPlanner:
         self.speed_field_weight = 1
         self.discomfort_field_weight = 1
         self.path_length_weight = 1
+
+        self.min_density = 0
+        self.max_density = 5
+        self.density_threshold = 3
+
+        self.density_exponent = 1
+
+    def obtain_fields(self):
+        """
+        Compute the density and velocity field as done in Treuille et al. (2004).
+        Letter notation corresponds to their notation.
+        Stores discrete density and velocity field in class attributes
+        :return: None
+        """
+        dens = np.zeros(self.grid_dimension)
+        cell_size = np.array([self.dx, self.dy])
+        cell_centers = np.around(self.scene.position_array / cell_size) * cell_size
+        integer_cell_centers = cell_centers.astype(int)
+        difference = np.abs(self.scene.position_array - cell_centers)
+        density_contributions = [[], []]
+        for x in range(2):
+            for y in range(2):
+                # Not correct yet
+                density_contributions[x][y] = np.minimum(1 - difference[:, 0],
+                                                         1 - difference[:, 1]) ** self.density_exponent
+
+        left_down = np.minimum(1 - difference[:, 0], 1 - difference[:, 1]) ** self.density_exponent  # A
+        right_down = np.minimum(difference[:, 0], 1 - difference[:, 1]) ** self.density_exponent  # B
+        right_up = np.minimum(difference[:, 0], difference[:, 1]) ** self.density_exponent  # C
+        left_up = np.minimum(1 - difference[:, 0], difference[:, 1]) ** self.density_exponent  # D
+        for pedestrian in self.scene.pedestrian_list:
+            for x in range(2):
+                for y in range(3):
+                    dens[tuple(integer_cell_centers[pedestrian.counter])] \
+                        += density_contributions[x][y][pedestrian.counter]
+        return dens
+
 
     def get_speed_field(self, direction):
         """
