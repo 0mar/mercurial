@@ -159,5 +159,5 @@ class EmptyPedestrian(Pedestrian):
     def __str__(self):
         return "Finished Pedestrian %d" % self.counter
 
-    def correct_for_geometry(self, dt):
+    def correct_for_geometry(self):
         pass

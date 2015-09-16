@@ -121,7 +121,7 @@ class LineSegment(object):
 
     @staticmethod
     def path_norm(path, t):
-        return np.linalg.norm(path[0] + t * (path[1] - path[0]), ord=1)
+        return np.linalg.norm(path[0] + t * (path[1] - path[0]), ord='1')
 
     def get_point(self, value:float):
         return self.begin + value * (self.end - self.begin)
@@ -131,7 +131,7 @@ class LineSegment(object):
         Checks whether the line crosses the rectangular obstacle.
         Implemented more efficiently than its counterpart, and even more precise.
         :param obstacle: The rectangular obstacle to be checked
-        :param strict: Whether the line passes only through the obstacle (open_sets = True)
+        :param open_sets: Whether the line passes only through the obstacle (open_sets = True)
          or also through the boundary (open_sets = False)
         :return: True if line crosses obstacle, false otherwise
         """

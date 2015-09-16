@@ -33,6 +33,8 @@ class GridComputer:
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation
         self.apply_pressure = apply_pressure
+
+        # Change this into a better grid discretization
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
@@ -237,23 +239,23 @@ class GridComputer:
             return "[%s]" % field_repr[1:-1]
 
     @staticmethod
-    def get_dir_difference(field, direction):
+    def get_dir_difference(field, axis):
         """
         Computes a gradient component of the discrete 2D vector field.
         The vector field contains values of the cell centers
         We use a simple 2-point second order central difference scheme.
         :param field: vector field with a Carthesian indexing
-        :param direction: 'x' or 'y'
+        :param axis: 'x' or 'y'
         :return: vector field representing gradient component.
         """
         assert all(dim > 2 for dim in field.shape)
-        if direction == 'x':
+        if axis == 'x':
             grad_field_x = np.zeros(field.shape)
             grad_field_x[1:-1, :] = field[2:, :] - field[:-2, :]
             return grad_field_x
-        elif direction == 'y':
+        elif axis == 'y':
             grad_field_y = np.zeros(field.shape)
             grad_field_y[:, 1:-1] = field[:, 2:] - field[:, :-2]
             return grad_field_y
         else:
-            raise ValueError('Choose x or y for direction, not %s' % direction)
+            raise ValueError('Choose x or y for direction, not %s' % axis)

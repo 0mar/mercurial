@@ -95,12 +95,12 @@ class VisualScene:
         self.draw_pedestrians()
 
     def store_scene(self, name=None):
-        dir = 'images'
+        directory = 'images'
         if not name:
             import time
 
             name = "scene#%d" % time.time()
-        filename = "%s/%s-%d.eps" % (dir, name, self.scene.time)
+        filename = "%s/%s-%d.eps" % (directory, name, self.scene.time)
         self.canvas.postscript(file=filename)
 
     def draw_pedestrians(self):

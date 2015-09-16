@@ -111,7 +111,7 @@ class TestPath:
         assert not bool(path)
 
 
-from planner import GraphPlanner
+from static_planner import GraphPlanner
 
 
 class TestGraphPlanner:

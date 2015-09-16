@@ -101,8 +101,8 @@ def rectangles_intersect(start_1, end_1, start_2, end_2, open_sets=False):
 def get_hyperplane_function(p, q):
     """
 
-    :param a:
-    :param b:
+    :param p:
+    :param q:
     :return:
     """
     a1 = -(p[1] - q[1])

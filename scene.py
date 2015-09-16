@@ -331,11 +331,19 @@ class Cell:
                     break
 
     def add_pedestrian(self, pedestrian):
+        """
+        Preferred way of adding a pedestrian
+        :param: pedestrian, not already present in cell
+        """
         assert pedestrian not in self.pedestrian_set
         pedestrian.cell = self
         self.pedestrian_set.add(pedestrian)
 
     def remove_pedestrian(self, pedestrian):
+        """
+        Preferred way of removing a pedestrian
+        :param: pedestrian, has to be present in cell
+        """
         assert pedestrian in self.pedestrian_set
         self.pedestrian_set.remove(pedestrian)
 
