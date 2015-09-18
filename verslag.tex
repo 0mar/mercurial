@@ -9,8 +9,9 @@
 \usepackage{a4wide}
 \usepackage{tikz}
 \usetikzlibrary{calc}
-\title{Description Capita Selecta}
+\title{Analysis and Implementation of a Two-Scale Model for Dense Crowd Simulation}
 \author{Omar Richardson}
+\author{Supervised by: Marko Boon, Adrian Muntean}
 \let\oldhat\hat
 \let\oldtil\tilde
 \DeclareMathOperator{\diag}{diag}
@@ -25,18 +26,63 @@
 \begin{document}
 
 \maketitle
-
 \section{Abstract}
-Crowd dynamics is an emerging field of research. With more computational power and algorithms available, realistic crowd simulations become better and better. When desiring to model a crowd, several dependable modelling options are available. Some models employ stochastic differential equations to model the movements of agents as Brownian motions. Other models represent the agents as occupied cells on a grid.
-\ \\
-These ways of modelling has proven to work well for small crowds. When crowds become dense, other options become available as well. One of these options is to combine both a global as a local approach in the model, where the global approach models the crowd as a fluid, and the local approach models agents as individual agents. Using the right simulation architecture, this way of modelling is able to handle crowds with a large number of agents at a relatively low computational cost.
+This report describes a crowd dynamics model [aggregated of microscale and macroscale][fitted for dense crowds]. [Implementation details][Implementation into software][results].
+\newpage
+\section{Introduction}
+In this report, we present an implementation of a crowd dynamics model. Crowd dynamics studies the flow of pedestrians. Often, these studies are applied to specific situations, such as buildings, large scale events or traffic interaction. 
+Since people are notably diverse and unpredictable, approaches in modelling and simulating pedestrians tend to vary a lot. 
+Moreover, techniques in crowd dynamics do not only depend on the peoples' mindset, but also on their number, cultural habits, setting and perspective. 
+Up until now, up to the authors knowledge, no model has yet been invented that applies on all situations of pedestrian interaction. 
+However, since the late 20th century period, a lot of progress has been made in developing and improving models. 
 
 \ \\
-The goal of this capita selecta is to implement this method and check its performance in the case of a large crowd in need of evacuation. 
+Modelling crowds is a multidisciplinary field. While many early (and recent) models originate from mathematicians and physicists, large contributions have come from the computer science community, motivated by creating live-like environments for games and movies. 
+Also, scientists from the field of civil engineering and architecture have made major progress in development of crowd dynamic models, where one of the typical applications is ensuring and validating the safety standards of new constructions.
+\ \\
+In [Something about helbing and the birdroid guy] [these models do not always scale well]. One of these options is to combine both a global as a local approach in the model, where the global approach models the crowd as a fluid, and the local approach models agents as individual agents. Using the right simulation architecture, this way of modelling is able to handle crowds with a large number of agents at a relatively low computational cost.
+
+\ \\
+In this report, we propose and discuss a novel implementation based on Narain et al \cite{Narain04}.
 
 \newpage
-\section{Implementation overview}
-This model is composed of several modules. These modules will be implemented disjointly. This will enable us to swap or upgrade modules without having to adapt the rest, and keep the implementation improvable and maintainable.
+\section{Model}
+We implement a two-scale model largely based on \cite{Narain04}.
+In this model, two popular crowd simulation techniques are combined. On one hand, we will model the crowd as a system of interacting particles subject to external forces, as proposed by Helbing \cite{blabla} and further worked out in [another name]. 
+In these types of models, referred to as \emph{particle models}, it is assumed each particle has a fixed set of goals and is attracted to these goals, while simultaneously evading obstacles and other pedestrians. 
+\ \\
+Figure \ref{fig:particle_model} shows an example of [particles with velocities]. These models are discrete in time, but continuous in space. For each particle $a$ with position $\vec{x}_a(t)$ and velocity $\vec{v}_b(t)$ at time $t$, we compute the position in the next time step $t+dt$ using the equation of motion:
+\begin{equation}
+	\vec{x}_a(t+dt) = \vec{x}_a(t) + \vec{v}_a(t)dt
+	\label{(t)}
+\end{equation}
+Modelling pedestrians as particles lets us evaluate the crowd at microscale and allows us to model interaction and collision avoidance.
+
+\ \\
+On the other hand, we will model the crowd as a continuum, subject to the same laws (of nature) that apply to fluids. Continuum crowd models can be traced back to the work of Henderson \cite{Henderson77} and Hughes \cite{Hughes00}.
+These models do not describe the motions of individual pedestrians, but rather the flow of the crowd as a whole. Because crowds are as diverse as the people of which they consists, there is not one unformly correct model. In the past, succesful models were constructed around the Maxwell-Boltzmann equation \cite{Henderson77} and the continuity equation for the conservation of mass \cite{Hoogendoorn15}.
+Our continuum model is based on the latter. 
+
+\ \\
+We apply the continuity equation augmented with a term accounting for pressure \eqref{eq:cont_equation}. We will impose group velocity $\vec{v}$ on individual pedestrians and apply a repulsive force from locations where the density $\rho$ is too high by introducing a pressure $p$.
+\begin{equation}
+	\frac{\partial\rho}{\partial t} = - \nabla \cdot (\rho\vec{v})+\nabla\cdot(\rho\nabla p).
+	\label{eq:cont_equation}
+\end{equation}
+We will approximate this PDE on a fixed grid, so that we discretize in both time and space. This is illustrated by Figure \ref{fig:cont_illustration}.
+Modelling the crowd as a continuum allows us to incorporate group behaviour.
+\ \\
+To unite these models, we obtain a continuous representation of the discrete particles, use that representation for our continuum model, and provide a way to impose the continuous information back to the particles. Elaboration on these steps is found in Section \ref{sec:continuum}.
+
+\section{Implementation}
+The work of Narain et al. only prescribes pedestrian movement and interaction. To analyse this model, we embed it in a [general and home-made] particle model. 
+Our demands for this model are (1) to simulate arbitrary [ortogonal] geometries, (2) to provide agents with a goal and a (indicative) path towards that goal and (3) to convert pedestrians to a continuous representation. These [ideas] are worked out in this section.
+
+\ \\
+We implement this model in Python. This programming language has reliable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also provides an object oriented structure, which makes description and manipulation of pedestrians on a local level more manageable.
+\ \\
+However, using pure Python can be quite slow in comparison to other (compiled) languages. For this reason, most of the computational intensive parts are (whenever possible) performed in the \texttt{numpy} library, which uses optimized C and FORTRAN code. This reduces the [performance hit].
+
 \begin{enumerate}
 	\item \textbf{Geometry}\\
 	This part models the scenario in which the agents are placed, the obstacles they have to avoid, and the goal they are headed to.
@@ -47,10 +93,8 @@ This model is composed of several modules. These modules will be implemented dis
 	This module also applies a incompressibility constraint to the global representation to ensure local densities do not exceed a maximum.
 \end{enumerate}
 The model will be implemented in Python. Motivation behind this language is that it has dependable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also has the advantage of an object oriented structure, which will make working with agents on a local level more manageable.
-\newpage
 \section{Geometry}
-This section will elaborate on the implementation of the geometry.
-\subsection{Summary}
+Simulation takes place in a rectangular domain
 The geometry consists of a scene filled with multiple obstacles. The scene is the domain of calculation. It is modelled as a rectangle, surrounded with walls and exits. Within this domain, agents are spawned, trying to make their way to the exit while dodging the obstacles (and each other). an agent will be eliminated once he has made his way to the exit.
 
 \subsection{Structure}
