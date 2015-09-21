@@ -9,8 +9,8 @@
 \usepackage{a4wide}
 \usepackage{tikz}
 \usetikzlibrary{calc}
-\title{Description Capita Selecta}
-\author{Omar Richardson}
+\title{Analysis and Implementation of a Two-Scale Model for Dense Crowd Simulation}
+\author{Omar Richardson\\Supervised by: Marko Boon, Adrian Muntean}
 \let\oldhat\hat
 \let\oldtil\tilde
 \DeclareMathOperator{\diag}{diag}
@@ -25,62 +25,138 @@
 \begin{document}
 
 \maketitle
-
 \section{Abstract}
-Crowd dynamics is an emerging field of research. With more computational power and algorithms available, realistic crowd simulations become better and better. When desiring to model a crowd, several dependable modelling options are available. Some models employ stochastic differential equations to model the movements of agents as Brownian motions. Other models represent the agents as occupied cells on a grid.
-\ \\
-These ways of modelling has proven to work well for small crowds. When crowds become dense, other options become available as well. One of these options is to combine both a global as a local approach in the model, where the global approach models the crowd as a fluid, and the local approach models agents as individual agents. Using the right simulation architecture, this way of modelling is able to handle crowds with a large number of agents at a relatively low computational cost.
+This report describes a crowd dynamics model [aggregated of microscale and macroscale][fitted for dense crowds]. [Implementation details][Implementation into software][results].
+\newpage
+\section{Introduction}
+In this report, we present a novel implementation of a hybrid crowd dynamics model. Crowd dynamics studies the flow of pedestrians. Often, these studies are applied to specific situations, such as buildings, large scale events or traffic interaction. 
+Since people are notably diverse and unpredictable, approaches in modelling and simulating pedestrians tend to vary a lot. 
+Moreover, techniques in crowd dynamics do not only depend on the peoples' mindset, but also on their number, cultural habits, setting and perspective. 
+To the authors knowledge, no model has yet been invented that applies on all situations of pedestrian interaction. 
+However, since the late 20th century, a lot of progress has been made in developing and improving models that perform well in specific settings. 
 
 \ \\
-The goal of this capita selecta is to implement this method and check its performance in the case of a large crowd in need of evacuation. 
+An intuitive way of modelling a crowd is by prescribing behavioural rules for each pedestrian that account for individual actions as well as interactions among them; this is considered a local approach.
+However, this principle tends to scale poorly in the number of pedestrians. 
+\ \\
+For dense crowds, an alternative is to view the crowd as a whole, like a fluid or a gas. 
+By prescribing a governing equation, together with an initial condition and boundary conditions, one obtains a global perspective of the flows and densities within the crowd. Hence, this is considered a global approach.
+Global approaches have no description of individual pedestrian behaviour and therefore fail to adequately describe crowds with (regions of) low pedestrian density.
+
+\ \\
+An alternative is to combine both a local and global approach in a model, resulting in a \emph{hybrid} model. The local component is responsible for modelling individual preferences like goal or maximum speed, while the global component models the interaction between pedestrians.
+Using the right simulation architecture, a hybrid model is able to simulate different type of crowds with a large number of agents at a relatively low computational cost.
+
+\ \\
+In this report, we propose and discuss a novel implementation based on Narain et al \cite{Narain04}.
+ We provide a brief overview of the development of some of these models to provide a context for the model under consideration.
+\newpage
+
+\section{History}
+Modelling crowds is a multidisciplinary field. While many early (and recent) models originate from mathematicians and physicists, large contributions have come from the computer science community as well, motivated by the need to create live-like environments for games and movies.
+Also, scientists from the field of civil engineering and architecture have made major progress in development of crowd dynamic models, where one of the typical applications is ensuring and validating the safety standards of new constructions.
+\paragraph{Particle models}
+Perhaps the most popular way of modeling crowds is by prescribing the behaviour for each of the pedestrians individually.\\
+While the idea sounds fairly intuitive, researchers have struggled with producing realistic and crowd-like motions. One of the first succesful attempts can be attributed to Reynolds in the late eighties \cite{Reynolds88}. In his attempt to model flocks of animals (specifically birds), he establishes rules which apply for many coherent groups of agents, including pedestrians. He proposes the Boid model (acronym for bird-oids, agents with birdlike flock behaviour) based on the principles of collision avoidance, velocity matching and flock centering.
+\ \\
+Reynolds main contribution is modelling a flock as a group of conforming agents, instead of individuals, and both reseachers as designers used these principles as a basis for realistic crowd motion.\\
+However, in these models it is difficult to express individual preferences or characteristics. To resolve this, some researchers started to model crowds in a more physical setting, by applying kinematic principles to these agents, essentially treating them as particles.
+
+\ \\
+An influential example is Helbing's social force model \cite{Helbing98}, in which the pedestrians are represented as particles with a fixed mass and size.
+These pedestrians have a preset goal, and try to reach that goal while maintaining their desired speed. While approaching the goal, they experience \emph{attraction} and \emph{repulsion} forces from other pedestrians and objects, depending on their personal preference. This way, both social behaviour is simulated as well as collision avoidance. 
+Correctly implemented, this model shows realistic motions for the pedestrians. In addition, the model is able to capture crowd phenomena like lane formation and congestion. 
+\ \\
+This method has some drawbacks with respect to computations. While computing new pedestrian locations is linear in the number of pedestrians, computing the interaction forces scales quadratically, which is funest for large crowds.
+\ \\
+\paragraph{Continuum models}
+When crowds become large, it may be convenient to model them on a macroscopic level. Among other earlier researchers, Henderson \cite{Henderson74} proposes a fluid-based crowd simulation. The individual masses and velocities of each pedestrian are converted to a global density and velocity field, and the evolution of this fluid-like crowd is computed using the Maxwell-Boltzmann transport equation. 
+
+\ \\
+Hughes describes a rather complete continuum theory of pedestrian flows in \cite{Hughes99}. His theory is based on the continuity equation but is complemented with a potential function for modelling discomfort at high densities. Walls, entrances and exits are modelled by prescribing at those locations respectivily fluxes, source terms, or sink terms.
+\ \\
+Hughes shows this model has a stable solution for densities within a certain interval. However, while these equations are able to model both subcritical (low-density) flows and supercritical (high density) flows, they fail to model situations in between.
 
 \newpage
-\section{Implementation overview}
-This model is composed of several modules. These modules will be implemented disjointly. This will enable us to swap or upgrade modules without having to adapt the rest, and keep the implementation improvable and maintainable.
-\begin{enumerate}
-	\item \textbf{Geometry}\\
-	This part models the scenario in which the agents are placed, the obstacles they have to avoid, and the goal they are headed to.
-	\item \textbf{Global planner}\\
-	This module determines the paths of the agents that brings them to their goal. From these destinations and the geometry, it determines the desired speed and direction of every agent.
-	\item \textbf{Continuum aspects}\\
-	This module converts the agents mass and velocity to a global density and velocity field, which will be used to influence the agents individual velocity. 
-	This module also applies a incompressibility constraint to the global representation to ensure local densities do not exceed a maximum.
-\end{enumerate}
-The model will be implemented in Python. Motivation behind this language is that it has dependable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also has the advantage of an object oriented structure, which will make working with agents on a local level more manageable.
-\newpage
-\section{Geometry}
-This section will elaborate on the implementation of the geometry.
-\subsection{Summary}
-The geometry consists of a scene filled with multiple obstacles. The scene is the domain of calculation. It is modelled as a rectangle, surrounded with walls and exits. Within this domain, agents are spawned, trying to make their way to the exit while dodging the obstacles (and each other). an agent will be eliminated once he has made his way to the exit.
-
-\subsection{Structure}
-The geometry is divided into a computational component and a visual component. The computational component handles the computations of the next time step of the scene. The visual component acts separately and displays the geometry (and the agents) at every time step. This part can be suppressed to increase simulation capacity.
-
-\subsection{Obstacles}
-The scene can be filled with an arbitrary number of objects, provided that all agents spawned are able to reach the exit given their initial location. The objects all have a rectangular shape. This choice is motivated by their relative ease in modelling and calculating. In addition, rectangular objects can easily be aggregated to more general shapes.
-\ \\
-A scene contains both an entrance and an exit. The entrance is modelled as an obstacle with a certain \underline{inflow} of agents (this allows us to imitate a PDE-like boundary condition) and the exit is modelled as a penetrable obstacle. By default, a scene is surrounded by walls. Whenever an exit or entrance is defined, it replaces the walls.
-\subsection{Agents}
-The agents are modelled as particles with a position and a velocity. The agents are able to assume any position in the scene where no obstacles are present. Agents can only leave the scene through an exit.
-The agents have a maximum speed, randomly drawn from a specified interval.
+\section{Model}
+We implement a hybrid model largely based on \cite{Narain04}.
+In this model, two popular crowd simulation techniques are combined. On one hand, we will model the crowd as a system of interacting particles subject to external forces, as proposed by Helbing \cite{blabla}. 
+In these types of models, referred to as \emph{particle models}, it is assumed each particle has a fixed set of goals and is attracted to these goals, while simultaneously evading obstacles and other pedestrians.
 
 \ \\
-The agents are displayed in the geometry by colored circles. Optionally, it is possible to display the agents as directed triangles, to indicate their movement direction.
+Modelling pedestrians as particles lets us evaluate the crowd at microscale and allows us to model interaction and collision avoidance.
+Figure \ref{fig:particle_model} shows an example of [particles with velocities]. These models are discrete in time, but continuous in space. For each particle $a$ with position $\vec{x}_a(t)$ and velocity $\vec{v}_b(t)$ at time $t$, we compute the position in the next time step $t+dt$ using the equation of motion:
+\begin{equation}
+	\vec{x}_a(t+dt) = \vec{x}_a(t) + \vec{v}_a(t)dt
+	\label{(t)}
+\end{equation}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.5\textwidth]{images/particles.pdf}
+	\caption{Crowd representation by moving particles}
+	\label{fig:particle_model}
+\end{figure}
+\\
+On the other hand, we will model the crowd as a continuum, subject to the same laws (of nature) that apply to fluids. 
+These models do not describe the motions of individual pedestrians, but rather the flow of the crowd as a whole. Because crowds are as diverse as the people of which they consists, there is not one unformly correct model. Succesful models were constructed around the Maxwell-Boltzmann equation \cite{Henderson77} and the continuity equation for the conservation of mass \cite{Hoogendoorn15}.
+Our continuum model is based on the latter. 
+
 \newpage
+We apply the continuity equation augmented with a term accounting for pressure \eqref{eq:cont_equation}. We will impose group velocity $\vec{v}$ on individual pedestrians and apply a repulsive force from locations where the density $\rho$ is too high by introducing a pressure $p$.
+\begin{equation}
+	\frac{\partial\rho}{\partial t} = - \nabla \cdot (\rho\vec{v})+\nabla\cdot(\rho\nabla p).
+	\label{eq:cont_equation}
+\end{equation}
+We will approximate this PDE on a fixed grid, so that we discretize in both time and space. Figure \ref{fig:cont_illustration} shows how this information can be represented.
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\textwidth]{images/continuum.pdf}
+	\caption{Crowd representation in a corridor by density ($\rho$) and velocity fields ($\vec{v}$). The geometry and plots were made using this simulation.}
+	\label{fig:cont_illustration}
+\end{figure}
+\\
+Modelling the crowd as a continuum allows us to incorporate group behaviour.
+\ \\
+To unite these models, we obtain a continuous representation of the discrete particles, use that representation for our continuum model, and provide a way to impose the continuous information back to the particles. Elaboration on these steps is found in Section \ref{sec:continuum}.
+
+\newpage
+\section{Implementation}
+The contributions in \cite{Narain04} only prescribes pedestrian movement and interaction. It has to be embedded in a particle model. The pedestrians in this model require knowledge of their surroundings and the ability to use that knowledge to find a path to their goal.
+From this, we obtain the following demands: we need (1) to simulate arbitrary ortogonal geometries, (2) to provide agents with a goal and a (indicative) path towards that goal and (3) to convert pedestrians to a continuous representation. These requirements are worked out in this section.
+
+\ \\
+We implement this model in Python. This programming language has reliable scientific computing libraries available, like \texttt{numpy} and \texttt{scipy}. It also provides an object oriented structure, which makes description and manipulation of pedestrians on a local level more manageable.
+\ \\
+However, using pure Python can be quite slow in comparison to other (compiled) languages. For this reason, most of the computational intensive parts are (whenever possible) performed in the \texttt{numpy} library, which uses optimized C and FORTRAN code. This sharply reduces computational overhead.
+\paragraph{Pedestrians}
+As stated before, we model pedestrians as point particles with a fixed radius $r$ and mass $m$. Each pedestrian has a maximum speed $s$, randomly drawn from a set $[s_{\min},s_{\max}]$.
+\paragraph{Geometry}
+Simulation takes place in a rectangular domain of arbitrary size called a \emph{scene}.
+At the start of the simulation, pedestrians are generated inside the free space of the scene, provided with a path that leads them to the exit.
+
+\ \\
+Within the scene, we define \emph{obstacles} as inaccesible static rectangular objects. One obstacle can connect to and even overlap another obstacle as to construct more general shapes. Pedestrians are able to assume any position where no obstacle is present.
+ \\
+By default, the scene is surrounded by a wall. Pedestrians are only able to escape the scene by walking through an \emph{exit}. In this implementation, we will restrict ourselves to a single exit per scene, but the simulation can easily be extended to multiple exits.
+
+\paragraph{Visualization}
+We add a graphical component to visualize the scene. This component displays the geometry and the pedestrians positions on each time step, as well as the continuum representation. We represent the continuum by plotting the discretization of density $\rho$, velocity field $\vec{v}$ and pressure $p$. Figure \ref{fig:example_scene} shows an example geometry filled with pedestrians. Figure \ref{fig:example_plot} shows the corresponding continuum plot. 
+The visual component tries to provide a simple and schematic overview of the scene and the crowd without putting too much load on the CPU. However, graphical output can be supressed to increase computational capacity.
+\newpage
+
 \section{Global planner}
-\subsection{Summary}
-This section describes the global planner module. The planner has the objective of planning a path for every agent to follow that will lead him to his goal. This path has to avoid the obstacles in the scene but ignores the position of other agents. Collisions with other agents will be avoided by the continuum solver. We elaborate on this module in Section \ref{sec:continuum}.
+This section describes the global planner module. The planner has the objective of planning a path for every agent to follow that will lead him to his goal. This path has to avoid the obstacles in the scene but ignores the position of other agents. Possible collisions with other agents will be avoided by the continuum solver. We elaborate on this module in Section \ref{sec:continuum}.
 
 \ \\
 In this implementation, we combine line segments to form piecewise linear paths. The path taken is the shortest path to the exit avoiding the obstacles. An example of a planned agent path is provided in Figure \ref{fig:example_path}. We compute a path by representing the scene as a weighted graph and determining the shortest path from the agents position to the exit.
 \begin{figure}[h]
 	\centering
 	\includegraphics{images/example_graph.png}
-	\caption{An example of a scene geometry and the corresponding path planned out for the agent.}
+	\caption{An example of a scene geometry and a indicative path from a pedestrians position to a goal.}
 	\label{fig:example_path}
 \end{figure}
 \subsection{Graph representation}
-We will explain the algorithm by example. We model our scene as a two-dimensional set $\Omega \subset \mathbb{R}^2$. In this set, we have obstacles $M_i \subset \Omega$ and location of agents $a_j$ as points $(x_{a_j},y_{a_j}) \in \Omega$. 
+We explain the planning algorithm by example. We model our scene as a two-dimensional set $\Omega \subset \mathbb{R}^2$. The scene contains $N_M$ obstacles $\{M_1,\dots,M_{N_M}\}$, and is initialized with $N_a$ agents with locations $(x_{a_j},y_{a_j}) \in \Omega$ for $j \in \{1,\dots,N_a\}$. 
 \begin{newdef}
 	Let $M \subset \Omega$ be a rectangular obstacle with lower left corner $\vec{s}=(s_x,s_y)$ and upper right corner $\vec{t}=(t_x,t_y)$. The shape of this obstacle is denoted as $[\vec{s},\vec{t}]$. The four corner points (lower-left, lower-right, upper-left and upper-right) are denoted respectivily as $\vec{m}^{00},\vec{m}^{10},\vec{m}^{01},\vec{m}^{11}$ and have values
 	\begin{align}
@@ -91,7 +167,7 @@ We will explain the algorithm by example. We model our scene as a two-dimensiona
 		\label{eq:corner_points}
 	\end{align}
 \end{newdef}
-In Figure \ref{fig:example_path} we see an illustration of a scene $\Omega$ of size $R_x\times R_y$ containing $N_o = 2$ obstacles $M_1$ and $M_2$ with shapes $[\vec{s}_{M_1},\vec{t}_{M_1}]$ and $[\vec{s}_{M_2},\vec{t}_{M_2}]$. We seek a path for agent $a$ at location $\vec{x}_a$ to the exit $E$.
+Figure \ref{fig:example_path} shows an illustration of a scene $\Omega$ of size $R_x\times R_y$ containing $N_o = 2$ obstacles $M_1$ and $M_2$ with shapes $[\vec{s}_{M_1},\vec{t}_{M_1}]$ and $[\vec{s}_{M_2},\vec{t}_{M_2}]$. We seek a path for agent $a$ at location $\vec{x}_a$ to the exit $E$.
 
 \ \\
 Let $G = (V,A)$ be a weighted, undirected graph. 
@@ -105,14 +181,14 @@ Our vertex set $V$ is constructed by joining the set of all corner points with t
 For each two nodes $v_i,v_j\in V$ we add edge $(v_i,v_j)$ to edge set $A$ if and only if the line segment between these points is contained in $\Omega$ and unhindered by other obstacles. The algorithm used to deduce whether a path is free of obstacles is described in Section \ref{sec:crosses_obstacle}. We choose the weight of the edge equal to the distance between the nodes. The result is a graph as depicted in Figure \ref{fig:example_graph}.
 
 \ \\
-We chose to model the exit obstacle as a single node. This is motivated by wanting the pedestrians to find the fastest way to leave the scene, and we do not want to restrict their paths to the corners of the exit. The distance between an obstacle corner point and the exit is computed as the distance between a point and a set.
+We model the exit obstacle as a single node. The distance between an obstacle corner point and the exit is computed as the distance between a point and a set. This is motivated by wanting the pedestrians to find the fastest way to leave the scene. Also, we do not want to restrict their paths to the corners of the exit.
 \begin{figure}[h]
 	\centering
 	\includegraphics[width=0.7\textwidth]{images/obstacle_graph.pdf}
 	\caption{Example of the weighted graph corresponding to the scene in Figure \ref{fig:example_path}. The unmarked nodes correspond to the corners of the obstacles.}
 	\label{fig:example_graph}
 \end{figure}\\
-In Figure \ref{fig:example_graph} we see the complete graph representation of the scene. Now, any path from node $\vec{x}_a$ to exit $E$ is a feasible path free of obstacles, since the edges are not hindered by obstacles.
+Figure \ref{fig:example_graph} depicts the complete graph representation of the scene. Now, any path from node $\vec{x}_a$ to exit $E$ is a feasible path free of obstacles, since the edges are not hindered by obstacles.
 
 \ \\
 After obtaining this graph, we apply the $A^*$-algorithm to the graph to find the shortest path from $\vec{x}_a$ to $E$ and store it.
@@ -182,7 +258,7 @@ An example of a bounding rectangle is illustrated in Figure \ref{fig:bounding_re
 		\vec{t}_{Ai} < \vec{s}_{Bi} \mbox{ or }	\vec{t}_{Bi} < \vec{s}_{Ai}\, \forall i \in \{1,2\}
 		\label{eq:intersection}
 	\end{equation}
-	
+	\label{thm:intersect}	
 \end{newthm}
 \begin{newthm}
 	Let $l\subset \Omega$ be a line segment and $M \subset \Omega$ be an obstacle. Then the following statements are equivalent:
@@ -208,8 +284,8 @@ An example of a bounding rectangle is illustrated in Figure \ref{fig:bounding_re
 \end{proof}
 \newpage
 \noindent
-Using these theorems, we have an computationally efficient way to determine the obstacles crossing a line segment.
-In Figure \ref{fig:crosses_obstacle} we see an example of an obstacle and a line segment which do not intersect.
+Based on Theorem \ref{thm:intersect} and \ref{thm:sep}, we obtain an computationally efficient way to determine the obstacles crossing a line segment.
+Figure \ref{fig:crosses_obstacle} depicts an example of an obstacle and a line segment which do not intersect.
 Since a rectangle is a convex set, checking $M \subset A$ reduces to checking $\vec{m}^{ij} \in A$ for $i,j \in \{0,1\}$.
 \emph{Maybe say something about the efficiency of the calculation}
 \\ \
@@ -267,7 +343,7 @@ The solver computes the velocity field of the crowd on a grid. This field influe
 
 
 \subsection{Discretization}
-We desire a numerical approximation of $\rho$, $p$ and $v$. To obtain this, we first discretize our domain and our equation. We define a grid of $(N_x,N_y)$ cells, where every cell has a size of $h_x\times h_y$. Our complete scene has dimensions $N_xh_x\times N_yh_y$. 
+We require a numerical approximation of $\rho$, $p$ and $v$. To obtain this, we first discretize our domain and our equation. We define a grid of $(N_x,N_y)$ cells, where every cell has a size of $h_x\times h_y$. Our complete scene has dimensions $N_xh_x\times N_yh_y$. 
 \ \\
 We discretize our scalar and vector fields corresponding to the grid. We index the cells (and the fields) from the bottom left, corresponding with the Carthesian coordinate system in the scene. This is illustrated in Figure \ref{fig:indexing}.
 \begin{figure}
@@ -350,7 +426,7 @@ To find the total density and total velocity in the cell centres for each cell, 
 	\caption{Continuous representation of the scene: density and velocity}
 	\label{fig:cont_flow_field}
 \end{figure}\\
-In Figure \ref{fig:cont_ex_scene} we see an example scene with agents. In Figure \ref{fig:cont_flow_field} we see the corresponding density and velocity fields.
+Figure \ref{fig:cont_ex_scene} shows an example scene with agents. Figure \ref{fig:cont_flow_field} shows the corresponding density and velocity fields.
 \subsection{Scheme}
 \label{sec:scheme}
 To discretize our partial differential equation we use a second order central difference scheme. So for scalar field $u$ we have the following gradient approximation:
