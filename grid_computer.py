@@ -31,7 +31,7 @@ class GridComputer:
         self._create_matrices()
 
         self.show_plot = show_plot
-        self.apply_interpolation = apply_interpolation
+        self.apply_interpolation = apply_interpolation or apply_pressure
         self.apply_pressure = apply_pressure
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
