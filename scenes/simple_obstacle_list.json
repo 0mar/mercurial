@@ -1,0 +1,29 @@
+{
+  "obstacles": [
+    {
+      "name": "Hotdogstand",
+      "begin": [
+        0.7,
+        0.2
+      ],
+      "size": [
+        0.2,
+        0.4
+      ]
+    }
+  ],
+  "exits": [
+    {
+      "name": "Exit 1",
+      "begin": [
+        0.3,
+        0
+      ],
+      "size": [
+        0.4,
+        0
+      ]
+    }
+  ],
+  "entrances": []
+}
