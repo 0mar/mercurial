@@ -134,16 +134,26 @@ class Scene:
     def _load_cells(self, filename='cells.bin'):
         """
         Opens and unpickles the file containing the scene dictionary
+        If file does not exist, creates new cells.
+        If cells do not correspond to the scene + obstacles, creates new cells.
         :param filename: name of pickled scene file
         :return: None
         """
         fyi("Loading cell objects from file")
-        with open(filename, 'rb') as pickle_file:
-            self.cell_dict = pickle.load(pickle_file)
-        if not self._validate_cells():
+
+        def reject_cells():
             fyi("Cells cache does not correspond to this scene. Creating new cells and storing those.")
             self._create_cells()
             self._store_cells()
+
+        import os.path
+        if os.path.isfile(filename):
+            with open(filename, 'rb') as pickle_file:
+                self.cell_dict = pickle.load(pickle_file)
+        else:
+            reject_cells()
+        if not self._validate_cells():
+            reject_cells()
 
     def _validate_cells(self):
         """
