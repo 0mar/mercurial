@@ -1,7 +1,9 @@
 __author__ = 'omar'
 
 import argparse
+import sys
 
+sys.path.insert(1, 'src')
 from geometry import Size, Point
 import scene
 from visualization import VisualScene
@@ -13,8 +15,7 @@ from scene_cases import ImpulseScene
 number_of_pedestrians = 100
 domain_width = 70
 domain_height = 70
-obstacle_file = 'demo_obstacle_list.json'
-
+obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
 parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation',
