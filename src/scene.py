@@ -37,7 +37,7 @@ class Scene:
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
         self.minimal_distance = 0.7
-        self.number_of_cells = (20, 20)
+        self.number_of_cells = (40, 40)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
@@ -267,8 +267,18 @@ class Scene:
         empty_ped = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = empty_ped
         self.alive_array[counter] = 0
+        self.process_removed_pedestrian(pedestrian)
         if np.sum(self.alive_array) == 0:
             self.status = 'DONE'
+
+    def process_removed_pedestrian(self, pedestrian):
+        """
+        Hook for other classes (like class Result) to process a pedestrian leaving the scene.
+        Does nothing by default.
+        :param pedestrian: Pedestrian object, no longer present in scene.pedestrian_list
+        :return: None
+        """
+        pass
 
     def is_within_boundaries(self, coord: Point) -> bool:
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
@@ -295,6 +305,7 @@ class Scene:
         Assumes that all the velocities have been set accordingly.
         :return: None
         """
+        self.time += self.dt
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
