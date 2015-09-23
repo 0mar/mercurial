@@ -4,13 +4,13 @@ import networkx as nx
 import numpy as np
 
 import functions as ft
-
 from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
 from pedestrian import Pedestrian
 from scene import Obstacle
 
 
 # Todo: Document this and refactor to 1 class
+# Todo: Choose meaningful variable names
 class Planner:
     on_track = 0
     reached_checkpoint = 1
@@ -77,6 +77,20 @@ class Planner:
         obstacle_repulsion = np.sign(np.array(corner_points[best_direction][1]) - 0.5)
         return best_corner + Point(obstacle_repulsion) * safe_distance
 
+    @staticmethod
+    def get_path_length(pedestrian):
+        """
+        Compute the sum of Euclidian lengths of the path line segments
+        :param pedestrian: owner of the path
+        :return: Length of planned path
+        """
+        if not pedestrian.line:
+            return 0
+        length = pedestrian.line.length
+        for line in pedestrian.path:
+            length += line.length
+        return length
+
     def collective_update(self):
         """
         The update step of the simulation
@@ -138,12 +152,12 @@ class GraphPlanner(Planner):
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
-        ft.fyi("Started preprocessing global paths")
+        ft.log("Started preprocessing global paths")
         for pedestrian in scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
-        ft.fyi("Finished preprocessing global paths")
+        ft.log("Finished preprocessing global paths")
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)

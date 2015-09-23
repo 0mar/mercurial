@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(1, 'src')
 from geometry import Size, Point
-import scene
+import scene as scene_module
 import functions
 from results import Result
 from visualization import VisualScene
@@ -42,23 +42,23 @@ args = parser.parse_args()
 # Initialization
 functions.VERBOSE = args.verbose
 if args.impulse:
-    scene_obj = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                              pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=50)
 else:
-    scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    scene = scene_module.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)
-planner = GraphPlanner(scene_obj)
+planner = GraphPlanner(scene)
 if args.results:
-    result = Result(scene_obj)
-grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
+    result = Result(scene)
+grid = GridComputer(scene, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
                     apply_pressure=args.apply_pressure)
 
 # Methods inserted on every update
 step_functions = [planner.collective_update, grid.step]
 
-vis = VisualScene(scene_obj, 1500, 1000, step_functions=step_functions, loop=not args.step, delay=args.delay)
+vis = VisualScene(scene, 1500, 1000, step_functions=step_functions, loop=not args.step, delay=args.delay)
 
 # Running
 vis.loop()
 vis.window.mainloop()
-scene_obj.finish()
+scene.finish()

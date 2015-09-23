@@ -3,7 +3,6 @@ __author__ = 'omar'
 import random
 import pickle
 import itertools
-import sys
 
 import numpy as np
 
@@ -59,6 +58,11 @@ class Scene:
         self.status = 'RUNNING'
 
     def _init_pedestrians(self):
+        """
+        Protected method that determines how the pedestrians are initially distributed,
+        as well as with what properties they come. Overridable.
+        :return: None
+        """
         self.pedestrian_list = [
             Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
             for counter in range(self.pedestrian_number)]
@@ -129,7 +133,7 @@ class Scene:
         This is a time intensive operation which can be avoided by using the cache function
         :return: None
         """
-        ft.fyi("Started preprocessing cells")
+        ft.log("Started preprocessing cells")
         self.cell_dict = {}
         row_number, col_number = self.number_of_cells
         for row in range(row_number):
@@ -139,7 +143,7 @@ class Scene:
                 self.cell_dict[(row, col)] = cell
         for cell_location in self.cell_dict:
             self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
-        ft.fyi("Finished preprocessing cells")
+        ft.log("Finished preprocessing cells")
 
     def _fill_cells(self):
         """
@@ -170,10 +174,10 @@ class Scene:
         :param filename: name of pickled scene file
         :return: None
         """
-        ft.fyi("Loading cell objects from file")
+        ft.log("Loading cell objects from file")
 
         def reject_cells():
-            ft.fyi("Cells cache does not correspond to this scene. Creating new cells and storing those.")
+            ft.log("Cells cache does not correspond to this scene. Creating new cells and storing those.")
             self._create_cells()
             self._store_cells()
 
@@ -273,8 +277,7 @@ class Scene:
         indices = np.where(distances < min_distance)[0]
 
         mde_pairs = array_index[indices]
-        # Todo: Change perturbation to eps
-        mde_corrections = (min_distance / (distances[indices][:, None] + 0.001) - 1) * differences[indices] / 2
+        mde_corrections = (min_distance / (distances[indices][:, None] + ft.EPS) - 1) * differences[indices] / 2
         ordered_corrections = np.zeros([self.pedestrian_number, 2])
         for it in range(len(mde_pairs)):
             pair = mde_pairs[it]
@@ -310,7 +313,8 @@ class Scene:
     def is_accessible(self, coord: Point, at_start=False) -> bool:
         """
         Checking whether the coordinate present is an accessible coordinate on the scene.
-        When evaluated at the start, the exit is not an accessible object. That would be weird. We can eliminate this later though.
+        When evaluated at the start, the exit is not an accessible object. That would be weird.
+        We can eliminate this later though.
         :param coord: Coordinates to be checked
         :param at_start: Whether to be evaluated at the start
         :return: True if accessible, False otherwise.
@@ -338,11 +342,12 @@ class Scene:
 
     def finish(self):
         """
+        Call all methods that need to be called upon finish.
         :return: None
         """
-        [on_finish() for on_finish in self.on_finish_functions]
-        ft.fyi('Simulation is finished. Exiting')
-        sys.exit(0)
+        for finish_function in self.on_finish_functions:
+            finish_function()
+        ft.log('Simulation is finished. Exiting')
 
 
 class Cell:

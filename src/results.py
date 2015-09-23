@@ -4,6 +4,7 @@ import numpy as np
 import scipy.io as sio
 
 import functions as ft
+from planner import GraphPlanner
 
 
 class Result:
@@ -46,19 +47,8 @@ class Result:
 
     def on_init(self):
         for pedestrian in self.scene.pedestrian_list:
-            self.planned_path_length[pedestrian.counter] = self._get_planned_path_length(pedestrian)
+            self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
         self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)
-
-    def _get_planned_path_length(self, pedestrian):
-        """
-        Compute the sum of Euclidian lengths of the path line segments
-        :param pedestrian: owner of the path
-        :return: Length of planned path
-        """
-        length = pedestrian.line.length
-        for line in pedestrian.path:
-            length += line.length
-        return length
 
     def on_step(self):
         """

@@ -2,7 +2,7 @@
 
 import numpy as np
 
-EPS = 1e-9
+EPS = 1e-6
 VERBOSE = False
 
 
@@ -14,7 +14,7 @@ def warn(msg: str):
     print("\033[93mWarning: %s \033[0m" % msg)
 
 
-def fyi(msg: str):
+def log(msg: str):
     print("\033[92m%s \033[0m" % msg)
 
 
@@ -34,48 +34,6 @@ def rot_mat(angle: float):
     :return: 2d rotation matrix
     """
     return np.array([[np.sin(angle), np.cos(angle)], [-np.cos(angle), np.sin(angle)]])
-
-
-# def solve_convex_piece_lin_ineq(func, lower_bound: float, interval, max_iter=10, strict=False):
-#     """
-#     Solves a convex inequation. Stops when lower bound is reached and return argument.
-#     Inequation is solved by a simple iterative binary solver.
-#     :param func: function to be solved. In general, only piecewise linear functions are used
-#     :param lower_bound: lower bound for the function
-#     :param interval: interval to evaluate the function on.
-#     :param max_iter: maximum number of iterations to make
-#     :param strict: whether to evaluate a strict inequation
-#     :return: value for with the inequality holds. This should be checked though, because of finite precision
-#     """
-#     (left, right) = (interval.begin, interval.end)
-#     dx = 0.001
-#
-#     cmp = np.less_equal
-#     if strict:
-#         cmp = np.less
-#     if cmp(func(left), lower_bound):
-#         return interval.begin
-#     elif cmp(func(right), lower_bound):
-#         return interval.end
-#     else:
-#         for counter in range(max_iter):
-#             mid_point = (left + right) / 2.
-#             mid_value = func(mid_point)
-#             if cmp(mid_value, lower_bound):
-#                 return mid_point
-#             dmid = func(mid_point + dx) - mid_value
-#             if dmid > 0:
-#                 right = mid_point
-#             else:
-#                 left = mid_point
-#         else:
-#             return mid_point
-#
-#
-# def solve_convex_piece_lin_ineq2(func, lower_bound: float, interval, max_iter=10, strict=False):
-#     res = opt.minimize(func, x0=(interval.begin + interval.end) / 2)
-#     print(res)
-#     return res.x[0]
 
 
 def rectangles_intersect(start_1, end_1, start_2, end_2, open_sets=False):

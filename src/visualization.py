@@ -57,7 +57,8 @@ class VisualScene:
         [step_function() for step_function in self.step_functions]
         self.draw_scene()
         if self.scene.status=='DONE':
-            self.scene.finish()
+            self.window.destroy()
+            self.autoloop = False
 
     def loop(self):
         """
@@ -76,7 +77,7 @@ class VisualScene:
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
-        ft.fyi("Mouse location: %s" % scene_point)
+        ft.log("Mouse location: %s" % scene_point)
         clicked_cell = self.scene.get_cell_from_position(scene_point)
         print(str(clicked_cell))
         # for ped in self.scene.pedestrian_list:p
