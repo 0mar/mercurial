@@ -1,11 +1,12 @@
 __author__ = 'omar'
 import matplotlib
+import numpy as np
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as Rbs
 import cvxopt
-from functions import *
+import functions as ft
 
 
 class GridComputer:
@@ -95,8 +96,8 @@ class GridComputer:
             vel_array = self.scene.velocity_array * weights[:, None]
             self.v_x[cell_location] = np.sum(vel_array[:, 0]) / density
             self.v_y[cell_location] = np.sum(vel_array[:, 1]) / density
-        print(self.max_density)
-        print(self.orientation_correct_str(self.rho, True))
+        ft.debug(self.max_density)
+        ft.debug(self.orientation_correct_str(self.rho, True))
         if self.show_plot:
             self.plot_grid_values()
 
@@ -152,7 +153,7 @@ class GridComputer:
             result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
             flat_p = result['x']
         except ValueError as e:
-            warn("CVXOPT Error: " + str(e))
+            ft.warn("CVXOPT Error: " + str(e))
             flat_p = np.zeros([1, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 

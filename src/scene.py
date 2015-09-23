@@ -3,8 +3,11 @@ __author__ = 'omar'
 import random
 import pickle
 import itertools
+import sys
 
-from functions import *
+import numpy as np
+
+import functions as ft
 from pedestrian import Pedestrian, EmptyPedestrian
 from geometry import Point, Size, LineSegment
 import visualization as vis
@@ -126,7 +129,7 @@ class Scene:
         This is a time intensive operation which can be avoided by using the cache function
         :return: None
         """
-        fyi("Started preprocessing cells")
+        ft.fyi("Started preprocessing cells")
         self.cell_dict = {}
         row_number, col_number = self.number_of_cells
         for row in range(row_number):
@@ -136,7 +139,7 @@ class Scene:
                 self.cell_dict[(row, col)] = cell
         for cell_location in self.cell_dict:
             self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
-        fyi("Finished preprocessing cells")
+        ft.fyi("Finished preprocessing cells")
 
     def _fill_cells(self):
         """
@@ -167,10 +170,10 @@ class Scene:
         :param filename: name of pickled scene file
         :return: None
         """
-        fyi("Loading cell objects from file")
+        ft.fyi("Loading cell objects from file")
 
         def reject_cells():
-            fyi("Cells cache does not correspond to this scene. Creating new cells and storing those.")
+            ft.fyi("Cells cache does not correspond to this scene. Creating new cells and storing those.")
             self._create_cells()
             self._store_cells()
 
@@ -331,13 +334,15 @@ class Scene:
         if self.mde:
             self._minimum_distance_enforcement(self.minimal_distance)
         self.update_cells()
+        [function() for function in self.on_step_functions]
 
     def finish(self):
         """
         :return: None
         """
         [on_finish() for on_finish in self.on_finish_functions]
-        fyi('Simulation is finished. Exiting')
+        ft.fyi('Simulation is finished. Exiting')
+        sys.exit(0)
 
 
 class Cell:
@@ -391,7 +396,7 @@ class Cell:
         within_cell_boundaries = all(self.begin.array < coord.array) and all(
             coord.array < self.begin.array + self.size.array)
         if not within_cell_boundaries:
-            warn('Accessibility of %s requested outside of %s' % (coord, self))
+            ft.warn('Accessibility of %s requested outside of %s' % (coord, self))
             return False
         if at_start:
             return all([coord not in obstacle for obstacle in self.obstacle_set])

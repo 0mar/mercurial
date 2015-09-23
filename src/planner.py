@@ -1,8 +1,10 @@
 __author__ = 'omar'
 
 import networkx as nx
+import numpy as np
 
-from functions import *
+import functions as ft
+
 from geometry import LineSegment, Path, Point, Coordinate, Interval, Velocity
 from pedestrian import Pedestrian
 from scene import Obstacle
@@ -131,18 +133,17 @@ class Planner:
                 pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
 
-
 class GraphPlanner(Planner):
     def __init__(self, scene):
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
-        fyi("Started preprocessing global paths")
+        ft.fyi("Started preprocessing global paths")
         for pedestrian in scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
-        fyi("Finished preprocessing global paths")
+        ft.fyi("Finished preprocessing global paths")
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         ped_graph = nx.Graph(self.graph)

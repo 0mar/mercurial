@@ -1,6 +1,7 @@
 __author__ = 'omar'
 
 import numpy as np
+import scipy.io as sio
 
 import functions as ft
 
@@ -82,9 +83,9 @@ class Result:
         :return: None
         """
         self.path_length_ratio = self.path_length / self.planned_path_length
-        self.avg_path_length_ratio = np.mean(self.path_length)
+        self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
-        self.write_results()
+        self.write_matlab_results()
 
     def write_results(self):
         """
@@ -93,7 +94,19 @@ class Result:
         """
         filename = "hoi.txt"
         with open(filename, 'w') as file:
-            file.write("Path ratio:\n%s\n\n" % self.planned_path_length)
-            file.write("Average path length ratio\n%s\n\n" % self.planned_path_length)
-            file.write("Mean speed\n%s\n\n" % self.planned_path_length)
+            file.write("Planned path length:\n%s\n\n" % self.planned_path_length)
+            file.write("Path ratio:\n%s\n\n" % self.path_length_ratio)
+            file.write("Average path length ratio\n%s\n\n" % self.avg_path_length_ratio)
+            file.write("Mean speed\n%s\n\n" % self.mean_speed)
             file.write("Density:\n%s\n\n" % self.density)
+
+    def write_matlab_results(self):
+        """
+        Stores result in binary matlab file
+        :return: None
+        """
+        filename = "results"
+        sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
+                                     "path_ratio": self.path_length_ratio,
+                                     "avg_path_length_ratio": self.avg_path_length_ratio,
+                                     "mean_speed": self.mean_speed})

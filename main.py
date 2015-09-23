@@ -6,6 +6,7 @@ import sys
 sys.path.insert(1, 'src')
 from geometry import Size, Point
 import scene
+import functions
 from results import Result
 from visualization import VisualScene
 from grid_computer import GridComputer
@@ -18,7 +19,6 @@ domain_width = 70
 domain_height = 70
 obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
-# Todo: Add verbose
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
 parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation',
                     default=number_of_pedestrians)
@@ -35,10 +35,12 @@ parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containin
                     default=obstacle_file)
 parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestrians in an impulse')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of sumulation to disk')
+parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to stdout')
 
 args = parser.parse_args()
 
 # Initialization
+functions.VERBOSE = args.verbose
 if args.impulse:
     scene_obj = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                              pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=50)

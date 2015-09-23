@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from functions import *
+import numpy as np
+
+import functions as ft
 from geometry import Point, Interval
 
 __author__ = 'omar'
@@ -37,7 +39,7 @@ class Pedestrian(object):
             new_position = scene.size.random_internal_point()
             self.manual_move(new_position,at_start=True)
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
-            warn("Ped %s has no accessible coordinates. Check your initialization" % self)
+            ft.warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
         self.scene.position_array[self.counter] = self._position.array
 
@@ -140,7 +142,7 @@ class Pedestrian(object):
         if self.position in self.goal:
             return True
         elif any(self.position.array < 0) or any(self.position.array > self.scene.size.array):
-            warn("Dirty exit of %s, leaving on %s" % (self, self.position))
+            ft.warn("Dirty exit of %s, leaving on %s" % (self, self.position))
             return True
         else:
             return False

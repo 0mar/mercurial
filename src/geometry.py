@@ -2,7 +2,9 @@
 import math
 import random
 
-from functions import *
+import numpy as np
+
+import functions as ft
 
 __author__ = 'omar'
 
@@ -47,7 +49,7 @@ class Coordinate(object):
         return "%s(%s)" % (self.type, ", ".join("%.2f" % f for f in self.array))
 
     def is_zero(self):
-        return np.linalg.norm(self.array) < EPS
+        return np.linalg.norm(self.array) < ft.EPS
 
 
 class Size(Coordinate):
@@ -139,10 +141,10 @@ class LineSegment(object):
         rect_array = np.array([[np.min(line_array[:, 0]), np.min(line_array[:, 1])],
                                [np.max(line_array[:, 0]), np.max(line_array[:, 1])]])
         obs_array = np.array([obstacle.begin.array, obstacle.end.array])
-        intersects = rectangles_intersect(rect_array[0], rect_array[1], obs_array[0], obs_array[1], open_sets)
+        intersects = ft.rectangles_intersect(rect_array[0], rect_array[1], obs_array[0], obs_array[1], open_sets)
         if not intersects:
             return False
-        f = get_hyperplane_function(line_array[0], line_array[1])
+        f = ft.get_hyperplane_function(line_array[0], line_array[1])
         obs_points = np.array([point.array for point in obstacle.corner_list])
         point_result = f(obs_points[:, 0], obs_points[:, 1])
         if np.sum(np.sign(point_result)) in [-4, 4]:

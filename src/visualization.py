@@ -2,7 +2,9 @@ __author__ = 'omar'
 
 import tkinter
 
-from functions import *
+import numpy as np
+
+import functions as ft
 from geometry import Point, Size, LineSegment, Path
 from pedestrian import Pedestrian
 
@@ -27,7 +29,7 @@ class VisualScene:
         self.autoloop = loop
         self.delay = delay
         self.window = tkinter.Tk()
-        self.window.title("Prototype hybrid Crowd Dynamics implementation")
+        self.window.title("Prototype hybrid crowd dynamics implementation")
         self.window.geometry("%dx%d" % (width, height))
         self.window.bind("<Button-3>", self._provide_information)
         if not self.autoloop:
@@ -74,7 +76,7 @@ class VisualScene:
         """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
-        fyi("Mouse location: %s" % scene_point)
+        ft.fyi("Mouse location: %s" % scene_point)
         clicked_cell = self.scene.get_cell_from_position(scene_point)
         print(str(clicked_cell))
         # for ped in self.scene.pedestrian_list:p
@@ -151,7 +153,7 @@ class VisualScene:
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
         size = ped.size / self.scene.size * self.size
         angle = ped.velocity.angle
-        coords = np.dot(VisualScene.directed_polygon * np.array(size), rot_mat(angle)) + np.array(position)
+        coords = np.dot(VisualScene.directed_polygon * np.array(size), ft.rot_mat(angle)) + np.array(position)
         self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
 
     def draw_cell(self, cell):

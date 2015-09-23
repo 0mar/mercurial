@@ -1,10 +1,6 @@
 __author__ = 'omar'
 from nose.tools import raises
 
-from geometry import *
-from scene import *
-
-
 class TestPedestrian:
     def __init__(self):
         print("Initializing the class")
