@@ -1,10 +1,20 @@
 __author__ = 'omar'
+import sys
+
 from nose.tools import raises
+
+sys.path.insert(1, '../src')
+
+from scene import Scene, Pedestrian, Obstacle
+from geometry import Size, Point, LineSegment, Path
+import functions as ft
+
+demo_file_name = '../scenes/demo_obstacle_list.json'
 
 class TestPedestrian:
     def __init__(self):
         print("Initializing the class")
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000, obstacle_file='demo_obstacle_list.json')
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000, obstacle_file=demo_file_name)
 
     def setup(self):
         # print("Supposed to happen for each class")
@@ -79,10 +89,9 @@ class TestPath:
     def __init__(self):
         self.l1 = LineSegment([Point([0, 0]), Point([6, 7])])
         self.l2 = LineSegment([Point([6, 7]), Point([7, 4])])
-        self.l21 = LineSegment([Point([6 + EPS, 7]), Point([7, 4])])
+        self.l21 = LineSegment([Point([6 + ft.EPS, 7]), Point([7, 4])])
         self.l3 = LineSegment([Point([7, 4]), Point([5, 5])])
         self.l4 = LineSegment([Point([3, 5]), Point([6, 7])])
-
 
     def test_connectivity(self):
         path = Path([self.l1, self.l2, self.l3])
@@ -112,7 +121,7 @@ from planner import GraphPlanner
 
 class TestGraphPlanner:
     def __init__(self):
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=10, obstacle_file='demo_obstacle_list.json')
+        self.scene = Scene(size=Size([250, 150]), pedestrian_number=10, obstacle_file=demo_file_name)
         self.gt = GraphPlanner(self.scene)
 
     def test_path_cross_no_obstacles(self):
@@ -120,7 +129,6 @@ class TestGraphPlanner:
         for obstacle in self.scene.obstacle_list:
             for line_segment in ped.path:
                 assert (not line_segment.crosses_obstacle(obstacle)) or obstacle.permeable
-
 
     def test_path_from_pedestrian_to_finish(self):
         ped = self.scene.pedestrian_list[0]
@@ -134,7 +142,7 @@ class TestCell:
     def __init__(self):
         self.ped_number = 1000
         self.scene = Scene(size=Size([250, 150]), pedestrian_number=self.ped_number,
-                           obstacle_file='demo_obstacle_list.json')
+                           obstacle_file=demo_file_name)
 
     def test_ped_distribution(self):
         counted_ped = 0
@@ -163,36 +171,36 @@ class TestFunctions:
     def test_overlapping_rectangles(self):
         start1, end1 = self.rec1
         start2, end2 = self.rec2
-        assert rectangles_intersect(start1, end1, start2, end2)
+        assert ft.rectangles_intersect(start1, end1, start2, end2)
 
     def test_adjacent_rectangles(self):
         start1, end1 = self.rec1
         start2, end2 = self.rec3
-        assert rectangles_intersect(start1, end1, start2, end2, open_sets=False)
-        assert not rectangles_intersect(start1, end1, start2, end2, open_sets=True)
+        assert ft.rectangles_intersect(start1, end1, start2, end2, open_sets=False)
+        assert not ft.rectangles_intersect(start1, end1, start2, end2, open_sets=True)
 
     def test_containing_rectangles(self):
         start1, end1 = self.rec1
         start2, end2 = self.rec4
-        assert rectangles_intersect(start1, end1, start2, end2)
+        assert ft.rectangles_intersect(start1, end1, start2, end2)
 
     def test_unorderable_rectangles(self):
         start1, end1 = self.rec1
         start2, end2 = self.rec5
         start3, end3 = self.rec6
-        assert rectangles_intersect(start1, end1, start2, end2)
-        assert rectangles_intersect(start1, end1, start3, end3)
+        assert ft.rectangles_intersect(start1, end1, start2, end2)
+        assert ft.rectangles_intersect(start1, end1, start3, end3)
 
     def test_non_overlapping_rectangles(self):
         start1, end1 = self.rec3
         start2, end2 = self.rec5
-        assert not rectangles_intersect(start1, end1, start2, end2)
+        assert not ft.rectangles_intersect(start1, end1, start2, end2)
 
 
 class TestScene:
     def __init__(self):
-        self.scene_obj = Scene(size=Size([20, 20]), obstacle_file='empty_obstacle_file.json',
+        self.scene_obj = Scene(size=Size([20, 20]), obstacle_file=demo_file_name,
                                pedestrian_number=50)
 
     def test_create_cells(self):
-        assert self.scene_obj.cell_dict[(1, 1)].begin == Point([0, 0])
+        assert (self.scene_obj.cell_dict[(0, 0)].begin - Point([0, 0])).is_zero()

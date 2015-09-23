@@ -34,8 +34,8 @@ parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (i
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
 parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestrians in an impulse')
-parser.add_argument('-r', '--results', action='store_true', help='Log results of sumulation to disk')
-parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to stdout')
+parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
+parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to console')
 
 args = parser.parse_args()
 
