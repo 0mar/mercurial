@@ -18,6 +18,7 @@ domain_width = 70
 domain_height = 70
 obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
+# Todo: Add verbose
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
 parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation',
                     default=number_of_pedestrians)
@@ -33,6 +34,8 @@ parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (i
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
 parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestrians in an impulse')
+parser.add_argument('-r', '--results', action='store_true', help='Log results of sumulation to disk')
+
 args = parser.parse_args()
 
 # Initialization
@@ -43,20 +46,17 @@ else:
     scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)
 planner = GraphPlanner(scene_obj)
-result = Result(scene_obj)
+if args.results:
+    result = Result(scene_obj)
 grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
                     apply_pressure=args.apply_pressure)
 
-
 # Methods inserted on every update
-def step():
-    planner.collective_update()
-    grid.step()
-    result.step()
+step_functions = [planner.collective_update, grid.step]
 
-
-vis = VisualScene(scene_obj, 1500, 1000, step=step, loop=not args.step, delay=args.delay)
+vis = VisualScene(scene_obj, 1500, 1000, step_functions=step_functions, loop=not args.step, delay=args.delay)
 
 # Running
 vis.loop()
 vis.window.mainloop()
+scene_obj.finish()

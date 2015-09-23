@@ -1,7 +1,6 @@
 __author__ = 'omar'
 
 import tkinter
-import sys
 
 from functions import *
 from geometry import Point, Size, LineSegment, Path
@@ -12,23 +11,23 @@ class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, width, height, step, loop,delay):
+    def __init__(self, scene, width, height, step_functions, loop, delay):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
         :param scene: Scene to be drawn. The size of the scene is independent of the size of the visualization
         :param width: width of the window
         :param height: height of the window
-        :param step: Function that needs to be executed every time step
+        :param step_functions: Function that needs to be executed every time step
         :param loop: boolean for determining whether to update automatically
-        :return:
+        :return: None
         """
-        self.step = step
+        self.step_functions = step_functions
         self.scene = scene
         self.autoloop = loop
         self.delay = delay
         self.window = tkinter.Tk()
-        self.window.title("Prototype Crowd Simulation")
+        self.window.title("Prototype hybrid Crowd Dynamics implementation")
         self.window.geometry("%dx%d" % (width, height))
         self.window.bind("<Button-3>", self._provide_information)
         if not self.autoloop:
@@ -45,17 +44,18 @@ class VisualScene:
     def size(self, value):
         self.window.geometry("%dx%d" % tuple(value))
 
-    def _advance_simulation(self, event):
+    def _advance_simulation(self, _):
         """
         Method required for moving the simulation forward one time unit
-        :param event: Event originating from the tkinter update function
+        :param _: Event instance originating from the tkinter update function
         :return: None
         """
-        self.step()  # All functions which should be called on every time step.
+        # All functions which should be called on every time step.
+        # Todo: Is it possible to move this to Scene, or generalize the API?
+        [step_function() for step_function in self.step_functions]
         self.draw_scene()
         if self.scene.status=='DONE':
-            fyi("Simulation is finished. Exiting")
-            sys.exit(0)
+            self.scene.finish()
 
     def loop(self):
         """
@@ -134,6 +134,7 @@ class VisualScene:
         """
         Draws a single pedestrian on its relative location in the window as a circle.
         :param ped: pedestrian which is represented on screen
+        :return: None
         """
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
         size = ped.size / self.scene.size * self.size
@@ -145,7 +146,7 @@ class VisualScene:
         """
         Draws a pedestrian on its relative location in the window as a triangle.
         :param ped: pedestrian which is represented on the screen
-        :return:
+        :return: None
         """
         position = self.convert_relative_coordinate(ped.position / self.scene.size)
         size = ped.size / self.scene.size * self.size
@@ -188,7 +189,7 @@ class VisualScene:
         """
         Draws a path in the scene on its relative location. Wrapper function for drawing multiple line segments
         :param path:
-        :return:
+        :return: None
         """
         for line_segment in path:
             self.draw_line_segment(line_segment)

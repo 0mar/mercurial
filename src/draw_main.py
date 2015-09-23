@@ -49,7 +49,8 @@ if option=='Pedestrian_path':
         planner.collective_update()
         grid.step()
 
-    vis = VisualScene(scene_obj, 500, 300, step=step, loop=False, delay=args.delay)
+
+    vis = VisualScene(scene_obj, 500, 300, step_functions=step, loop=False, delay=args.delay)
 
     def vis_with_line(self):
         self.canvas.delete('all')

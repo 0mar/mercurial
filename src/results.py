@@ -12,7 +12,7 @@ class Result:
         - Path length (measuring the distance between all successive points pedestrians visit).
         - Planned path length (measuring the sum of line segment lengths of the planned path).
         - Time spent (number of time steps * dt pedestrians spend inside the scene).
-        - Density (total mass (=number of pedestrians) divided by the area of the scene (-minus obstacles)).
+        - Density (total mass (=number of pedestrians) divided by the area of the scene (minus obstacles)).
 
         Derived results:
         - Path length ratio: Path length over planned path length per pedestrian.
@@ -24,13 +24,15 @@ class Result:
         :param scene: Scene object under evaluation.
         :return: None
         """
-
-        self.scene = scene
-        self.scene.process_removed_pedestrian = self.on_pedestrian_exit  # Uh oh
         self.result_dir = result_directory
-        ft.debug("Simulations results are processed and stored in folder %s" % result_directory)
-        if not scene.pedestrian_list[0].path:
-            raise AttributeError("Pedestrians have no path. Assert Graphplanner module is used")
+        self.scene = scene
+        self.scene.set_on_step_functions(self.on_step)
+        self.scene.set_on_pedestrian_exit_functions(self.on_pedestrian_exit)
+        self.scene.set_on_finish_functions(self.on_finish)
+
+        ft.debug("Simulations results are processed and stored in folder '%s'" % result_directory)
+        if not scene.pedestrian_list[0].line:
+            raise AttributeError("Pedestrians have no paths. Assert Graphplanner module is used")
         self.planned_path_length = np.zeros(self.scene.pedestrian_number)
         self.path_length = np.zeros(self.scene.pedestrian_number)
         self.time_spent = np.zeros(self.scene.pedestrian_number)
@@ -47,12 +49,17 @@ class Result:
         self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)
 
     def _get_planned_path_length(self, pedestrian):
-        length = 0
+        """
+        Compute the sum of Euclidian lengths of the path line segments
+        :param pedestrian: owner of the path
+        :return: Length of planned path
+        """
+        length = pedestrian.line.length
         for line in pedestrian.path:
             length += line.length
         return length
 
-    def step(self):
+    def on_step(self):
         """
         All data that should be gathered on each time step:
         Currently used:
@@ -77,6 +84,7 @@ class Result:
         self.path_length_ratio = self.path_length / self.planned_path_length
         self.avg_path_length_ratio = np.mean(self.path_length)
         self.mean_speed = self.path_length / self.time_spent
+        self.write_results()
 
     def write_results(self):
         """
@@ -85,7 +93,7 @@ class Result:
         """
         filename = "hoi.txt"
         with open(filename, 'w') as file:
-            file.write("Path ratio:\n%s" % self.planned_path_length)
-            file.write("Average path length ratio\n%s" % self.planned_path_length)
-            file.write("Mean speed\n%s" % self.planned_path_length)
-            file.write("Density:\n%s" % self.density)
+            file.write("Path ratio:\n%s\n\n" % self.planned_path_length)
+            file.write("Average path length ratio\n%s\n\n" % self.planned_path_length)
+            file.write("Mean speed\n%s\n\n" % self.planned_path_length)
+            file.write("Density:\n%s\n\n" % self.density)

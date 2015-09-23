@@ -29,6 +29,10 @@ class Scene:
         self.dt = dt
         self.time = 0
         self.obstacle_list = []
+        self.on_step_functions = []
+        self.on_pedestrian_exit_functions = []
+        self.on_finish_functions = []
+
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.last_position_array = np.zeros([self.pedestrian_number, 2])
@@ -37,7 +41,7 @@ class Scene:
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
         self.minimal_distance = 0.7
-        self.number_of_cells = (40, 40)
+        self.number_of_cells = (20, 20)
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
@@ -56,6 +60,30 @@ class Scene:
             Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
+
+    def set_on_step_functions(self, *on_step):
+        """
+        Adds functions to list called on each time step.
+        :param on_step: functions (without arguments)
+        :return: None
+        """
+        self.on_step_functions += on_step
+
+    def set_on_pedestrian_exit_functions(self, *on_pedestrian_exit):
+        """
+        Adds functions to list called each time a pedestrian exits.
+        :param on_pedestrian_exit: functions which take Pedestrian as argument
+        :return: None
+        """
+        self.on_pedestrian_exit_functions += on_pedestrian_exit
+
+    def set_on_finish_functions(self, *on_finish):
+        """
+        Adds functions to list called on simulation finish.
+        :param on_finish: functions (without arguments)
+        :return: None
+        """
+        self.on_finish_functions += on_finish
 
     def _read_json_file(self, file_name: str):
         """
@@ -221,7 +249,7 @@ class Scene:
         Note that intercellullar pedestrian pairs are ignored,
         we might fix this later.
 
-        :param min_distance: minimum distance between pedestrians
+        :param min_distance: minimum distance between pedestrians, including their size.
         :return: list of pedestrian index pairs with distances lower than min_distance.
         """
         list_a = []
@@ -267,18 +295,10 @@ class Scene:
         empty_ped = EmptyPedestrian(self, counter)
         self.pedestrian_list[counter] = empty_ped
         self.alive_array[counter] = 0
-        self.process_removed_pedestrian(pedestrian)
+        for function in self.on_pedestrian_exit_functions:
+            function(pedestrian)
         if np.sum(self.alive_array) == 0:
             self.status = 'DONE'
-
-    def process_removed_pedestrian(self, pedestrian):
-        """
-        Hook for other classes (like class Result) to process a pedestrian leaving the scene.
-        Does nothing by default.
-        :param pedestrian: Pedestrian object, no longer present in scene.pedestrian_list
-        :return: None
-        """
-        pass
 
     def is_within_boundaries(self, coord: Point) -> bool:
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
@@ -311,6 +331,13 @@ class Scene:
         if self.mde:
             self._minimum_distance_enforcement(self.minimal_distance)
         self.update_cells()
+
+    def finish(self):
+        """
+        :return: None
+        """
+        [on_finish() for on_finish in self.on_finish_functions]
+        fyi('Simulation is finished. Exiting')
 
 
 class Cell:
@@ -389,7 +416,7 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin: Point, size:Size, name:str, permeable=False):
+    def __init__(self, begin: Point, size: Size, name: str, permeable=False):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object
@@ -410,7 +437,7 @@ class Obstacle:
         self.in_interior = True
         self.center = self.begin + self.size * 0.5
 
-    def __contains__(self, coord:Point):
+    def __contains__(self, coord: Point):
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
 
     def __getitem__(self, item):
@@ -428,7 +455,7 @@ class Entrance(Obstacle):
     Not yet implemented
     """
 
-    def __init__(self, begin:Point, size:Size, name:str, spawn_rate=0):
+    def __init__(self, begin: Point, size: Size, name: str, spawn_rate=0):
         Obstacle.__init__(self, begin, size, name)
         self.spawn_rate = spawn_rate
         self.color = 'blue'

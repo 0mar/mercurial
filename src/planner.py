@@ -8,6 +8,7 @@ from pedestrian import Pedestrian
 from scene import Obstacle
 
 
+# Todo: Document this and refactor to 1 class
 class Planner:
     on_track = 0
     reached_checkpoint = 1
