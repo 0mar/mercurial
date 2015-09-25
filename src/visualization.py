@@ -29,7 +29,7 @@ class VisualScene:
         self.autoloop = loop
         self.delay = delay
         self.window = tkinter.Tk()
-        self.window.title("Prototype hybrid crowd dynamics implementation")
+        self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (width, height))
         self.window.bind("<Button-3>", self._provide_information)
         if not self.autoloop:

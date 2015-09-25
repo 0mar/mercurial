@@ -32,7 +32,7 @@ class Result:
         self.scene.set_on_pedestrian_exit_functions(self.on_pedestrian_exit)
         self.scene.set_on_finish_functions(self.on_finish)
 
-        ft.debug("Simulations results are processed and stored in folder '%s'" % result_directory)
+        ft.log("Simulations results are processed and stored in folder '%s'" % result_directory)
         if not scene.pedestrian_list[0].line:
             raise AttributeError("Pedestrians have no paths. Assert Graphplanner module is used")
         self.planned_path_length = np.zeros(self.scene.pedestrian_number)
@@ -58,7 +58,7 @@ class Result:
         :return: None
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
-        self.path_length += distance
+        self.path_length[np.where(self.scene.alive_array)] += distance[np.where(self.scene.alive_array)]
 
     def on_pedestrian_exit(self, pedestrian):
         """
@@ -72,6 +72,9 @@ class Result:
         All data that should be gathered on finishing the simulation:
         :return: None
         """
+        for pedestrian in self.scene.pedestrian_list:
+            if self.scene.alive_array[pedestrian.counter] == 1:
+                self.time_spent[pedestrian.counter] = self.scene.time
         self.path_length_ratio = self.path_length / self.planned_path_length
         self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
@@ -90,13 +93,16 @@ class Result:
             file.write("Mean speed\n%s\n\n" % self.mean_speed)
             file.write("Density:\n%s\n\n" % self.density)
 
+
     def write_matlab_results(self):
         """
         Stores result in binary matlab file
         :return: None
         """
-        filename = "results"
+        filename = self.result_dir + 'results'
         sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
+                                     "path_length": self.path_length,
                                      "path_ratio": self.path_length_ratio,
                                      "avg_path_length_ratio": self.avg_path_length_ratio,
+                                     "time_spent": self.time_spent,
                                      "mean_speed": self.mean_speed})
