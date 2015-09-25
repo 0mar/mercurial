@@ -34,7 +34,7 @@ class GridComputer:
         self.apply_interpolation = apply_interpolation
         self.apply_pressure = apply_pressure
 
-        # Change this into a better grid discretization
+        # If beneficial, we could employ a staggered grid
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
@@ -76,7 +76,7 @@ class GridComputer:
         Interpolation happens per grid cell, by indexing all surrounding grid cells and summing
         over the density of each pedestrian.
         Pedestrian density is computed by convolving the mass with a gaussian kernel approximation
-        :return:
+        :return: None
         """
         cell_dict = self.scene.cell_dict
         for cell_location in cell_dict:

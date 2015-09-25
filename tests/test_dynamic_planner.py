@@ -17,8 +17,8 @@ class TestDynamicPlanner:
         self.dyn_plan = DynamicPlanner(self.scene)
         self.dyn_plan.grid_dimension = (20, 20)
         self.pedestrian = self.scene.pedestrian_list[0]
-        self.ped_x = 53
-        self.ped_y = 21
+        self.ped_x = np.random.randint(3, self.scene.size.width - 2)
+        self.ped_y = np.random.randint(3, self.scene.size.height - 2)
         self.pedestrian.manual_move(Point([self.ped_x, self.ped_y]))
 
     def test_cell_size(self):
@@ -28,11 +28,19 @@ class TestDynamicPlanner:
         n = 5
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
-        density = dyn_plan.obtain_fields()
+        (density, _, _) = dyn_plan.obtain_density_and_velocity_field()
         assert np.all(density >= 0)
 
+    def test_velocity_never_negative(self):
+        n = 5
+        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
+        dyn_plan = DynamicPlanner(scene)
+        (_, v_x, v_y) = dyn_plan.obtain_density_and_velocity_field()
+        assert np.all(v_x >= 0)
+        assert np.all(v_y >= 0)
+
     def test_local_contributions_cross_threshold(self):
-        density = self.dyn_plan.obtain_fields()
+        (density, _, _) = self.dyn_plan.obtain_density_and_velocity_field()
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -43,7 +51,7 @@ class TestDynamicPlanner:
                     assert density[tuple(center_cell + [x, y])] >= self.dyn_plan.density_threshold
 
     def test_non_local_contributions_below_threshold(self):
-        density = self.dyn_plan.obtain_fields()
+        (density, _, _) = self.dyn_plan.obtain_density_and_velocity_field()
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -54,7 +62,7 @@ class TestDynamicPlanner:
                     assert density[tuple(center_cell + [x, y])] <= self.dyn_plan.density_threshold
 
     def test_other_contributions_vanish(self):
-        density = self.dyn_plan.obtain_fields()
+        (density, _, _) = self.dyn_plan.obtain_density_and_velocity_field()
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         for i, j in np.ndindex(self.dyn_plan.grid_dimension):
@@ -64,5 +72,5 @@ class TestDynamicPlanner:
     def test_boundary_processed_correctly(self):
         upper_left_corner = Point([self.dyn_plan.dx / 2, self.scene.size[1] - self.dyn_plan.dy / 2])
         self.pedestrian.manual_move(upper_left_corner)
-        density = self.dyn_plan.obtain_fields()
+        (density, _, _) = self.dyn_plan.obtain_density_and_velocity_field()
         assert density is not None

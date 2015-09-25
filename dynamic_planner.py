@@ -9,6 +9,12 @@ class DynamicPlanner:
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [1, 0], 'down': [-1, 0]}
 
     def __init__(self, scene):
+        """
+        Initializes a dynamic planner object. Takes a scene as argument.
+        Parameters are initialized in this constructor, still need to be validated.
+        :param scene: scene object to impose planner on
+        :return: dynamic planner object
+        """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
         self.grid_dimension = (20, 20)
@@ -29,15 +35,18 @@ class DynamicPlanner:
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
 
-    def obtain_fields(self):
+    def obtain_density_and_velocity_field(self):
         """
-        Compute the density and velocity field as done in Treuille et al. (2004).
-        Letter indicators corresponds to their notation.
-        Stores discrete density and velocity field in class attributes.
-        This is a naive implementation.
-        :return: None
+        Compute the density and velocity field in cell centers as done in Treuille et al. (2004).
+        Density and velocity are splatted to only surrounding cell centers.
+        This is a naive implementation, looping over all pedestrians
+        :return: (density, velocity_x, velocity_y) as 2D arrays
         """
-        dens = np.zeros(self.grid_dimension)
+        # Todo: Integrate and sync with grid_computer upon remerging project
+        dens = np.zeros(self.grid_dimension) + 0.001
+        # Initialize density with an epsilon to facilitate division
+        v_x = np.zeros(self.grid_dimension)
+        v_y = np.zeros(self.grid_dimension)
         cell_size = np.array([self.dx, self.dy])
         cell_center_indices = (np.around(self.scene.position_array / cell_size) - np.array([1, 1])).astype(int)
         # These are the closest cell center indices whose coordinates both less than the corresponding pedestrians.
@@ -64,10 +73,17 @@ class DynamicPlanner:
                         y_coord = cell_center_indices[pedestrian.counter][1] + y
                         if 0 <= y_coord < self.grid_dimension[1]:
                             dens[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
+                            v_x[x_coord, y_coord] += \
+                                density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
+                            v_y[x_coord, y_coord] += \
+                                density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
         # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
-        return dens
+        v_x /= dens
+        v_y /= dens
 
-    def get_speed_field(self, direction):
+        return dens, v_x, v_y
+
+    def obtain_speed_field(self, direction):
         """
         Obtain maximum speed field f, direction dependent
         :param direction direction to be accounted for
@@ -123,3 +139,24 @@ class DynamicPlanner:
         :param axis: 'x' or 'y'
         :return: gradient component
         """
+
+
+if __name__ == '__main__':
+    from scene import Scene
+    from geometry import Size, Velocity, Point
+
+    n = 1
+    scene = Scene(size=Size([100, 100]), obstacle_file='empty_scene.json', pedestrian_number=n)
+    dyn_plan = DynamicPlanner(scene)
+    ped = scene.pedestrian_list[0]
+    ped.position = Point([55.38, 91.66])
+    ped.velocity = Velocity([1, 1])
+    (density, v_x, v_y) = dyn_plan.obtain_density_and_velocity_field()
+    print(ped.position)
+    for i in range(scene.number_of_cells[0]):
+        for j in range(scene.number_of_cells[1]):
+            if v_x[i, j] or v_y[i, j]:
+                print("cell (%d,%d)" % (i, j))
+                print("Density: %.4f" % density[i, j])
+                print("v_x: %.4f" % v_x[i, j])
+                print("v_y: %.4f" % v_y[i, j])
