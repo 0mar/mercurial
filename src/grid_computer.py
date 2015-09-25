@@ -20,6 +20,17 @@ class GridComputer:
     """
 
     def __init__(self, scene, show_plot, apply_interpolation, apply_pressure):
+        """
+        Constructs a grid computer, responsible for the continuum calculations.
+        The grid computer takes several parameters in its constructor.
+        Numerical parameters are specified in the parameters file.
+        :param scene: Scene on which we make the computations
+        :param show_plot: enable matplotlib plotting of discrete fields
+        :param apply_interpolation: impose group velocity on pedestrians
+        :param apply_pressure: impose pressure on velocity field (and on pedestrians)
+        :return: Grid computer object.
+        """
+        # Todo: Create .json file for parameters
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx, self.dy = self.scene.cell_size
