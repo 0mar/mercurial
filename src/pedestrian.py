@@ -44,13 +44,26 @@ class Pedestrian(object):
         self.scene.position_array[self.counter] = self._position.array
 
     def __str__(self):
+        """
+        String representation for pedestrian having position, angle,
+        and whether or not pedestrian is still in the scene
+        :return: string representation
+        """
         return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
                (self.counter, self.position, self._velocity.angle / np.pi)
 
     def __repr__(self):
+        """
+        :return: Unique string identifier using counter integer
+        """
         return "Pedestrian#%d" % self.counter
 
     def _convert_speed_to_color(self):
+        """
+        Computes a color between red and blue based on pedestrian max velocity.
+        Red is fast, blue is slow.
+        :return: tkinter RGB code for color
+        """
         start = 1
         end = 2
         max_val = 255
@@ -109,7 +122,10 @@ class Pedestrian(object):
 
     @property
     def velocity(self):
-        # return Velocity(self.scene.velocity_array[self.counter])
+        """
+        Velocity getter
+        :return:
+        """
         return self._velocity
 
     @velocity.setter
@@ -127,10 +143,21 @@ class Pedestrian(object):
 
     @property
     def position(self):
+        """
+        Position getter
+        :return: Current position
+        """
         return self._position
 
     @position.setter
     def position(self, point):
+        """
+        Position setter. Eases checks and debugging.
+        Note that setting a point this way does not update the scene position array.
+        USe manual_move() for that.
+        :param point: New position
+        :return: None
+        """
         self._position = point
 
     def is_done(self):
@@ -149,17 +176,37 @@ class Pedestrian(object):
 
 
 class EmptyPedestrian(Pedestrian):
+    """
+    To decrease computational overhead, pedestrians that left the scene are switched to dummy objects.
+    For each pedestrian, self.alive_array[pedestrian.counter] == !pedestrian.is_done()
+    """
     def __init__(self, scene, counter):
+        """
+        Initialized a empty pedestrian used when a pedestrian leaves the scene.
+        :param scene: scene object
+        :param counter: integer. The actual pedestrian object is not required.
+        :return:
+        """
         super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None)
 
     def is_done(self):
         return True
 
     def __repr__(self):
+        """
+        :return: String identifier for empty pedestrian
+        """
         return "DonePedestrian#%d" % self.counter
 
     def __str__(self):
+        """
+        :return:String representation for empty pedestrian, not really required
+        """
         return "Finished Pedestrian %d" % self.counter
 
-    def correct_for_geometry(self, dt):
+    def correct_for_geometry(self):
+        """
+        Overrides the pedestrians (expensive) method
+        :return: None
+        """
         pass
