@@ -8,9 +8,9 @@ class DynamicPlanner:
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [1, 0], 'down': [-1, 0]}
 
-    def __init__(self, grid_computer):
-        self.grid_computer = grid_computer
-        self.scene = self.grid_computer.scene
+    def __init__(self, scene):
+        # Initialize depending on scene or on grid_computer?
+        self.scene = scene
         self.grid_dimension = (20, 20)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
 
@@ -25,40 +25,47 @@ class DynamicPlanner:
 
         self.min_density = 0
         self.max_density = 5
-        self.density_threshold = 3
 
-        self.density_exponent = 1
+        self.density_exponent = 2
+        self.density_threshold = (1 / 2) ** self.density_exponent
 
     def obtain_fields(self):
         """
         Compute the density and velocity field as done in Treuille et al. (2004).
-        Letter notation corresponds to their notation.
-        Stores discrete density and velocity field in class attributes
+        Letter indicators corresponds to their notation.
+        Stores discrete density and velocity field in class attributes.
+        This is a naive implementation.
         :return: None
         """
         dens = np.zeros(self.grid_dimension)
         cell_size = np.array([self.dx, self.dy])
-        cell_centers = np.around(self.scene.position_array / cell_size) * cell_size
-        integer_cell_centers = cell_centers.astype(int)
-        difference = np.abs(self.scene.position_array - cell_centers)
-        density_contributions = [[], []]
+        cell_center_indices = (np.around(self.scene.position_array / cell_size) - np.array([1, 1])).astype(int)
+        # These are the closest cell center indices whose coordinates both less than the corresponding pedestrians.
+        cell_centers = (cell_center_indices + [0.5, 0.5]) * cell_size
+        # These are the coordinates of those centers
+        differences = self.scene.position_array - cell_centers
+        # These are the differences between the cell centers and the pedestrian positions.
+        assert np.all(differences <= cell_size) and np.all(differences >= 0)
+        # They should all be positive and smaller than (dx,dy)
+        rel_differences = differences / cell_size
+        density_contributions = [[None, None], [None, None]]
         for x in range(2):
             for y in range(2):
-                # Not correct yet
-                density_contributions[x][y] = np.minimum(1 - difference[:, 0],
-                                                         1 - difference[:, 1]) ** self.density_exponent
+                density_contributions[x][y] = np.minimum(
+                    1 - rel_differences[:, 0] + (2 * rel_differences[:, 0] - 1) * x,
+                    1 - rel_differences[:, 1] + (2 * rel_differences[:, 1] - 1) * y) ** self.density_exponent
+        # For each cell center surrounding the pedestrian, add (in either dimension) 1-\delta . or \delta .
 
-        left_down = np.minimum(1 - difference[:, 0], 1 - difference[:, 1]) ** self.density_exponent  # A
-        right_down = np.minimum(difference[:, 0], 1 - difference[:, 1]) ** self.density_exponent  # B
-        right_up = np.minimum(difference[:, 0], difference[:, 1]) ** self.density_exponent  # C
-        left_up = np.minimum(1 - difference[:, 0], difference[:, 1]) ** self.density_exponent  # D
         for pedestrian in self.scene.pedestrian_list:
             for x in range(2):
-                for y in range(3):
-                    dens[tuple(integer_cell_centers[pedestrian.counter])] \
-                        += density_contributions[x][y][pedestrian.counter]
+                x_coord = cell_center_indices[pedestrian.counter][0] + x
+                if 0 <= x_coord < self.grid_dimension[0]:
+                    for y in range(2):
+                        y_coord = cell_center_indices[pedestrian.counter][1] + y
+                        if 0 <= y_coord < self.grid_dimension[1]:
+                            dens[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
+        # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
         return dens
-
 
     def get_speed_field(self, direction):
         """

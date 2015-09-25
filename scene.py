@@ -153,7 +153,7 @@ class Scene:
         """
         cell_location = set(self.cell_dict).pop()
         correct_index = all([cell_location[dim] < self.number_of_cells[dim] for dim in range(2)])
-        correct_size = all((self.cell_dict[cell_location].size - self.cell_size).array == 0)
+        correct_size = np.all(np.isclose(self.cell_dict[cell_location].size.array, self.cell_size.array))
         correct_obstacle = {obs.name for obs in self.obstacle_list} \
                            == {obs.name for cell in self.cell_dict.values() for obs in cell.obstacle_set}
         return correct_index and correct_size and correct_obstacle
