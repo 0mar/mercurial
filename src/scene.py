@@ -222,6 +222,10 @@ class Scene:
         return raw_cell_locations
 
     def get_stationary_pedestrians(self):
+        """
+        Computes which pedestrians have not moved since the last time step
+        :return: nx1 boolean np.array, True if pedestrian is stationary, False otherwise
+        """
         pos_difference = np.linalg.norm(self.position_array - self.last_position_array, axis=1)
         not_moved = pos_difference == 0
         # is_alive = np.array(self.alive_array,dtype=bool) # Not necessary, we check in planner anyway
@@ -230,7 +234,7 @@ class Scene:
 
     def update_cells(self):
         """
-        Update all the pedestrians, but by looking per cell what the new situation is.
+        Update all the pedestrians, but by inspecting the new situation per cell.
         :return: None
         """
         new_ped_cells = self.get_pedestrian_cells()
@@ -306,7 +310,13 @@ class Scene:
         if np.sum(self.alive_array) == 0:
             self.status = 'DONE'
 
-    def is_within_boundaries(self, coord: Point) -> bool:
+    def is_within_boundaries(self, coord: Point):
+        """
+        Check whether a point lies within the scene.
+        If used often, this should be either vectorized or short-circuited.
+        :param coord: Point under consideration
+        :return: True if within scene, false otherwise
+        """
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
         return within_boundaries
 
@@ -366,6 +376,11 @@ class Cell:
         self.obstacle_set = set()
 
     def obtain_relevant_obstacles(self, obstacle_list):
+        """
+        Obtain a set of all obstacles overlapping with this cell, stored in the class.
+        :param obstacle_list: all obstacles in the scene
+        :return: None
+        """
         # Check if obstacle is contained in cell, or cell contained in obstacle
         for obstacle in obstacle_list:
             if obstacle.center in self or self.center in obstacle:
@@ -389,15 +404,34 @@ class Cell:
                     break
 
     def add_pedestrian(self, pedestrian):
+        """
+        Add a pedestrian to the cell
+        :param pedestrian, not already in cell
+        :return: None
+        """
         assert pedestrian not in self.pedestrian_set
         pedestrian.cell = self
         self.pedestrian_set.add(pedestrian)
 
     def remove_pedestrian(self, pedestrian):
+        """
+        Remove a pedestrian present in the cell
+        :param pedestrian, present in cell
+        :return: None
+        """
         assert pedestrian in self.pedestrian_set
         self.pedestrian_set.remove(pedestrian)
 
     def is_accessible(self, coord, at_start=False):
+        """
+        Computes accessibility of a point, that is whether it is within the boundaries of this cell
+        and whether no obstacle is present at that point.
+        Use only for coordinates in cell. A warning is provided otherwise.
+        :param coord: Coordinate under consideration
+        :param at_start: Used for checking accessibilty in exits: at simulation init, this is not allowed.
+        :return: True if coordinate is accessible, False otherwise
+
+        """
         within_cell_boundaries = all(self.begin.array < coord.array) and all(
             coord.array < self.begin.array + self.size.array)
         if not within_cell_boundaries:
@@ -409,12 +443,22 @@ class Cell:
             return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_set])
 
     def __contains__(self, coord):
+        """
+        Check whether a point lies within a cell
+        :param coord: Point under consideration
+        """
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
 
     def __repr__(self):
+        """
+        :return: Unique string identifier of cell
+        """
         return "Cell %s from %s to %s" % (self.location, self.begin, self.begin + self.size)
 
     def __str__(self):
+        """
+        :return: String with cell information and contents
+        """
         return "Cell %s. Begin: %s. End %s\nPedestrians: %s\nObstacles: %s" % (
             self.location, self.begin, self.begin + self.size, self.pedestrian_set, self.obstacle_set
         )
@@ -448,6 +492,12 @@ class Obstacle:
         self.center = self.begin + self.size * 0.5
 
     def __contains__(self, coord: Point):
+        """
+        Check whether a point lies in the obstacle.
+        :param coord: Point under consideration
+        :return: True if point in obstacle, false otherwise
+        """
+
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
 
     def __getitem__(self, item):
@@ -466,10 +516,8 @@ class Entrance(Obstacle):
     """
 
     def __init__(self, begin: Point, size: Size, name: str, spawn_rate=0):
-        Obstacle.__init__(self, begin, size, name)
-        self.spawn_rate = spawn_rate
-        self.color = 'blue'
-
+        super().__init__(begin, size, name, permeable=False)
+        raise NotImplementedError("Sorry, entrance prohibited")
 
 class Exit(Obstacle):
     """

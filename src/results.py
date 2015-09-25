@@ -46,6 +46,10 @@ class Result:
         self.on_init()
 
     def on_init(self):
+        """
+        All preprocessing and calls that should be executed before the simulation starts.
+        :return: None
+        """
         for pedestrian in self.scene.pedestrian_list:
             self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
         self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)

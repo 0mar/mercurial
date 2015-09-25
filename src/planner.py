@@ -127,18 +127,7 @@ class Planner:
                 if checkpoint_reached:  # but not done
                     pedestrian.line = pedestrian.path.pop_next_segment()
                     pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
-                else:  # if not checkpoint reached and not done
-                    # # 4
-                    # # Check which point should be the next checkpoint. Todo: Not correct yet.
-                    # if pedestrian.path:
-                    #     next_checkpoint = pedestrian.path[0].end
-                    #     shortcut_line = LineSegment([pedestrian.position, next_checkpoint])
-                    #     shortcut_free = not any([shortcut_line.crosses_obstacle(obs)
-                    #                              for obs in self.scene.obstacle_list])
-                    #     if shortcut_free:
-                    #         pedestrian.path.pop_next_segment()
-                    #         pedestrian.line = shortcut_line
-                    # # Set our new desired velocity
+                else:
                     pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)  # Expensive...
             elif self.scene.alive_array[pedestrian.counter]:
                 # Stationary pedestrian. Creating new path.
