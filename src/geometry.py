@@ -144,7 +144,7 @@ class LineSegment(object):
         intersects = ft.rectangles_intersect(rect_array[0], rect_array[1], obs_array[0], obs_array[1], open_sets)
         if not intersects:
             return False
-        f = ft.get_hyperplane_function(line_array[0], line_array[1])
+        f = ft.get_hyperplane_functional(line_array[0], line_array[1])
         obs_points = np.array([point.array for point in obstacle.corner_list])
         point_result = f(obs_points[:, 0], obs_points[:, 1])
         if np.sum(np.sign(point_result)) in [-4, 4]:
