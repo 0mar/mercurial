@@ -102,6 +102,7 @@ class Interval(object):
     """
     Class that models an interval
     """
+
     def __init__(self, coords):
         self.array = np.array(coords)
         self.length = coords[1] - coords[0]
@@ -128,10 +129,14 @@ class Interval(object):
         return "Interval %s" % self.array
 
 
-# Todo: Moeten ook naar Points ipv arrays toe
 class LineSegment(object):
-    def __init__(self, coords):
-        self.array = np.array(coords)
+    def __init__(self, point_list):
+        """
+        Initializes a line segment based on a list of Points.
+        :param point_list: List (or other iterable) of Points
+        :return: Line segment
+        """
+        self.array = np.array(point_list)
         self.color = 'gray'
 
     length = property(lambda s: np.linalg.norm(s[0] - s[1]))
@@ -145,7 +150,7 @@ class LineSegment(object):
         :param value: parameter in [0,1]
         :return: corresponding Point on line segment
         """
-        if 0 >= value <= 1:
+        if 0 > value < 1:
             raise ValueError("Value %.2f must lie between 0 and 1" % value)
         return self.begin + value * (self.end - self.begin)
 
@@ -202,6 +207,7 @@ class Path(object):
     """
     Wrapper around a sequence of line segments.
     """
+
     def __init__(self, line_segment_list):
         if not isinstance(line_segment_list, list):
             raise TypeError("Line segment list must be list")
