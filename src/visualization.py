@@ -53,7 +53,8 @@ class VisualScene:
         :return: None
         """
         # All functions which should be called on every time step.
-        # Todo: Is it possible to move this to Scene, or generalize the API?
+        # Todo: all step functions should be moved to scene.py.
+        # Unfortunately, this causes problems in tkinter updating,
         [step_function() for step_function in self.step_functions]
         self.draw_scene()
         if self.scene.status=='DONE':

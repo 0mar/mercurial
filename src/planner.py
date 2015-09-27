@@ -9,14 +9,26 @@ from pedestrian import Pedestrian
 from scene import Obstacle
 
 
-# Todo: Document this and refactor to 1 class
-# Todo: Choose meaningful variable names
 class Planner:
+    """
+    Naive planner module. Implements a home-made path planning algorithm (with poor performances).
+    Main use is to be extended by better modules, like the GraphPlanner below.
+    Some methods are still usable, like get_goal and collective_update.
+
+    Lower level modules should be agnostic to the path planning module.
+    Therefore, Pedestrian and Scene class members are generated and modified on the fly.
+    """
     on_track = 0
     reached_checkpoint = 1
     other_state = 2
 
     def __init__(self, scene):
+        """
+        Creates a global path planner for the scene.
+        :param scene: Scene filled with obstacles, goals and pedestrians
+
+        :return: Path planner that has planned out paths for each pedestrian.
+        """
         self.scene = scene
         for pedestrian in self.scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
@@ -24,10 +36,17 @@ class Planner:
             # pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
+        """
+        Deprecated method for creating a path for each pedestrian from his current position
+        to his goal obstacle.
+        :param pedestrian: Pedestrian located in scene
+        :param goal_obstacle: Goal (in scene) reachable from the pedestrians location.
+        :return: Path (sequence of Line Segments) leading from the pedestrian to the goal
+        """
         path_to_exit = Path([])
         sub_start = pedestrian.position
         while not (sub_start in goal_obstacle):
-            goal = Planner.get_goal(sub_start, goal_obstacle)
+            goal = Planner.get_closest_goal_position(sub_start, goal_obstacle)
             line_to_goal = LineSegment([sub_start, goal])
             angle_to_goal = (goal - sub_start).angle
             colliding_obstacles = []
@@ -43,12 +62,20 @@ class Planner:
         return path_to_exit
 
     @staticmethod
-    def get_goal(position, obstacle):
+    def get_closest_goal_position(position, goal_obstacle):
+        """
+        Computes the position of the goal obstacle closest to the provided position
+        If the position provided lies in the goal, returns pedestrian coordinates.
+        Otherwise, returns a Point in goal such that distance from position to Point is minimal
+        :param position: Point somewhere in scene
+        :param goal_obstacle: some (goal) obstacle
+        :return: Point somewhere in obstacle
+        """
         # Checking whether the x or y component already lies between the bounds of object.
         # Otherwise, desired component is the closest corner.
         goal_dim = [0, 0]
         for dim in range(2):
-            obs_interval = Interval([obstacle.begin[dim], obstacle.end[dim]])
+            obs_interval = Interval([goal_obstacle.begin[dim], goal_obstacle.end[dim]])
             pos_dim = position[dim]
             if pos_dim in obs_interval:
                 goal_dim[dim] = position[dim]
@@ -59,7 +86,17 @@ class Planner:
         return Point(goal_dim)
 
     @staticmethod
+
     def get_intermediate_goal(start, angle_to_goal, obstacles, safe_distance=3.):
+        """
+        Deprecated method, used in old path planning method.
+        :param start:
+        :param angle_to_goal:
+        :param obstacles:
+        :param safe_distance:
+        :return:
+        """
+        raise DeprecationWarning("Using this method leads to poor path planning results.")
         # In this method, 0 === False === Left, 1 === True === Right
         corner_points = [None, None]  # max corners left and right from destination
         max_angles = [0, 0]
@@ -137,7 +174,19 @@ class Planner:
 
 
 class GraphPlanner(Planner):
+    """
+    Upgraded path planner, based on A* algorithm.
+    Converts the scene to a graph, adds the pedestrians location and finds the shortest path to the goal.
+    In this implementation, only one exit is present.
+    This should not be hard to generalize, just keep an eye on the runtime.
+    """
     def __init__(self, scene):
+        """
+        Constructs a Graph planner
+        :param scene: Scene filled with obstacles, goals and pedestrians
+        :return: Graph planner object with planned paths for each pedestrian
+        Note that the path is 'popped' in the constructor.
+        """
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph(self.scene.exit_obs)
@@ -149,6 +198,13 @@ class GraphPlanner(Planner):
         ft.log("Finished preprocessing global paths")
 
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
+        """
+        Creates a path leading from pedestrian location to finish
+        :param pedestrian: Pedestrian under consideration
+        :param goal_obstacle: Goal of the pedestrian
+        :return: Path if goal_obstacle is reachable from pedestrian location
+        :raise: RunTimeError when no path can be computed.
+        """
         ped_graph = nx.Graph(self.graph)
         ped_graph.add_node(pedestrian.position)
         self._fill_with_required_edges(pedestrian.position, ped_graph, goal_obstacle)
@@ -162,7 +218,7 @@ class GraphPlanner(Planner):
             line = LineSegment([prev_point, point])
             path_to_exit.append(line)
             prev_point = point
-        finish_point = Planner.get_goal(prev_point, goal_obstacle)
+        finish_point = Planner.get_closest_goal_position(prev_point, goal_obstacle)
         line_to_finish = LineSegment([prev_point, finish_point])
         # assert self.line_crosses_no_obstacles(line_to_finish)
         path_to_exit.append(line_to_finish)
@@ -170,6 +226,11 @@ class GraphPlanner(Planner):
         return path_to_exit
 
     def _create_obstacle_graph(self, goal_obstacle):
+        """
+        Create the graph of the obstacles. Details on implementation are found in the report.
+        :param goal_obstacle: The goal under consideration.
+        :return:
+        """
         self.graph = nx.Graph()
         self.graph.add_node(goal_obstacle)
         for obstacle in self.scene.obstacle_list:
@@ -183,7 +244,14 @@ class GraphPlanner(Planner):
                 self._fill_with_required_edges(node, self.graph, goal_obstacle)
 
     def _fill_with_required_edges(self, node: Point, graph, goal_obstacle):
-        goal_point = Planner.get_goal(node, goal_obstacle)
+        """
+        Fills the graph (which now only consists of nodes) with the edges connecting to the given node
+        :param node: Obstacle node under consideration
+        :param graph: Graph the node is part of
+        :param goal_obstacle: Goal in the scene
+        :return:
+        """
+        goal_point = Planner.get_closest_goal_position(node, goal_obstacle)
         line_to_goal = LineSegment([node, goal_point])
         path_free = True
         for obstacle in self.scene.obstacle_list:
@@ -205,6 +273,12 @@ class GraphPlanner(Planner):
                     graph.add_edge(u=node, v=other_node, weight=path.length)
 
     def draw_graph(self, graph, pedestrian=None):
+        """
+        Draws a graph, labeling the scene exit and a potential pedestrian.
+        :param graph: a graph (duh)
+        :param pedestrian: Pedestrians location in the scene
+        :return:
+        """
         pos = {}
         labeling = {}
         node_colors = []

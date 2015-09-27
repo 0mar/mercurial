@@ -37,13 +37,15 @@ class TestGraphPlanner:
     def test_path_at_least_distance(self):
         for pedestrian in self.filled_scene.pedestrian_list:
             distance = np.linalg.norm(pedestrian.position.array -
-                                      self.gt1.get_goal(pedestrian.position, self.filled_scene.exit_obs))
+                                      self.gt1.get_closest_goal_position(pedestrian.position,
+                                                                         self.filled_scene.exit_obs))
             path_length = GraphPlanner.get_path_length(pedestrian)
             assert distance <= path_length
 
     def test_path_equal_to_distance_without_obstacles(self):
         for pedestrian in self.empty_scene.pedestrian_list:
             distance = np.linalg.norm(pedestrian.position.array -
-                                      self.gt2.get_goal(pedestrian.position, self.empty_scene.exit_obs))
+                                      self.gt2.get_closest_goal_position(pedestrian.position,
+                                                                         self.empty_scene.exit_obs))
             path_length = GraphPlanner.get_path_length(pedestrian)
             assert distance == path_length
