@@ -164,7 +164,7 @@ class GridComputer:
             flat_p = result['x']
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
-            flat_p = np.zeros([1, nx * ny])
+            flat_p = np.zeros([0, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
     def adjust_velocity(self):
