@@ -3,7 +3,7 @@
 import numpy as np
 
 import functions as ft
-from geometry import Point, Interval
+from geometry import Point
 
 __author__ = 'omar'
 
@@ -15,7 +15,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goal, position=Point([0, 0]), color=None):
+    def __init__(self, scene, counter, goal, size, max_speed_interval, position=Point([0, 0])):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -30,14 +30,17 @@ class Pedestrian(object):
         self.counter = counter
         self._position = self._velocity = None
         self.position = position
-        self.size = self.scene.pedestrian_size
-        self.max_speed = Interval([1,2]).random()
+        self.size = size
+        if max_speed_interval:
+            self.max_speed = max_speed_interval.random()
+        else:
+            self.max_speed = 0
         self.color = self._convert_speed_to_color()
         self.goal = goal
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
-            self.manual_move(new_position,at_start=True)
+            self.manual_move(new_position, at_start=True)
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             ft.warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
@@ -87,7 +90,7 @@ class Pedestrian(object):
         else:
             self.scene.position_array[self.counter] = self._position.array
 
-    def manual_move(self, position,at_start = False):
+    def manual_move(self, position, at_start=False):
         """
         Move the pedestrian to the give position manually; independent on the scene position array.
         :param position: new pedestrian position (will still be checked)
@@ -95,7 +98,7 @@ class Pedestrian(object):
         :return: True when move is allowed and executed, false otherwise
         """
         # Should a whole scene check take too much time, then this should be replaced
-        if self.scene.is_accessible(position,at_start):
+        if self.scene.is_accessible(position, at_start):
             self.position = position
             self.scene.position_array[self.counter] = self.position.array
             if self.cell:  # Todo: Adding and removing is not needed if not switching cells.
@@ -180,6 +183,7 @@ class EmptyPedestrian(Pedestrian):
     To decrease computational overhead, pedestrians that left the scene are switched to dummy objects.
     For each pedestrian, self.alive_array[pedestrian.counter] == !pedestrian.is_done()
     """
+
     def __init__(self, scene, counter):
         """
         Initialized a empty pedestrian used when a pedestrian leaves the scene.
@@ -187,7 +191,8 @@ class EmptyPedestrian(Pedestrian):
         :param counter: integer. The actual pedestrian object is not required.
         :return:
         """
-        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None)
+        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None, size=None,
+                                              max_speed_interval=None)
 
     def is_done(self):
         return True

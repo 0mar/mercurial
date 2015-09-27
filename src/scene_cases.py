@@ -1,12 +1,9 @@
 __author__ = 'omar'
 
-import random
-
 import numpy as np
 
 from geometry import Size, Point
 from scene import Scene, Pedestrian
-from visualization import VisualScene
 
 
 class ImpulseScene(Scene):
@@ -25,9 +22,9 @@ class ImpulseScene(Scene):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_location = impulse_location
-        super().__init__(size, pedestrian_number, obstacle_file, mde, dt, cache)
+        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, size, max_speed_interval):
         center = np.array(self.impulse_location)
         self.pedestrian_list = []
         for counter in range(self.pedestrian_number):
@@ -38,5 +35,5 @@ class ImpulseScene(Scene):
                 if x ** 2 + y ** 2 > self.impulse_size or not self.is_within_boundaries(ped_loc):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_obs,
-                                                   position=ped_loc, color=random.choice(VisualScene.color_list)))
+                                                   position=ped_loc, size=size, max_speed_interval=max_speed_interval))
         self._fill_cells()

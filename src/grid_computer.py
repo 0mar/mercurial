@@ -30,13 +30,12 @@ class GridComputer:
         :param apply_pressure: impose pressure on velocity field (and on pedestrians)
         :return: Grid computer object.
         """
-        # Todo: Create .json file for parameters
         self.scene = scene
         self.cell_dimension = self.scene.number_of_cells
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
-        self.interpolation_factor = 3
-        self.packing_factor = 0.9
+        self.interpolation_factor = self.scene.interpolation_factor
+        self.packing_factor = self.scene.packing_factor
         self.max_density = 2 * 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None

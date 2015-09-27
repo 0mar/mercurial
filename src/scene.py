@@ -1,15 +1,14 @@
 __author__ = 'omar'
 
-import random
 import pickle
 import itertools
+import json
 
 import numpy as np
 
 import functions as ft
 from pedestrian import Pedestrian, EmptyPedestrian
-from geometry import Point, Size, LineSegment
-import visualization as vis
+from geometry import Point, Size, LineSegment, Interval
 
 
 class Scene:
@@ -17,7 +16,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, dt=0.05, cache='read'):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, cache='read'):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -28,13 +27,13 @@ class Scene:
         """
         self.size = size
         self.pedestrian_number = pedestrian_number
-        self.dt = dt
         self.time = 0
         self.obstacle_list = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_finish_functions = []
 
+        # Array initialization
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.last_position_array = np.zeros([self.pedestrian_number, 2])
@@ -42,8 +41,12 @@ class Scene:
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
-        self.minimal_distance = 0.7
-        self.number_of_cells = (20, 20)
+
+        # Parameter initialization
+        self.minimal_distance = self.dt = 0
+        self.number_of_cells = self.pedestrian_size = None
+        self._load_parameters()
+
         self.cell_size = Size(self.size.array / self.number_of_cells)
         self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
@@ -52,21 +55,58 @@ class Scene:
             self._create_cells()
         if cache == 'write':
             self._store_cells()
-        self.pedestrian_size = Size([0.4, 0.4])
         self.pedestrian_list = []
-        self._init_pedestrians()
+        self._init_pedestrians(self.pedestrian_size, self.max_speed_interval)
         self.status = 'RUNNING'
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, size, max_speed_interval):
         """
         Protected method that determines how the pedestrians are initially distributed,
         as well as with what properties they come. Overridable.
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
+            Pedestrian(self, counter, self.exit_obs, size=size, max_speed_interval=max_speed_interval)
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
+
+    def _load_parameters(self, filename='params.json'):
+        """
+        Load parameters from JSON file. If file not present or damaged, load default parameters.
+        :param filename: filename of file containing valid json
+        :return: None
+        """
+        import os
+        default_dict = {"dt": 0.05,
+                        "number_of_cells": [20, 20],
+                        "minimal_distance": 0.7,
+                        "pedestrian_size": [0.4, 0.4],
+                        "max_speed_interval": [1, 2],
+                        "interpolation_factor": 3,
+                        "packing_factor": 0.9}
+        data_dict = {}
+        if not os.path.isfile(filename):
+            raise FileNotFoundError("Parameter file %s not found" % filename)
+        with open(filename, 'r') as file:
+            try:
+                data = json.loads(file.read())
+                for key in default_dict:
+                    if key not in data.keys():
+                        ft.warn("Not all keys found in %s. Using default parameters" % filename)
+                        data_dict.update(default_dict)
+                        break
+                else:
+                    data_dict.update(data)
+            except ValueError:
+                ft.warn("Invalid JSON in %s. Using default parameters" % filename)
+
+        self.dt = data_dict['dt']
+        self.number_of_cells = tuple(data_dict['number_of_cells'])
+        self.minimal_distance = data_dict['minimal_distance']
+        self.pedestrian_size = Size(data_dict['pedestrian_size'])
+        self.max_speed_interval = Interval(data_dict['max_speed_interval'])
+        self.interpolation_factor = data_dict['interpolation_factor']
+        self.packing_factor = data_dict['packing_factor']
 
     def set_on_step_functions(self, *on_step):
         """
@@ -518,6 +558,7 @@ class Entrance(Obstacle):
     def __init__(self, begin: Point, size: Size, name: str, spawn_rate=0):
         super().__init__(begin, size, name, permeable=False)
         raise NotImplementedError("Sorry, entrance prohibited")
+
 
 class Exit(Obstacle):
     """
