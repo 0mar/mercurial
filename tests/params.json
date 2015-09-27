@@ -1,0 +1,18 @@
+{
+  "dt": 0.05,
+  "number_of_cells": [
+    20,
+    20
+  ],
+  "minimal_distance": 0.7,
+  "pedestrian_size": [
+    0.4,
+    0.4
+  ],
+  "max_speed_interval": [
+    1,
+    2
+  ],
+  "interpolation_factor": 3,
+  "packing_factor": 0.9
+}
