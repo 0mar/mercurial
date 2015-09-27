@@ -155,17 +155,20 @@ class Planner:
         for pedestrian in self.scene.pedestrian_list:
             if not stationary_pedestrian_array[pedestrian.counter] and self.scene.alive_array[pedestrian.counter]:
                 # assert self.scene.is_accessible(pedestrian.position)
-                # Todo: Increase range of checkpoint-check?
-                checkpoint_reached = pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
+                pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
+                remaining_path = pedestrian.line.end - pedestrian.position
+                allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
+                checkpoint_reached = np.linalg.norm(remaining_path) < allowed_range
                 done = pedestrian.is_done()
                 if done:
                     self.scene.remove_pedestrian(pedestrian)
                     continue
                 if checkpoint_reached:  # but not done
-                    pedestrian.line = pedestrian.path.pop_next_segment()
-                    pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+                    if pedestrian.path:
+                        pedestrian.line = pedestrian.path.pop_next_segment()
+                        pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position)
                 else:
-                    pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)  # Expensive...
+                    pedestrian.velocity = Velocity(remaining_path)  # Expensive...
             elif self.scene.alive_array[pedestrian.counter]:
                 # Stationary pedestrian. Creating new path.
                 pedestrian.path = self.create_path(pedestrian, self.scene.exit_obs)
