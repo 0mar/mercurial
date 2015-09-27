@@ -15,7 +15,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goal, size, max_speed_interval, position=Point([0, 0])):
+    def __init__(self, scene, counter, goal, size, max_speed, position=Point([0, 0])):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -31,10 +31,7 @@ class Pedestrian(object):
         self._position = self._velocity = None
         self.position = position
         self.size = size
-        if max_speed_interval:
-            self.max_speed = max_speed_interval.random()
-        else:
-            self.max_speed = 0
+        self.max_speed = max_speed
         self.color = self._convert_speed_to_color()
         self.goal = goal
         self.cell = None
@@ -191,8 +188,7 @@ class EmptyPedestrian(Pedestrian):
         :param counter: integer. The actual pedestrian object is not required.
         :return:
         """
-        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None, size=None,
-                                              max_speed_interval=None)
+        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None, size=None, max_speed=0)
 
     def is_done(self):
         return True

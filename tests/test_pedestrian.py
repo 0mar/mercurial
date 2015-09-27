@@ -22,11 +22,13 @@ class TestPedestrian:
     def test_pedestrian_location_within_domain(self):
         pedestrian_list = []
         for i in range(1000):
-            pedestrian_list.append(Pedestrian(self.scene, 1, self.scene.obstacle_list[-1]))
+            pedestrian_list.append(
+                Pedestrian(self.scene, 1, self.scene.obstacle_list[-1], size=Size([1, 1]), max_speed=1))
         assert all([all(ped.position.array < self.scene.size.array) for ped in pedestrian_list])
 
     def test_pedestrian_location_not_in_obstacle(self):
         pedestrian_list = []
         for i in range(1000):
-            pedestrian_list.append(Pedestrian(self.scene, 1, self.scene.obstacle_list[-1]))
+            pedestrian_list.append(
+                Pedestrian(self.scene, 1, self.scene.obstacle_list[-1], size=Size([1, 1]), max_speed=1))
         assert all([ped.position not in obstacle for obstacle in self.scene.obstacle_list for ped in pedestrian_list])

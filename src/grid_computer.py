@@ -167,7 +167,6 @@ class GridComputer:
             flat_p = np.zeros([1, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
-
     def adjust_velocity(self):
         """
         Adjusts the velocity field for the pressure gradient
@@ -197,9 +196,9 @@ class GridComputer:
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
         self.scene.velocity_array = self.scene.velocity_array \
                                     + local_dens[:, None] / self.max_density * (
-        solved_velocity - self.scene.velocity_array)
-        self.scene.velocity_array /= np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / 2
-        # todo: should be max vel
+            solved_velocity - self.scene.velocity_array)
+        self.scene.velocity_array /= \
+            np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / self.scene.max_speed_array[:, None]
 
     def step(self):
         """

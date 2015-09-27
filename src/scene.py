@@ -38,6 +38,7 @@ class Scene:
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.last_position_array = np.zeros([self.pedestrian_number, 2])
         self.velocity_array = np.zeros([self.pedestrian_number, 2])
+        self.max_speed_array = np.empty(self.pedestrian_number)
         self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
         self.alive_array = np.ones(self.pedestrian_number)
         self.cell_dict = {}
@@ -56,17 +57,17 @@ class Scene:
         if cache == 'write':
             self._store_cells()
         self.pedestrian_list = []
-        self._init_pedestrians(self.pedestrian_size, self.max_speed_interval)
+        self._init_pedestrians()
         self.status = 'RUNNING'
 
-    def _init_pedestrians(self, size, max_speed_interval):
+    def _init_pedestrians(self):
         """
         Protected method that determines how the pedestrians are initially distributed,
         as well as with what properties they come. Overridable.
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, self.exit_obs, size=size, max_speed_interval=max_speed_interval)
+            Pedestrian(self, counter, self.exit_obs, size=self.size, max_speed=self.max_speed_array[counter])
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
 
@@ -104,7 +105,8 @@ class Scene:
         self.number_of_cells = tuple(data_dict['number_of_cells'])
         self.minimal_distance = data_dict['minimal_distance']
         self.pedestrian_size = Size(data_dict['pedestrian_size'])
-        self.max_speed_interval = Interval(data_dict['max_speed_interval'])
+        interval = Interval(data_dict['max_speed_interval'])
+        self.max_speed_array = interval.begin + np.random.random(self.pedestrian_number) * interval.length
         self.interpolation_factor = data_dict['interpolation_factor']
         self.packing_factor = data_dict['packing_factor']
 

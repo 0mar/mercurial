@@ -8,7 +8,7 @@ from scene import Scene, Pedestrian
 
 class ImpulseScene(Scene):
     def __init__(self, size: Size, pedestrian_number, obstacle_file,
-                 impulse_location, impulse_size, mde=True, dt=0.05, cache='read'):
+                 impulse_location, impulse_size, mde=True, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
@@ -24,7 +24,7 @@ class ImpulseScene(Scene):
         self.impulse_location = impulse_location
         super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
 
-    def _init_pedestrians(self, size, max_speed_interval):
+    def _init_pedestrians(self):
         center = np.array(self.impulse_location)
         self.pedestrian_list = []
         for counter in range(self.pedestrian_number):
@@ -35,5 +35,6 @@ class ImpulseScene(Scene):
                 if x ** 2 + y ** 2 > self.impulse_size or not self.is_within_boundaries(ped_loc):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_obs,
-                                                   position=ped_loc, size=size, max_speed_interval=max_speed_interval))
+                                                   position=ped_loc, size=self.pedestrian_size,
+                                                   max_speed=self.max_speed_array[counter]))
         self._fill_cells()
