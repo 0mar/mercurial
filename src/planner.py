@@ -38,28 +38,29 @@ class Planner:
     def create_path(self, pedestrian: Pedestrian, goal_obstacle) -> Path:
         """
         Deprecated method for creating a path for each pedestrian from his current position
-        to his goal obstacle.
+        to his goal obstacle. Use for inspiration only
         :param pedestrian: Pedestrian located in scene
         :param goal_obstacle: Goal (in scene) reachable from the pedestrians location.
         :return: Path (sequence of Line Segments) leading from the pedestrian to the goal
         """
-        path_to_exit = Path([])
-        sub_start = pedestrian.position
-        while not (sub_start in goal_obstacle):
-            goal = Planner.get_closest_goal_position(sub_start, goal_obstacle)
-            line_to_goal = LineSegment([sub_start, goal])
-            angle_to_goal = (goal - sub_start).angle
-            colliding_obstacles = []
-            for obstacle in self.scene.obstacle_list:
-                if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle):
-                    colliding_obstacles.append(obstacle)
-            if colliding_obstacles:
-                sub_finish = self.get_intermediate_goal(sub_start, angle_to_goal, colliding_obstacles)
-            else:
-                sub_finish = goal
-            path_to_exit.append(LineSegment([sub_start, sub_finish]))
-            sub_start = sub_finish
-        return path_to_exit
+        pass
+        # path_to_exit = Path([])
+        # sub_start = pedestrian.position
+        # while not (sub_start in goal_obstacle):
+        #     goal = Planner.get_closest_goal_position(sub_start, goal_obstacle)
+        #     line_to_goal = LineSegment([sub_start, goal])
+        #     angle_to_goal = (goal - sub_start).angle
+        #     colliding_obstacles = []
+        #     for obstacle in self.scene.obstacle_list:
+        #         if obstacle.in_interior and line_to_goal.crosses_obstacle(obstacle):
+        #             colliding_obstacles.append(obstacle)
+        #     if colliding_obstacles:
+        #         sub_finish = self.get_intermediate_goal(sub_start, angle_to_goal, colliding_obstacles)
+        #     else:
+        #         sub_finish = goal
+        #     path_to_exit.append(LineSegment([sub_start, sub_finish]))
+        #     sub_start = sub_finish
+        # return path_to_exit
 
     @staticmethod
     def get_closest_goal_position(position, goal_obstacle):
@@ -96,23 +97,23 @@ class Planner:
         :param safe_distance:
         :return:
         """
-        raise DeprecationWarning("Using this method leads to poor path planning results.")
-        # In this method, 0 === False === Left, 1 === True === Right
-        corner_points = [None, None]  # max corners left and right from destination
-        max_angles = [0, 0]
-        for obstacle in obstacles:
-            for corner, corner_location in obstacle.corner_info_list:
-                angle_to_corner = (corner - start).angle - angle_to_goal
-                if angle_to_corner < - np.pi:  # Corner not in front of us
-                    angle_to_corner += 2 * np.pi
-                direction = int(angle_to_corner < 0)
-                if np.abs(max_angles[direction]) <= np.abs(angle_to_corner):
-                    max_angles[direction] = angle_to_corner
-                    corner_points[direction] = (corner, corner_location)
-        best_direction = int(max_angles[0] >= -max_angles[1])
-        best_corner = corner_points[best_direction][0]
-        obstacle_repulsion = np.sign(np.array(corner_points[best_direction][1]) - 0.5)
-        return best_corner + Point(obstacle_repulsion) * safe_distance
+        pass
+        # # In this method, 0 === False === Left, 1 === True === Right
+        # corner_points = [None, None]  # max corners left and right from destination
+        # max_angles = [0, 0]
+        # for obstacle in obstacles:
+        #     for corner, corner_location in obstacle.corner_info_list:
+        #         angle_to_corner = (corner - start).angle - angle_to_goal
+        #         if angle_to_corner < - np.pi:  # Corner not in front of us
+        #             angle_to_corner += 2 * np.pi
+        #         direction = int(angle_to_corner < 0)
+        #         if np.abs(max_angles[direction]) <= np.abs(angle_to_corner):
+        #             max_angles[direction] = angle_to_corner
+        #             corner_points[direction] = (corner, corner_location)
+        # best_direction = int(max_angles[0] >= -max_angles[1])
+        # best_corner = corner_points[best_direction][0]
+        # obstacle_repulsion = np.sign(np.array(corner_points[best_direction][1]) - 0.5)
+        # return best_corner + Point(obstacle_repulsion) * safe_distance
 
     @staticmethod
     def get_path_length(pedestrian):
