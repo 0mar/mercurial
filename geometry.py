@@ -83,7 +83,7 @@ class Velocity(Coordinate):
 
     def rescale(self, max_speed=5.):
         if not self.is_zero():
-            self.array *= max_speed / np.linalg.norm(self.array)
+            self.array = self.array * (max_speed / np.linalg.norm(self.array))
 
 
 class Interval(object):
