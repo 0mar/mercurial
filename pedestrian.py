@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from functions import *
-from geometry import Point, Interval
+from geometry import Point, Interval, Velocity
 
 __author__ = 'omar'
 
@@ -26,7 +26,8 @@ class Pedestrian(object):
         """
         self.scene = scene
         self.counter = counter
-        self._position = self._velocity = None
+        self._position = None
+        self._velocity = Velocity([0, 0])
         self.position = position
         self.size = self.scene.pedestrian_size
         self.max_speed = Interval([1,2]).random()
@@ -42,8 +43,8 @@ class Pedestrian(object):
         self.scene.position_array[self.counter] = self._position.array
 
     def __str__(self):
-        return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self.position, self._velocity.angle / np.pi)
+        return "Moving pedestrian %d\tPosition: %s\t%s" % \
+               (self.counter, self.position, self._velocity)
 
     def __repr__(self):
         return "Pedestrian#%d" % self.counter
