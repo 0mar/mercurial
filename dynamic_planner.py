@@ -14,7 +14,7 @@ class DynamicPlanner:
     """
     HORIZONTAL_DIRECTIONS = ['left', 'right']
     VERTICAL_DIRECTIONS = ['up', 'down']
-    DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [1, 0], 'down': [-1, 0]}
+    DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
 
     def __init__(self, scene):
         """
@@ -28,6 +28,8 @@ class DynamicPlanner:
         self.grid_dimension = (20, 20)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
 
+        # Todo: Replace with general eps
+        self.density_epsilon = 0.001
         self.cell_center_dims = self.grid_dimension
 
         # Todo: Not class members?
@@ -41,7 +43,8 @@ class DynamicPlanner:
         self.path_length_weight = 1
 
         self.min_density = 0
-        self.max_density = 5
+        # This is likely on another scale
+        self.max_density = 0.7
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -49,10 +52,15 @@ class DynamicPlanner:
         self.density = np.array(self.grid_dimension)
         self.v_x = np.array(self.grid_dimension)
         self.v_y = np.array(self.grid_dimension)
+        self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
     def _new_face_array(self, direction):
-        return np.zeros(self.grid_dimension)
-
+        if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
+            return np.zeros(self.horizontal_faces_dims)
+        elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
+            return np.zeros(self.vertical_faces_dims)
+        else:
+            raise ValueError("Direction %s not a direction" % direction)
     @staticmethod
     def _get_center_field_with_offset(center_field, direction):
         """
@@ -75,7 +83,7 @@ class DynamicPlanner:
         :return: (density, velocity_x, velocity_y) as 2D arrays
         """
         # Todo: Integrate with grid_computer upon remerging project
-        self.density = np.zeros(self.grid_dimension) + 0.001
+        self.density = np.zeros(self.grid_dimension) + self.density_epsilon
         # Initialize density with an epsilon to facilitate division
         self.v_x = np.zeros(self.grid_dimension)
         self.v_y = np.zeros(self.grid_dimension)
@@ -107,13 +115,14 @@ class DynamicPlanner:
                             self.density[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
                             self.v_x[x_coord, y_coord] += \
                                 density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
-                            self.v_x[x_coord, y_coord] += \
+                            self.v_y[x_coord, y_coord] += \
                                 density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
         # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
         self.v_x /= self.density
-        self.v_x /= self.density
+        self.v_y /= self.density
+        self.density -= self.density_epsilon
 
-    def obtain_speed_field(self, direction):
+    def compute_speed_field(self, direction):
         """
         Obtain maximum speed field f, direction dependent.
         We choose our radius to be dx/2
@@ -126,19 +135,20 @@ class DynamicPlanner:
         Use these to compute f_max + rel_dens * (f_flow - f_max) for each direction
 
         """
-        normal = np.array(DynamicPlanner.DIRECTIONS[direction])
-        # Todo: What to do with edges?
-        speed_field = self._new_face_array(direction)
-
+        normal = DynamicPlanner.DIRECTIONS[direction]
+        rel_density = self.get_normalized_field(self.density, self.min_density, self.max_density)
+        measured_rel_dens = DynamicPlanner._get_center_field_with_offset(rel_density, direction)
         if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
-            measured_speed = DynamicPlanner._get_center_field_with_offset(self.v_x, direction)
+            measured_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_x, direction) * normal[0],
+                                        0)
         elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
-            measured_speed = DynamicPlanner._get_center_field_with_offset(self.v_y, direction)
+            measured_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_y, direction) * normal[1],
+                                        0)
         else:
             raise ValueError("Direction %s not recognized" % direction)
-        rel_density = self.normalize_field(self.density, self.min_density, self.max_density)
-        speed_field = self.max_speed + rel_density * (measured_speed - self.max_speed)
-        return speed_field
+
+        speed_field = self.max_speed + measured_rel_dens * (measured_speed - self.max_speed)
+        self.speed_field_dict[direction] = speed_field
 
     def get_discomfort_field(self):
         """
@@ -178,7 +188,8 @@ class DynamicPlanner:
         :return: gradient component
         """
 
-    def normalize_field(self, field, min_value, max_value):
+    @staticmethod
+    def get_normalized_field(field, min_value, max_value):
         """
         Normalizes field by bringing all values of field into [0,1]:
         for all x in field:     x < min_value => norm_x = 0
@@ -189,14 +200,12 @@ class DynamicPlanner:
         :param max_value: upper value ->1
         :return: Array with all values between 0 and 1
         """
-        rel_field = (field - min_value) / (min_value - max_value)
+        rel_field = (field - min_value) / (max_value - min_value)
         return np.minimum(1, np.maximum(rel_field, 0))
 
 if __name__ == '__main__':
     from scene import Scene
-    import sys
     from geometry import Size, Velocity, Point
-    from grid_computer import GridComputer
 
     n = 1
     scene = Scene(size=Size([100, 100]), obstacle_file='empty_scene.json', pedestrian_number=n)
@@ -206,14 +215,7 @@ if __name__ == '__main__':
     ped.velocity = Velocity([1, -0.5])
     print(ped.velocity)
     dyn_plan.compute_density_and_velocity_field()
-    print("Density: \n%s\n\n" % GridComputer.orientation_correct_str(dyn_plan.density, True))
-    print("velocity v_x: \n%s\n\n" % GridComputer.orientation_correct_str(dyn_plan.v_x, True))
-    print("Density v_y: \n%s\n\n" % GridComputer.orientation_correct_str(dyn_plan.v_y, True))
-    sys.exit()
-    for i in range(scene.number_of_cells[0]):
-        for j in range(scene.number_of_cells[1]):
-            if v_x[i, j] or v_y[i, j]:
-                print("cell (%d,%d)" % (i, j))
-                print("Density: %.4f" % density[i, j])
-                print("v_x: %.4f" % v_x[i, j])
-                print("v_y: %.4f" % v_y[i, j])
+    print("Density:\n%s\n\n" % dyn_plan.density)
+    for direction in DynamicPlanner.DIRECTIONS:
+        dyn_plan.compute_speed_field(direction)
+        print(dyn_plan.speed_field_dict[direction])
