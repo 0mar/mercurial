@@ -17,6 +17,8 @@ class DynamicPlanner:
     Note that this means the methods in this class are all stateful
     and that order of execution is important.
     """
+    # Todo: We should build a wrapper around internal numpy 2D arrays.
+    # Functionalities: Time steps, printing, updating, getting
     HORIZONTAL_DIRECTIONS = ['left', 'right']
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
@@ -56,10 +58,7 @@ class DynamicPlanner:
 
         self.density = None
         self.v_x = self.v_y = None
-        self.potential_field = None
-        x, y = np.linspace(0, 1, self.grid_dimension[0]), np.linspace(0, 1, self.grid_dimension[1])
-        xv, yv = np.meshgrid(x, y)
-        self.discomfort_field = 1 - ((xv - 0.5) ** 2 + (yv - 0.5) ** 2)
+        self.potential_field = self.discomfort_field = None
         self.unit_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
         self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
@@ -70,6 +69,17 @@ class DynamicPlanner:
             return np.zeros(self.vertical_faces_dims)
         else:
             raise ValueError("Direction %s not a direction" % direction)
+
+    def _exists(self, index, max_index=None):
+        """
+        Checks whether an index exists
+        :param index: 2D index tuple
+        :param max_index: max index tuple
+        :return: true if lower than tuple, false otherwise
+        """
+        if not max_index:
+            max_index = self.grid_dimension
+        return (0 <= index[0] < max_index[0]) and (0 <= index[1] < max_index[1])
 
     @staticmethod
     def _get_center_field_with_offset(center_field, direction):
@@ -165,7 +175,8 @@ class DynamicPlanner:
         * Discomfort increases linearly between these values.
         :return: None
         """
-        self.discomfort_field = DynamicPlanner.get_normalized_field(self.density, self.min_density, self.max_density)
+        # self.discomfort_field = DynamicPlanner.get_normalized_field(self.density, self.min_density, self.max_density)
+        pass  # Debugging purposes
 
     def conpute_random_discomfort_field(self):
         """
@@ -182,7 +193,6 @@ class DynamicPlanner:
         Stores face field in class object
         :return: None
         """
-        # Todo: Debug graphically
         alpha = self.path_length_weight
         beta = self.time_weight
         gamma = self.discomfort_field_weight
@@ -193,9 +203,10 @@ class DynamicPlanner:
         self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
 
     def compute_initial_interface(self):
+        # Todo: put in initializer and make private
         self.initial_interface = np.ones(self.grid_dimension)
         # This could be vectorized. However, we only execute it once.
-        goals = {self.scene.exit_obs}  # Setup for multiple exits
+        goals = self.scene.exit_set  # Setup for multiple exits
         for i, j in np.ndindex(self.grid_dimension):
             cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
             for goal in goals:
@@ -215,9 +226,10 @@ class DynamicPlanner:
         # Example: Grid with shape + [1,1]
         # This implementation can be naive: it's costly and should be implemented in C(++)
         # But maybe do a heap structure first?
-        zeros = np.vstack(np.where(self.initial_interface.copy()))
+        where_zero = np.where(self.initial_interface ==0)
         potential_field = np.ones_like(self.initial_interface) * np.Inf
-        potential_field[zeros] = 0
+        potential_field[where_zero] = 0
+        zeros = np.vstack(where_zero)
         all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
         known_cells = {tuple(array) for array in zeros.T}
         unknown_cells = all_cells - known_cells
@@ -226,7 +238,9 @@ class DynamicPlanner:
             new_candidate_cells = set()
             for cell in new_known_cells:
                 for direction in DynamicPlanner.DIRECTIONS.values():
-                    new_candidate_cells.add((cell[0] + direction[0], cell[1] + direction[1]))
+                    nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
+                    if self._exists(nb_cell) and nb_cell in unknown_cells:
+                        new_candidate_cells.add(nb_cell)
             return new_candidate_cells
 
         def compute_potential(cell):
@@ -241,20 +255,28 @@ class DynamicPlanner:
             for direction in DynamicPlanner.DIRECTIONS:
                 normal = DynamicPlanner.DIRECTIONS[direction]
                 # numerical direction
-                pot = potential_field[(cell[0] + normal[0], cell[1] + normal[1])] \
-                    # potential in that neighbour field
-                cost = self.unit_field_dict[opposites[direction]][(-normal[0], -normal[1])]
+                nb_cell = (cell[0] + normal[0], cell[1] + normal[1])
+                if not self._exists(nb_cell):
+                    continue
+                pot = potential_field[nb_cell]
+                # potential in that neighbour field
+                if direction == 'right':
+                    face_index = (nb_cell[0] - 1, nb_cell[1])
+                elif direction == 'up':
+                    face_index = (nb_cell[0], nb_cell[1] - 1)
+                    # Unit cost values are defined w.r.t faces, not cells!
+                else:
+                    face_index = nb_cell
+                cost = self.unit_field_dict[opposites[direction]][face_index]
                 # Cost to go from there to here
                 neighbour_pots[direction] = pot + cost
                 # total potential
                 if neighbour_pots[direction] < neighbour_pots[opposites[direction]]:
                     if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
-                        hor_nb = (cell[0] + normal[0], cell[1] + normal[1])
                         hor_potential = pot
                         hor_cost = cost
                         # lowest in horizontal direction
                     elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
-                        ver_nb = (cell[0] + normal[0], cell[1] + normal[1])
                         ver_potential = pot
                         ver_cost = cost
                         # lowest in vertical direction
@@ -262,15 +284,14 @@ class DynamicPlanner:
                         assert False
             coef = np.empty(3)
             coef[0] = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
-            coef[1] = -2 * (hor_potential / hor_cost + ver_potential / ver_cost)
+            coef[1] = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost **2)
             coef[2] = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
             # Coefficients of quadratic equation
-            np.roots(coef)
+            roots = np.roots(coef)
             # Roots of equation
-            return coef[0]  # Uh oh
+            return roots[0]  # Which one?
 
         candidate_cells = get_new_candidate_cells(known_cells)
-
         while unknown_cells:
             min_potential = np.Inf
             best_cell = None
@@ -285,6 +306,7 @@ class DynamicPlanner:
             candidate_cells.remove(best_cell)
             known_cells.add(best_cell)
             candidate_cells |= get_new_candidate_cells({best_cell})
+        self.potential_field = potential_field
 
     def compute_gradient(self, field, axis):
         """

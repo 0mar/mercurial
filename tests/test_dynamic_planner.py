@@ -144,10 +144,14 @@ class TestDynamicPlanner:
         assert np.all(self.dyn_plan.discomfort_field >= 0) and np.all(self.dyn_plan.discomfort_field <= 1)
 
     def test_unit_cost_field_always_positive(self):
-        # Might be zero if self.time_weight == 0
+        # Might be zero if self.time_weight == 0. Zero is bad.
         self.dyn_plan.compute_density_and_velocity_field()
         self.dyn_plan.compute_discomfort_field()
         for direction in DynamicPlanner.DIRECTIONS:
             self.dyn_plan.compute_speed_field(direction)
             self.dyn_plan.compute_unit_cost_field(direction)
             assert np.all(self.dyn_plan.unit_field_dict[direction] > 0)
+
+    def test_initial_potential_respects_exits(self):
+        # Should work
+        pass

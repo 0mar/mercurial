@@ -158,7 +158,7 @@ class VisualScene:
     def draw_cell(self, cell):
         """
         Draws a cell as a rectangle within the window.
-        Only use for debugging purposes, since drawing is slow.
+        Only use for debugging purposes, since drawing is very inefficient.
         :param cell: Cell object to be drawn
         :return: None
         """

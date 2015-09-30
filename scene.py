@@ -29,6 +29,7 @@ class Scene:
         self.dt = dt
         self.time = 0
         self.obstacle_list = []
+        self.exit_set = set()  # mix set ands lists?
         self._read_json_file(file_name=obstacle_file)
         self.position_array = np.zeros([self.pedestrian_number, 2])
         self.last_position_array = np.zeros([self.pedestrian_number, 2])
@@ -53,7 +54,7 @@ class Scene:
 
     def _init_pedestrians(self):
         self.pedestrian_list = [
-            Pedestrian(self, counter, self.exit_obs, color=random.choice(vis.VisualScene.color_list))
+            Pedestrian(self, counter, random.sample(self.exit_set, 1), color=random.choice(vis.VisualScene.color_list))
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
 
@@ -78,7 +79,7 @@ class Scene:
         if len(data['exits']) == 0:
             raise AttributeError('No exits specified in %s' % file_name)
         elif len(data['exits']) > 1:
-            raise NotImplementedError('Multiple exits specified in %s' % file_name)
+            warn('Multiple exits specified in %s' % file_name)
         for exit_data in data['exits']:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])
@@ -87,9 +88,9 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-
-            self.exit_obs = Exit(begin, Size(size), name)
-            self.obstacle_list.append(self.exit_obs)
+            exit_obs = Exit(begin, Size(size), name)
+            self.exit_set.add(exit_obs)
+            self.obstacle_list.append(exit_obs)
 
     def _create_cells(self):
         """
