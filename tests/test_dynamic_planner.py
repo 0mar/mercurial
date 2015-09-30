@@ -128,12 +128,26 @@ class TestDynamicPlanner:
             assert np.all(dyn_plan.speed_field_dict[dir] <= dyn_plan.max_speed)
 
     def test_alignment_makes_speed_max_speed(self):
-        direction = 'down'
-        self.pedestrian.max_speed = self.dyn_plan.max_speed
-        self.pedestrian.velocity = Velocity(DynamicPlanner.DIRECTIONS[direction])
+        for direction in DynamicPlanner.DIRECTIONS:
+            self.pedestrian.max_speed = self.dyn_plan.max_speed
+            self.pedestrian.velocity = Velocity(DynamicPlanner.DIRECTIONS[direction])
+            self.dyn_plan.compute_density_and_velocity_field()
+            self.dyn_plan.compute_speed_field(direction)
+            print("Velocity v_x\n%s\n\n" % self.dyn_plan.v_x)
+            print("Velocity v_y\n%s\n\n" % self.dyn_plan.v_y)
+            print("Speed field %s:\n%s\n" % (direction, self.dyn_plan.speed_field_dict[direction]))
+            assert np.allclose(self.dyn_plan.speed_field_dict[direction], self.dyn_plan.max_speed, 0.01)
+
+    def test_discomfort_field_normalized(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        self.dyn_plan.compute_speed_field(direction)
-        print("Velocity v_x\n%s\n\n" % self.dyn_plan.v_x)
-        print("Velocity v_y\n%s\n\n" % self.dyn_plan.v_y)
-        print("Speed field %s:\n%s\n" % (direction, self.dyn_plan.speed_field_dict[direction]))
-        assert np.allclose(self.dyn_plan.speed_field_dict[direction], self.dyn_plan.max_speed, 0.01)
+        self.dyn_plan.compute_discomfort_field()
+        assert np.all(self.dyn_plan.discomfort_field >= 0) and np.all(self.dyn_plan.discomfort_field <= 1)
+
+    def test_unit_cost_field_always_positive(self):
+        # Might be zero if self.time_weight == 0
+        self.dyn_plan.compute_density_and_velocity_field()
+        self.dyn_plan.compute_discomfort_field()
+        for direction in DynamicPlanner.DIRECTIONS:
+            self.dyn_plan.compute_speed_field(direction)
+            self.dyn_plan.compute_unit_cost_field(direction)
+            assert np.all(self.dyn_plan.unit_field_dict[direction] > 0)

@@ -11,12 +11,17 @@ class DynamicPlanner:
 
     Maximum speed and unit costs are defined on faces of cells
     These fields are called face fields.
+
+    These class stores all arrays internally.
+    This is (supposedly) beneficial for performance.
+    Note that this means the methods in this class are all stateful
+    and that order of execution is important.
     """
     HORIZONTAL_DIRECTIONS = ['left', 'right']
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
 
-    def __init__(self, scene):
+    def __init__(self, scene, grid_dimension=(20, 20)):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
@@ -25,7 +30,7 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = (20, 20)
+        self.grid_dimension = grid_dimension
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
 
         # Todo: Replace with general eps
@@ -38,9 +43,9 @@ class DynamicPlanner:
 
         self.max_speed = 2
 
-        self.speed_field_weight = 1
-        self.discomfort_field_weight = 1
         self.path_length_weight = 1
+        self.time_weight = 1
+        self.discomfort_field_weight = 1
 
         self.min_density = 0
         # This is likely on another scale
@@ -49,18 +54,23 @@ class DynamicPlanner:
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
 
-        self.density = np.array(self.grid_dimension)
-        self.v_x = np.array(self.grid_dimension)
-        self.v_y = np.array(self.grid_dimension)
+        self.density = None
+        self.v_x = self.v_y = None
+        self.potential_field = None
+        x, y = np.linspace(0, 1, self.grid_dimension[0]), np.linspace(0, 1, self.grid_dimension[1])
+        xv, yv = np.meshgrid(x, y)
+        self.discomfort_field = 1 - ((xv - 0.5) ** 2 + (yv - 0.5) ** 2)
+        self.unit_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
         self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
-    def _new_face_array(self, direction):
+    def _new_face_field(self, direction):
         if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
             return np.zeros(self.horizontal_faces_dims)
         elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
             return np.zeros(self.vertical_faces_dims)
         else:
             raise ValueError("Direction %s not a direction" % direction)
+
     @staticmethod
     def _get_center_field_with_offset(center_field, direction):
         """
@@ -126,58 +136,155 @@ class DynamicPlanner:
         """
         Obtain maximum speed field f, direction dependent.
         We choose our radius to be dx/2
-        :param direction: which face is evaluated.
-        :return: Discretized field as a nested numpy array
-        """
-        """
         Outline:
         Obtain density field relative to rho_min and rho_max and between 0 and 1
         Use these to compute f_max + rel_dens * (f_flow - f_max) for each direction
-
+        :param direction: which face is evaluated.
+        :return: Discretized field as a nested numpy array
         """
         normal = DynamicPlanner.DIRECTIONS[direction]
         rel_density = self.get_normalized_field(self.density, self.min_density, self.max_density)
         measured_rel_dens = DynamicPlanner._get_center_field_with_offset(rel_density, direction)
         if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
-            measured_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_x, direction) * normal[0],
-                                        0)
+            avg_dir_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_x, direction) * normal[0], 0)
         elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
-            measured_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_y, direction) * normal[1],
-                                        0)
+            avg_dir_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_y, direction) * normal[1], 0)
         else:
             raise ValueError("Direction %s not recognized" % direction)
 
-        speed_field = self.max_speed + measured_rel_dens * (measured_speed - self.max_speed)
+        speed_field = self.max_speed + measured_rel_dens * (avg_dir_speed - self.max_speed)
         self.speed_field_dict[direction] = speed_field
 
-    def get_discomfort_field(self):
+    def compute_discomfort_field(self):
         """
         Obtain discomfort field G.
         Not prescribed in paper how to choose this.
-        I'd go with something density dependent.
-        :return: Discretized field as a nested numpy array
+        Proposal (density-dependent):
+        * Discomfort is 0 for densities below min_density
+        * Discomfort is 1 for densities over max_density
+        * Discomfort increases linearly between these values.
+        :return: None
         """
-        return np.random.random(self.grid_dimension)
+        self.discomfort_field = DynamicPlanner.get_normalized_field(self.density, self.min_density, self.max_density)
 
-    def get_unit_cost_field(self, direction):
+    def conpute_random_discomfort_field(self):
         """
-        Compute the total unit cost vector field in two directions
-        :return: discretized field as a nested numpy array
+        Obtain discomfort field G.
+        We pick a random field so we can see the influence of this field to the paths
+        :return: None
         """
-        if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
-            return self.max_speed * np.ones(self.horizontal_faces_dims)
-        elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
-            return self.max_speed * np.ones(self.vertical_faces_dims)
-        else:
-            raise ValueError('%s not a valid direction' % direction)
+        # Something with continuity would be better.
+        self.discomfort_field = np.random.random(self.grid_dimension)
 
-    def get_potential_field(self):
+    def compute_unit_cost_field(self, direction):
+        """
+        Compute the unit cost vector field in the provided direction
+        Stores face field in class object
+        :return: None
+        """
+        # Todo: Debug graphically
+        alpha = self.path_length_weight
+        beta = self.time_weight
+        gamma = self.discomfort_field_weight
+        f = self.speed_field_dict[direction]
+        g = DynamicPlanner._get_center_field_with_offset(self.discomfort_field, direction)
+        # Todo: Process obstacles
+        # Todo: Change to EPS
+        self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
+
+    def compute_initial_interface(self):
+        self.initial_interface = np.ones(self.grid_dimension)
+        # This could be vectorized. However, we only execute it once.
+        goals = {self.scene.exit_obs}  # Setup for multiple exits
+        for i, j in np.ndindex(self.grid_dimension):
+            cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
+            for goal in goals:
+                if cell_center in goal:
+                    self.initial_interface[i, j] = 0
+
+    def compute_potential_field(self):
         """
         Compute the potential field as a function of the unit cost.
-        Implemented using the fast marching method(?)
+        Implemented using the fast marching method
 
         :return:
         """
+        opposites = {'left': 'right', 'right': 'left', 'up': 'down', 'down': 'up'}
+        # Experiment with a different (maybe smaller) grid,
+        # so that you can define potentials on faces (and walls)
+        # Example: Grid with shape + [1,1]
+        # This implementation can be naive: it's costly and should be implemented in C(++)
+        # But maybe do a heap structure first?
+        zeros = np.vstack(np.where(self.initial_interface.copy()))
+        potential_field = np.ones_like(self.initial_interface) * np.Inf
+        potential_field[zeros] = 0
+        all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
+        known_cells = {tuple(array) for array in zeros.T}
+        unknown_cells = all_cells - known_cells
+
+        def get_new_candidate_cells(new_known_cells):
+            new_candidate_cells = set()
+            for cell in new_known_cells:
+                for direction in DynamicPlanner.DIRECTIONS.values():
+                    new_candidate_cells.add((cell[0] + direction[0], cell[1] + direction[1]))
+            return new_candidate_cells
+
+        def compute_potential(cell):
+            # Find the minimal directions along a grid cell.
+            # Assume left and below are best, then overwrite with right and up if they are better
+            neighbour_pots = {direction: np.Inf for direction in DynamicPlanner.DIRECTIONS}
+            hor_nb = tuple()
+            hor_potential = ver_potential = 0
+            ver_nb = tuple()
+            hor_cost = ver_cost = np.Inf
+
+            for direction in DynamicPlanner.DIRECTIONS:
+                normal = DynamicPlanner.DIRECTIONS[direction]
+                # numerical direction
+                pot = potential_field[(cell[0] + normal[0], cell[1] + normal[1])] \
+                    # potential in that neighbour field
+                cost = self.unit_field_dict[opposites[direction]][(-normal[0], -normal[1])]
+                # Cost to go from there to here
+                neighbour_pots[direction] = pot + cost
+                # total potential
+                if neighbour_pots[direction] < neighbour_pots[opposites[direction]]:
+                    if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
+                        hor_nb = (cell[0] + normal[0], cell[1] + normal[1])
+                        hor_potential = pot
+                        hor_cost = cost
+                        # lowest in horizontal direction
+                    elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
+                        ver_nb = (cell[0] + normal[0], cell[1] + normal[1])
+                        ver_potential = pot
+                        ver_cost = cost
+                        # lowest in vertical direction
+                    else:
+                        assert False
+            coef = np.empty(3)
+            coef[0] = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
+            coef[1] = -2 * (hor_potential / hor_cost + ver_potential / ver_cost)
+            coef[2] = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
+            # Coefficients of quadratic equation
+            np.roots(coef)
+            # Roots of equation
+            return coef[0]  # Uh oh
+
+        candidate_cells = get_new_candidate_cells(known_cells)
+
+        while unknown_cells:
+            min_potential = np.Inf
+            best_cell = None
+            for candidate_cell in candidate_cells:
+                potential = compute_potential(candidate_cell)
+                if potential < min_potential:
+                    min_potential = potential
+                    best_cell = candidate_cell
+            potential_field[best_cell] = min_potential
+
+            unknown_cells.remove(best_cell)
+            candidate_cells.remove(best_cell)
+            known_cells.add(best_cell)
+            candidate_cells |= get_new_candidate_cells({best_cell})
 
     def compute_gradient(self, field, axis):
         """
@@ -187,6 +294,7 @@ class DynamicPlanner:
         :param axis: 'x' or 'y'
         :return: gradient component
         """
+        pass
 
     @staticmethod
     def get_normalized_field(field, min_value, max_value):
@@ -203,19 +311,20 @@ class DynamicPlanner:
         rel_field = (field - min_value) / (max_value - min_value)
         return np.minimum(1, np.maximum(rel_field, 0))
 
+
 if __name__ == '__main__':
     from scene import Scene
     from geometry import Size, Velocity, Point
 
     n = 1
-    scene = Scene(size=Size([100, 100]), obstacle_file='empty_scene.json', pedestrian_number=n)
-    dyn_plan = DynamicPlanner(scene)
-    ped = scene.pedestrian_list[0]
+    g_scene = Scene(size=Size([100, 100]), obstacle_file='empty_scene.json', pedestrian_number=n)
+    dyn_plan = DynamicPlanner(g_scene)
+    ped = g_scene.pedestrian_list[0]
     ped.manual_move(Point([55.38, 91.66]))
     ped.velocity = Velocity([1, -0.5])
     print(ped.velocity)
     dyn_plan.compute_density_and_velocity_field()
-    print("Density:\n%s\n\n" % dyn_plan.density)
-    for direction in DynamicPlanner.DIRECTIONS:
-        dyn_plan.compute_speed_field(direction)
-        print(dyn_plan.speed_field_dict[direction])
+    dyn_plan.compute_discomfort_field()
+    for dir in DynamicPlanner.DIRECTIONS:
+        dyn_plan.compute_speed_field(dir)
+        dyn_plan.compute_unit_cost_field(dir)
