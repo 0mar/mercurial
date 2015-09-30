@@ -5,14 +5,14 @@ import argparse
 from geometry import Size, Point
 import scene
 from visualization import VisualScene
-from grid_computer import GridComputer
+from dynamic_planner import DynamicPlanner
 from scene_cases import ImpulseScene
 
 # Default parameters
 number_of_pedestrians = 100
 domain_width = 70
 domain_height = 70
-obstacle_file = 'demo_obstacle_list.json'
+obstacle_file = 'large_exit.json'
 
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
@@ -39,15 +39,17 @@ if args.impulse:
 else:
     scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)
+dynamic_planner = DynamicPlanner(scene_obj)
 # planner = GraphPlanner(scene_obj)
-grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
-                    apply_pressure=args.apply_pressure)
+# grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
+#                    apply_pressure=args.apply_pressure)
 
 
 # Methods inserted on every update
 def step():
     #    planner.collective_update()
-    grid.step()
+    # grid.step()
+    dynamic_planner.step()
 
 
 vis = VisualScene(scene_obj, 1500, 1000, step=step, loop=not args.step, delay=args.delay)

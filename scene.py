@@ -54,7 +54,7 @@ class Scene:
 
     def _init_pedestrians(self):
         self.pedestrian_list = [
-            Pedestrian(self, counter, random.sample(self.exit_set, 1), color=random.choice(vis.VisualScene.color_list))
+            Pedestrian(self, counter, self.exit_set, color=random.choice(vis.VisualScene.color_list))
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
 

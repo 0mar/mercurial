@@ -178,7 +178,7 @@ class GridComputer:
         and added to the velocity field.
         :return: None
         """
-        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)
+        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)  # Todo:Recheck
         v_y_func = Rbs(self.x_range, self.y_range, self.v_y)
         dens_func = Rbs(self.x_range, self.y_range, self.rho)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])

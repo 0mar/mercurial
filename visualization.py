@@ -12,7 +12,7 @@ class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, width, height, step, loop,delay):
+    def __init__(self, scene, width, height, step, loop, delay):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
@@ -36,7 +36,7 @@ class VisualScene:
             self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.draws_cells = True
+        self.draws_cells = False
 
     @property
     def size(self):
@@ -54,7 +54,7 @@ class VisualScene:
         """
         self.step()  # All functions which should be called on every time step.
         self.draw_scene()
-        if self.scene.status=='DONE':
+        if self.scene.status == 'DONE':
             fyi("Simulation is finished. Exiting")
             sys.exit(0)
 
@@ -127,7 +127,7 @@ class VisualScene:
         rel_size_array = np.ones([self.scene.pedestrian_number,
                                   2]) * self.scene.pedestrian_size.array / self.scene.size.array * self.size.array
         # Todo: Replace collective size by pedestrian size
-        vis_pos_array = np.hstack((rel_pos_array[:, 0][:,None], 1 - rel_pos_array[:, 1][:,None]))* self.size.array
+        vis_pos_array = np.hstack((rel_pos_array[:, 0][:, None], 1 - rel_pos_array[:, 1][:, None])) * self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
         return start_pos_array, end_pos_array

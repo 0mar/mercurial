@@ -13,7 +13,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goal, position=Point([0, 0]), color=None):
+    def __init__(self, scene, counter, goals, position=Point([0, 0]), color=None):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -32,7 +32,7 @@ class Pedestrian(object):
         self.size = self.scene.pedestrian_size
         self.max_speed = Interval([1,2]).random()
         self.color = self._convert_speed_to_color()
-        self.goal = goal
+        self.goals = goals
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
@@ -138,7 +138,7 @@ class Pedestrian(object):
         Provides a warning when it has left the scene without exiting through its exit object.
         :return: True when the pedestrian has left the scene, false otherwise.
         """
-        if self.position in self.goal:
+        if any(self.position in goal for goal in self.goals):
             return True
         elif any(self.position.array < 0) or any(self.position.array > self.scene.size.array):
             warn("Dirty exit of %s, leaving on %s" % (self, self.position))
@@ -149,7 +149,7 @@ class Pedestrian(object):
 
 class EmptyPedestrian(Pedestrian):
     def __init__(self, scene, counter):
-        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goal=None)
+        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goals=None)
 
     def is_done(self):
         return True
