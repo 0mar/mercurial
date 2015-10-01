@@ -11,7 +11,7 @@ from results import Result
 from visualization import VisualScene
 from grid_computer import GridComputer
 from planner import GraphPlanner
-from scene_cases import ImpulseScene
+from scene_cases import ImpulseScene, LoopScene
 
 # Default parameters
 number_of_pedestrians = 100
@@ -34,6 +34,7 @@ parser.add_argument('-d', '--delay', type=int, help='Delay between time steps (i
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
 parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestrians in an impulse')
+parser.add_argument('-l', '--loop', action='store_true', help='Pedestrians reappear on the other side (experimental)')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to console')
 
@@ -43,7 +44,10 @@ args = parser.parse_args()
 functions.VERBOSE = args.verbose
 if args.impulse:
     scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                             pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=50)
+                         pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
+elif args.loop:
+    scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json', pedestrian_number=args.number)
+    # Integrate in scene
 else:
     scene = scene_module.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)

@@ -38,3 +38,23 @@ class ImpulseScene(Scene):
                                                    position=ped_loc, size=self.pedestrian_size,
                                                    max_speed=self.max_speed_array[counter]))
         self._fill_cells()
+
+
+class LoopScene(Scene):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file,
+                 mde=True, cache='read'):
+        """
+        Initializes an impulse scene
+        :param size: Size object holding the size values of the scene
+        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param obstacle_file: name of the file containing the obstacles.
+        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
+        :param dt: update time step
+        :return: scene instance.
+        """
+
+        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
+
+    def remove_pedestrian(self, pedestrian):
+        new_point = Point([pedestrian.position.x, self.size.height - 1])
+        pedestrian.manual_move(new_point)
