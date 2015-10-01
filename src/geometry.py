@@ -41,6 +41,7 @@ class Coordinate(object):
         return Point(self.array - other.array)
 
     def __mul__(self, other):
+        # Change to self.__class__
         return Point(self.array * other)
 
     def __truediv__(self, other):
@@ -95,7 +96,7 @@ class Velocity(Coordinate):
 
     def rescale(self, max_speed=5.):
         if not self.is_zero():
-            self.array *= max_speed / np.linalg.norm(self.array)
+            self.array = self.array * (max_speed / np.linalg.norm(self.array))
 
 
 class Interval(object):

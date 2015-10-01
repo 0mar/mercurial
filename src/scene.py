@@ -29,6 +29,7 @@ class Scene:
         self.pedestrian_number = pedestrian_number
         self.time = 0
         self.obstacle_list = []
+        self.exit_set = set()  # mix set ands lists?
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_finish_functions = []
@@ -155,7 +156,7 @@ class Scene:
         if len(data['exits']) == 0:
             raise AttributeError('No exits specified in %s' % file_name)
         elif len(data['exits']) > 1:
-            raise NotImplementedError('Multiple exits specified in %s' % file_name)
+            ft.warn('Multiple exits specified in %s' % file_name)
         for exit_data in data['exits']:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])
@@ -164,9 +165,9 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-
-            self.exit_obs = Exit(begin, Size(size), name)
-            self.obstacle_list.append(self.exit_obs)
+            exit_obs = Exit(begin, Size(size), name)
+            self.exit_set.add(exit_obs)
+            self.obstacle_list.append(exit_obs)
 
     def _create_cells(self):
         """
@@ -177,14 +178,11 @@ class Scene:
         """
         ft.log("Started preprocessing cells")
         self.cell_dict = {}
-        row_number, col_number = self.number_of_cells
-        for row in range(row_number):
-            for col in range(col_number):
-                start = Point(self.cell_size.array * [row, col])
-                cell = Cell(row, col, start, self.cell_size)
-                self.cell_dict[(row, col)] = cell
-        for cell_location in self.cell_dict:
-            self.cell_dict[cell_location].obtain_relevant_obstacles(self.obstacle_list)
+        for row, col in np.ndindex(self.number_of_cells):
+            start = Point(self.cell_size.array * [row, col])
+            cell = Cell(row, col, start, self.cell_size)
+            self.cell_dict[(row, col)] = cell
+            cell.obtain_relevant_obstacles(self.obstacle_list)
         ft.log("Finished preprocessing cells")
 
     def _fill_cells(self):
@@ -240,7 +238,7 @@ class Scene:
         """
         cell_location = set(self.cell_dict).pop()
         correct_index = all([cell_location[dim] < self.number_of_cells[dim] for dim in range(2)])
-        correct_size = all((self.cell_dict[cell_location].size - self.cell_size).array == 0)
+        correct_size = np.all(np.isclose(self.cell_dict[cell_location].size.array, self.cell_size.array))
         correct_obstacle = {obs.name for obs in self.obstacle_list} \
                            == {obs.name for cell in self.cell_dict.values() for obs in cell.obstacle_set}
         return correct_index and correct_size and correct_obstacle
@@ -416,6 +414,7 @@ class Cell:
         self.center = self.begin + self.size * 0.5
         self.pedestrian_set = set()
         self.obstacle_set = set()
+        self.is_inaccessible = False
 
     def obtain_relevant_obstacles(self, obstacle_list):
         """
@@ -425,25 +424,40 @@ class Cell:
         """
         # Check if obstacle is contained in cell, or cell contained in obstacle
         for obstacle in obstacle_list:
-            if obstacle.center in self or self.center in obstacle:
-                # Possible optimization:
-                # If cells completely lie within obstacles, make them moot.
+            if rectangles_intersect(self.begin, self.begin + self.size, obstacle.begin, obstacle.end, True):
                 self.obstacle_set.add(obstacle)
-                # Check if any of the cell lines crosses an obstacle
-                # Create corners
-        corner_points = [(Point(self.begin + Size([x, y]) * self.size)) for x in range(2) for y in
+                corner_points = [(Point(obstacle.begin + Size([x, y]) * obstacle.size)) for x in range(2) for y in
                          range(2)]
-        corner_points[2], corner_points[3] = corner_points[3], corner_points[2]
-        # Create edges
-        edge_list = []
-        for i in range(4):
-            edge_list.append(LineSegment([corner_points[i], corner_points[i - 1]]))
-            # Check edges for every obstacle
-        for obstacle in obstacle_list:
-            for edge in edge_list:
-                if edge.crosses_obstacle(obstacle):
-                    self.obstacle_set.add(obstacle)
-                    break
+                corner_points[2], corner_points[3] = corner_points[3], corner_points[2]
+                # Create edges
+                edge_list = []
+                for i in range(4):
+                    edge_list.append(LineSegment([corner_points[i], corner_points[i - 1]]))
+                    # Check edges for collisions with the obstacle
+                edge_list[1] = LineSegment([edge_list[1].end, edge_list[1].begin])
+                edge_list[2] = LineSegment([edge_list[2].end, edge_list[2].begin])
+                # Reverse the lines, since the rectangles_intersect only accepts ordered rectangles.
+                for edge in edge_list:
+                    if ft.rectangles_intersect(edge.begin, edge.end, self.begin, self.begin + self.size, True):
+                        break
+                else:  # If not found, then the cell must be inaccessible.
+                    self.is_inaccessible = True
+
+    def get_covered_fraction(self, num_samples=(6, 6)):
+        """
+        Compute the fraction of the cell covered with obstacles.
+        Since an exact computation involves either big shot linear algebra
+        or too much case distinctions, we sample the cell space.
+        :return: a double approximating the inaccessible space in the cell
+        """
+        covered_samples = 0
+        for i, j in np.ndindex(num_samples):
+            for obstacle in self.obstacle_set:
+                if not isinstance(obstacle, Exit):
+                    if self.begin + Point([i + 0.5, j + 0.5] / np.array(num_samples)) * self.size in obstacle:
+                        covered_samples += 1
+                        break
+        return covered_samples / (num_samples[0] * num_samples[1])
 
     def add_pedestrian(self, pedestrian):
         """
@@ -474,6 +488,8 @@ class Cell:
         :return: True if coordinate is accessible, False otherwise
 
         """
+        if self.is_inaccessible:
+            return False
         within_cell_boundaries = all(self.begin.array < coord.array) and all(
             coord.array < self.begin.array + self.size.array)
         if not within_cell_boundaries:
@@ -512,7 +528,7 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin: Point, size: Size, name: str, permeable=False):
+    def __init__(self, begin: Point, size:Size, name:str, permeable=False):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object
@@ -564,7 +580,7 @@ class Entrance(Obstacle):
 
 class Exit(Obstacle):
     """
-    Model an exit obstacle. This is, unlike other obstacles, permeable and has no dodge margin.
+    Model an exit obstacle. This is, unlike other obstacles, accessible and has no dodge margin.
     """
 
     def __init__(self, begin, size, name):

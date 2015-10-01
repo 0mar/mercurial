@@ -34,9 +34,10 @@ class ImpulseScene(Scene):
                 ped_loc = Point(center + np.array([x, y]))
                 if x ** 2 + y ** 2 > self.impulse_size or not self.is_within_boundaries(ped_loc):
                     ped_loc = None
-            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_obs,
+            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_set,
                                                    position=ped_loc, size=self.pedestrian_size,
                                                    max_speed=self.max_speed_array[counter]))
+            
         self._fill_cells()
 
 

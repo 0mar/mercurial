@@ -9,6 +9,8 @@ import scene as scene_module
 import functions
 from results import Result
 from visualization import VisualScene
+from dynamic_planner import DynamicPlanner
+from scene_cases import ImpulseScene
 from grid_computer import GridComputer
 from planner import GraphPlanner
 from scene_cases import ImpulseScene, LoopScene
@@ -56,9 +58,16 @@ if args.results:
     result = Result(scene)
 grid = GridComputer(scene, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
                     apply_pressure=args.apply_pressure)
+dynamic_planner = DynamicPlanner(scene, args.plot)
+# planner = GraphPlanner(scene_obj)
+# grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
+#                    apply_pressure=args.apply_pressure)
 
 # Methods inserted on every update
-step_functions = [planner.collective_update, grid.step]
+def step():
+    planner.collective_update()
+    grid.step()
+    dynamic_planner.step()
 
 vis = VisualScene(scene, 1500, 1000, step_functions=step_functions, loop=not args.step, delay=args.delay)
 

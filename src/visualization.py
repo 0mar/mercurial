@@ -37,6 +37,7 @@ class VisualScene:
             self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
+        self.draws_cells = True
 
     @property
     def size(self):
@@ -92,19 +93,20 @@ class VisualScene:
         :return: None
         """
         self.canvas.delete('all')
-        # for cell in self.scene.cell_dict.values():
-        #     self.draw_cell(cell)
+        if self.draws_cells:
+            for cell in self.scene.cell_dict.values():
+                self.draw_cell(cell)
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()
 
     def store_scene(self, name=None):
-        dir = 'images'
+        directory = 'images'
         if not name:
             import time
 
             name = "scene#%d" % time.time()
-        filename = "%s/%s-%d.eps" % (dir, name, self.scene.time)
+        filename = "%s/%s-%d.eps" % (directory, name, self.scene.time)
         self.canvas.postscript(file=filename)
 
     def draw_pedestrians(self):
@@ -160,7 +162,7 @@ class VisualScene:
     def draw_cell(self, cell):
         """
         Draws a cell as a rectangle within the window.
-        Only use for debugging purposes, since drawing is slow.
+        Only use for debugging purposes, since drawing is very inefficient.
         :param cell: Cell object to be drawn
         :return: None
         """

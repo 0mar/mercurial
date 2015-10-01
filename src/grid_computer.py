@@ -44,6 +44,8 @@ class GridComputer:
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation or apply_pressure
         self.apply_pressure = apply_pressure
+
+        # If beneficial, we could employ a staggered grid
         self.rho = np.zeros(self.cell_dimension)
         self.v_x = np.zeros(self.cell_dimension)
         self.v_y = np.zeros(self.cell_dimension)
@@ -85,7 +87,7 @@ class GridComputer:
         Interpolation happens per grid cell, by indexing all surrounding grid cells and summing
         over the density of each pedestrian.
         Pedestrian density is computed by convolving the mass with a gaussian kernel approximation
-        :return:
+        :return: None
         """
         cell_dict = self.scene.cell_dict
         for cell_location in cell_dict:
@@ -186,7 +188,7 @@ class GridComputer:
         and added to the velocity field.
         :return: None
         """
-        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)
+        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)  # Todo:Recheck
         v_y_func = Rbs(self.x_range, self.y_range, self.v_y)
         dens_func = Rbs(self.x_range, self.y_range, self.rho)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
@@ -247,23 +249,23 @@ class GridComputer:
             return "[%s]" % field_repr[1:-1]
 
     @staticmethod
-    def get_dir_difference(field, direction):
+    def get_dir_difference(field, axis):
         """
         Computes a gradient component of the discrete 2D vector field.
         The vector field contains values of the cell centers
         We use a simple 2-point second order central difference scheme.
         :param field: vector field with a Carthesian indexing
-        :param direction: 'x' or 'y'
+        :param axis: 'x' or 'y'
         :return: vector field representing gradient component.
         """
         assert all(dim > 2 for dim in field.shape)
-        if direction == 'x':
+        if axis == 'x':
             grad_field_x = np.zeros(field.shape)
             grad_field_x[1:-1, :] = field[2:, :] - field[:-2, :]
             return grad_field_x
-        elif direction == 'y':
+        elif axis == 'y':
             grad_field_y = np.zeros(field.shape)
             grad_field_y[:, 1:-1] = field[:, 2:] - field[:, :-2]
             return grad_field_y
         else:
-            raise ValueError('Choose x or y for direction, not %s' % direction)
+            raise ValueError('Choose x or y for direction, not %s' % axis)
