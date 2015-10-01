@@ -46,13 +46,9 @@ class DynamicPlanner:
         self.y_hor_face_range = np.linspace(self.dy, self.scene.size.height - self.dy, self.grid_dimension[1] - 1)
         self.x_ver_face_range = np.linspace(self.dx, self.scene.size.width - self.dx, self.grid_dimension[0] - 1)
         self.y_ver_face_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.grid_dimension[1])
-        # Todo: Replace with general eps
+        # Todo (after merge): Replace with general eps
         self.density_epsilon = 0.001
         self.cell_center_dims = self.grid_dimension
-
-        # Todo: Not class members? Not used
-        self.horizontal_faces_dims = (self.grid_dimension[0], self.grid_dimension[1] + 1)
-        self.vertical_faces_dims = (self.grid_dimension[0] + 1, self.grid_dimension[1])
 
         self.max_speed = 2
 
@@ -75,7 +71,7 @@ class DynamicPlanner:
         self.unit_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
         self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
-        self.compute_initial_interface()
+        self._compute_initial_interface()
         if self.show_plot:
             # Plotting hooks
             self.hor_mesh_x, self.hor_mesh_y = np.meshgrid(self.x_hor_face_range, self.y_hor_face_range, indexing='ij')
@@ -86,14 +82,19 @@ class DynamicPlanner:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    def _new_face_field(self, direction):
-        # Unused
-        if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
-            return np.zeros(self.horizontal_faces_dims)
-        elif direction in DynamicPlanner.VERTICAL_DIRECTIONS:
-            return np.zeros(self.vertical_faces_dims)
-        else:
-            raise ValueError("Direction %s not a direction" % direction)
+    def _compute_initial_interface(self):
+        """
+        Compute the initial zero interface; a potential field with zeros on exits
+        and infinity elsewhere. Stores inside object
+        :return: None
+        """
+        self.initial_interface = np.ones(self.grid_dimension)
+        goals = self.scene.exit_set
+        for i, j in np.ndindex(self.grid_dimension):
+            cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
+            for goal in goals:
+                if cell_center in goal:
+                    self.initial_interface[i, j] = 0
 
     def _exists(self, index, max_index=None):
         """
@@ -128,6 +129,7 @@ class DynamicPlanner:
         :return: (density, velocity_x, velocity_y) as 2D arrays
         """
         # Todo: Integrate with grid_computer upon remerging project
+        # Todo: Move to C++.
         self.density = np.zeros(self.grid_dimension) + self.density_epsilon
         # Initialize density with an epsilon to facilitate division
         self.v_x = np.zeros(self.grid_dimension)
@@ -227,16 +229,6 @@ class DynamicPlanner:
         # Todo (after merge): Change to EPS
         self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
 
-    def compute_initial_interface(self):
-        # Todo: put in initializer and make private
-        self.initial_interface = np.ones(self.grid_dimension)
-        # This could be vectorized. However, we only execute it once.
-        goals = self.scene.exit_set  # Setup for multiple exits
-        for i, j in np.ndindex(self.grid_dimension):
-            cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
-            for goal in goals:
-                if cell_center in goal:
-                    self.initial_interface[i, j] = 0
 
     def compute_potential_field(self):
         """
@@ -365,7 +357,8 @@ class DynamicPlanner:
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
         self.scene.velocity_array = -4 * solved_grad / np.linalg.norm(solved_grad, axis=1)[:,
-                                                       None]  # todo: max_velocity
+                                                       None]
+        # todo (after merge): max_velocity
 
     def step(self):
         self.compute_density_and_velocity_field()
@@ -403,6 +396,7 @@ class DynamicPlanner:
         # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
         # self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
+
     @staticmethod
     def get_normalized_field(field, min_value, max_value):
         """
