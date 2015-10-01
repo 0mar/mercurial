@@ -1,12 +1,13 @@
 __author__ = 'omar'
+import matplotlib
 
-import time
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 import numpy as np
 from scipy.interpolate import RectBivariateSpline as Rbs
 
 from geometry import Point
-import functions as ft
 
 
 class DynamicPlanner:
@@ -23,13 +24,13 @@ class DynamicPlanner:
     Note that this means the methods in this class are all stateful
     and that order of execution is important.
     """
-    # Todo: We should build a wrapper around internal numpy 2D arrays.
+    # Todo (after merge): We should build a wrapper around internal numpy 2D arrays.
     # Functionalities: Time steps, printing, updating, getting
     HORIZONTAL_DIRECTIONS = ['left', 'right']
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
 
-    def __init__(self, scene, grid_dimension=(20, 20)):
+    def __init__(self, scene, show_plot):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
@@ -38,7 +39,8 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = grid_dimension
+        self.grid_dimension = (20, 20)
+        self.show_plot = show_plot
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.x_hor_face_range = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.grid_dimension[0])
         self.y_hor_face_range = np.linspace(self.dy, self.scene.size.height - self.dy, self.grid_dimension[1] - 1)
@@ -59,8 +61,8 @@ class DynamicPlanner:
         self.discomfort_field_weight = 1
 
         self.min_density = 0
-        # This is likely on another scale
-        self.max_density = 10
+        # This is likely on another scale than in grid computer
+        self.max_density = 5
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -74,6 +76,15 @@ class DynamicPlanner:
         self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
         self.compute_initial_interface()
+        if self.show_plot:
+            # Plotting hooks
+            self.hor_mesh_x, self.hor_mesh_y = np.meshgrid(self.x_hor_face_range, self.y_hor_face_range, indexing='ij')
+            self.ver_mesh_x, self.ver_mesh_y = np.meshgrid(self.x_ver_face_range, self.y_ver_face_range, indexing='ij')
+            norm_x = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.grid_dimension[0])
+            norm_y = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.grid_dimension[1])
+            self.mesh_x, self.mesh_y = np.meshgrid(norm_x, norm_y, indexing='ij')
+            f, self.graphs = plt.subplots(2, 2)
+            plt.show(block=False)
 
     def _new_face_field(self, direction):
         # Unused
@@ -213,7 +224,7 @@ class DynamicPlanner:
         f = self.speed_field_dict[direction]
         g = DynamicPlanner._get_center_field_with_offset(self.discomfort_field, direction)
         # Todo: Process obstacles
-        # Todo: Change to EPS
+        # Todo (after merge): Change to EPS
         self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
 
     def compute_initial_interface(self):
@@ -353,10 +364,10 @@ class DynamicPlanner:
         solved_grad_x = grad_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
-        self.scene.velocity_array = -4 * solved_grad / np.linalg.norm(solved_grad, axis=1)[:, None]
+        self.scene.velocity_array = -4 * solved_grad / np.linalg.norm(solved_grad, axis=1)[:,
+                                                       None]  # todo: max_velocity
 
     def step(self):
-        time1 = time.time()
         self.compute_density_and_velocity_field()
         self.compute_discomfort_field()
         for direction in DynamicPlanner.DIRECTIONS:
@@ -366,6 +377,8 @@ class DynamicPlanner:
         self.compute_potential_field()
         self.compute_potential_gradient()
         self.assign_velocities()
+        if self.show_plot:
+            self.plot_grid_values()
         self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
         for ped in self.scene.pedestrian_list:
@@ -373,10 +386,23 @@ class DynamicPlanner:
                 ped.correct_for_geometry()
                 if ped.is_done():
                     self.scene.remove_pedestrian(ped)
-        time2 = time.time()
-        ft.fyi("time passed: %.2f" % (time2 - time1))
 
-
+    def plot_grid_values(self):
+        for graph in self.graphs.flatten():
+            graph.cla()
+        self.graphs[0, 0].imshow(np.rot90(self.density))
+        self.graphs[0, 0].set_title('Density')
+        self.graphs[1, 0].imshow(np.rot90(self.discomfort_field))
+        self.graphs[1, 0].set_title('Discomfort')
+        self.graphs[0, 1].imshow(np.rot90(self.potential_field))
+        self.graphs[0, 1].set_title('Potential field')
+        # self.graphs[1, 1].imshow(np.rot90(self.discomfort_field))
+        # self.graphs[1, 1].set_title('Discomfort')
+        # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        # self.graphs[1, 1].set_title('Velocity field')
+        # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
+        # self.graphs[1, 1].set_title('Pressure gradient')
+        plt.show(block=False)
     @staticmethod
     def get_normalized_field(field, min_value, max_value):
         """

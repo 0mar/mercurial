@@ -39,7 +39,7 @@ if args.impulse:
 else:
     scene_obj = scene.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)
-dynamic_planner = DynamicPlanner(scene_obj)
+dynamic_planner = DynamicPlanner(scene_obj, args.plot)
 # planner = GraphPlanner(scene_obj)
 # grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
 #                    apply_pressure=args.apply_pressure)
