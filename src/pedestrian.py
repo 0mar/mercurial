@@ -211,4 +211,3 @@ class EmptyPedestrian(Pedestrian):
         Overrides the pedestrians (expensive) method
         :return: None
         """
-   

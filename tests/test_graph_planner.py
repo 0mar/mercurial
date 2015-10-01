@@ -11,7 +11,7 @@ from geometry import Size
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'
 
-from planner import GraphPlanner
+from static_planner import GraphPlanner
 
 
 class TestGraphPlanner:

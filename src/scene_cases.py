@@ -37,7 +37,7 @@ class ImpulseScene(Scene):
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_set,
                                                    position=ped_loc, size=self.pedestrian_size,
                                                    max_speed=self.max_speed_array[counter]))
-            
+
         self._fill_cells()
 
 

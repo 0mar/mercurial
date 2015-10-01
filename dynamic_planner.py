@@ -34,7 +34,7 @@ class DynamicPlanner:
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
 
-    def __init__(self, scene, show_plot):
+    def __init__(self, scene, show_plot=False):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.

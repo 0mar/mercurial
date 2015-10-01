@@ -68,7 +68,7 @@ class Scene:
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, self.exit_obs, size=self.size, max_speed=self.max_speed_array[counter])
+            Pedestrian(self, counter, self.exit_set, size=self.size, max_speed=self.max_speed_array[counter])
             for counter in range(self.pedestrian_number)]
         self._fill_cells()
 
@@ -424,7 +424,7 @@ class Cell:
         """
         # Check if obstacle is contained in cell, or cell contained in obstacle
         for obstacle in obstacle_list:
-            if rectangles_intersect(self.begin, self.begin + self.size, obstacle.begin, obstacle.end, True):
+            if ft.rectangles_intersect(self.begin, self.begin + self.size, obstacle.begin, obstacle.end, True):
                 self.obstacle_set.add(obstacle)
                 corner_points = [(Point(obstacle.begin + Size([x, y]) * obstacle.size)) for x in range(2) for y in
                          range(2)]
@@ -528,7 +528,7 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin: Point, size:Size, name:str, permeable=False):
+    def __init__(self, begin: Point, size: Size, name: str, permeable=False):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object

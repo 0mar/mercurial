@@ -4,7 +4,7 @@ import numpy as np
 import scipy.io as sio
 
 import functions as ft
-from planner import GraphPlanner
+from static_planner import GraphPlanner
 
 
 class Result:

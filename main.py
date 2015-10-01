@@ -10,9 +10,8 @@ import functions
 from results import Result
 from visualization import VisualScene
 from dynamic_planner import DynamicPlanner
-from scene_cases import ImpulseScene
 from grid_computer import GridComputer
-from planner import GraphPlanner
+from static_planner import GraphPlanner
 from scene_cases import ImpulseScene, LoopScene
 
 # Default parameters
@@ -39,6 +38,7 @@ parser.add_argument('-i', '--impulse', action='store_true', help='Order pedestri
 parser.add_argument('-l', '--loop', action='store_true', help='Pedestrians reappear on the other side (experimental)')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to console')
+parser.add_argument('-a', '--dynamic', action='store_true', help='Apply the dynamic planner to pedestrians')
 
 args = parser.parse_args()
 
@@ -53,21 +53,17 @@ elif args.loop:
 else:
     scene = scene_module.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
                             pedestrian_number=args.number)
-planner = GraphPlanner(scene)
+
+if args.dynamic:
+    dynamic_planner = DynamicPlanner(scene, args.plot)
+    step_functions = [dynamic_planner.step]
+else:
+    planner = GraphPlanner(scene)
+    grid = GridComputer(scene, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
+                        apply_pressure=args.apply_pressure)
+    step_functions = [planner.collective_update, grid.step]
 if args.results:
     result = Result(scene)
-grid = GridComputer(scene, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
-                    apply_pressure=args.apply_pressure)
-dynamic_planner = DynamicPlanner(scene, args.plot)
-# planner = GraphPlanner(scene_obj)
-# grid = GridComputer(scene_obj, show_plot=args.plot, apply_interpolation=args.apply_interpolation,
-#                    apply_pressure=args.apply_pressure)
-
-# Methods inserted on every update
-def step():
-    planner.collective_update()
-    grid.step()
-    dynamic_planner.step()
 
 vis = VisualScene(scene, 1500, 1000, step_functions=step_functions, loop=not args.step, delay=args.delay)
 

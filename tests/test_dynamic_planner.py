@@ -8,7 +8,7 @@ from scene import Scene
 from geometry import Size, Point, Velocity
 from dynamic_planner import DynamicPlanner
 
-empty_file_name = '../empty_scene.json'
+empty_file_name = '../scenes/large_exit.json'
 
 
 class TestDynamicPlanner:
@@ -28,7 +28,7 @@ class TestDynamicPlanner:
     def test_density_never_negative(self):
         n = 5
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
-        dyn_plan = DynamicPlanner(scene)
+        dyn_plan = DynamicPlanner(scene, False)
         dyn_plan.compute_density_and_velocity_field()
         density = dyn_plan.density_field
         assert np.all(density >= 0)
