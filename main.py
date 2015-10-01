@@ -12,7 +12,7 @@ from scene_cases import ImpulseScene
 number_of_pedestrians = 100
 domain_width = 70
 domain_height = 70
-obstacle_file = 'large_exit.json'
+obstacle_file = 'demo_obstacle_list.json'
 
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")

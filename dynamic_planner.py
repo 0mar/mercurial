@@ -3,11 +3,11 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+from scene import Cell
 import numpy as np
 from scipy.interpolate import RectBivariateSpline as Rbs
 import functions as ft
-from geometry import Point
+from geometry import Point, Size
 
 
 class DynamicPlanner:
@@ -67,15 +67,21 @@ class DynamicPlanner:
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
 
-        self.density = None
-        self.v_x = self.v_y = None
-        self.potential_field = self.discomfort_field = None
+        self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
+        self.exit_cell_set = set()
+        self.obstacle_cell_set = set()
+        self.part_obstacle_cell_dict = dict()  # Immediately store the fractions
+        self.obstacle_potential = 100
+        self.density_field = np.array([])
+        self.v_x = self.v_y = np.array([])
+        self.potential_field = self.discomfort_field = np.array([])
         self.potential_grad_x = np.zeros((self.grid_dimension[0] - 1, self.grid_dimension[1]))
         self.potential_grad_y = np.zeros((self.grid_dimension[0], self.grid_dimension[1] - 1))
         self.unit_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
         self.speed_field_dict = {direction: None for direction in DynamicPlanner.DIRECTIONS}
 
         self._compute_initial_interface()
+        self.process_obstacles()
         if self.show_plot:
             # Plotting hooks
             self.hor_mesh_x, self.hor_mesh_y = np.meshgrid(self.x_hor_face_range, self.y_hor_face_range, indexing='ij')
@@ -93,7 +99,7 @@ class DynamicPlanner:
         This method also validates exits. If no exit is found, the method raises an error.
         :return: None
         """
-        self.initial_interface = np.ones(self.grid_dimension)
+        self.initial_interface = np.ones(self.grid_dimension) * np.inf
         valid_exits = {goal: False for goal in self.scene.exit_set}
         goals = self.scene.exit_set
         for i, j in np.ndindex(self.grid_dimension):
@@ -102,11 +108,32 @@ class DynamicPlanner:
                 if cell_center in goal:
                     self.initial_interface[i, j] = 0
                     valid_exits[goal] = True
+                    self.exit_cell_set.add((i, j))
         if not any(valid_exits.values()):
             raise RuntimeError("No cell centers in exit. Redo the scene")
         if not all(valid_exits.values()):
             ft.warn("%s not properly processed" % "/"
                     .join([repr(goal) for goal in self.scene.exit_set if not valid_exits[goal]]))
+
+    def process_obstacles(self):
+        """
+        [checks which cells are moot or have fractions of obstacle (put in report)]
+        [Reuses Cell objects.].
+
+        :return:
+        """
+        cell_dict = {}
+        cell_size = Size([self.dx, self.dy])
+        for row, col in np.ndindex(self.grid_dimension):
+            start = Point([row * self.dx, col * self.dy])
+            cell = Cell(row, col, start, cell_size)
+            cell_dict[(row, col)] = cell
+            cell.obtain_relevant_obstacles(self.scene.obstacle_list)
+            non_exit_obstacles = cell.obstacle_set - self.scene.exit_set
+            if cell.is_inaccessible and non_exit_obstacles:
+                self.obstacle_cell_set.add((row, col))
+            elif non_exit_obstacles:
+                self.part_obstacle_cell_dict[(row, col)] = cell.get_covered_fraction()
 
     def _exists(self, index, max_index=None):
         """
@@ -140,9 +167,9 @@ class DynamicPlanner:
         This is a naive implementation, looping over all pedestrians
         :return: (density, velocity_x, velocity_y) as 2D arrays
         """
-        # Todo: Integrate with grid_computer upon remerging project
-        # Todo: Move to C++.
-        self.density = np.zeros(self.grid_dimension) + self.density_epsilon
+        # Todo (after merge): Integrate with grid_computer
+        # Todo (after merge): Move to C++.
+        self.density_field = np.zeros(self.grid_dimension) + self.density_epsilon
         # Initialize density with an epsilon to facilitate division
         self.v_x = np.zeros(self.grid_dimension)
         self.v_y = np.zeros(self.grid_dimension)
@@ -171,15 +198,15 @@ class DynamicPlanner:
                     for y in range(2):
                         y_coord = cell_center_indices[pedestrian.counter][1] + y
                         if 0 <= y_coord < self.grid_dimension[1]:
-                            self.density[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
+                            self.density_field[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
                             self.v_x[x_coord, y_coord] += \
                                 density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
                             self.v_y[x_coord, y_coord] += \
                                 density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
         # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
-        self.v_x /= self.density
-        self.v_y /= self.density
-        self.density -= self.density_epsilon
+        self.v_x /= self.density_field
+        self.v_y /= self.density_field
+        self.density_field -= self.density_epsilon
 
     def compute_speed_field(self, direction):
         """
@@ -192,7 +219,7 @@ class DynamicPlanner:
         :return: Discretized field as a nested numpy array
         """
         normal = DynamicPlanner.DIRECTIONS[direction]
-        rel_density = self.get_normalized_field(self.density, self.min_density, self.max_density)
+        rel_density = self.get_normalized_field(self.density_field, self.min_density, self.max_density)
         measured_rel_dens = DynamicPlanner._get_center_field_with_offset(rel_density, direction)
         if direction in DynamicPlanner.HORIZONTAL_DIRECTIONS:
             avg_dir_speed = np.maximum(DynamicPlanner._get_center_field_with_offset(self.v_x, direction) * normal[0], 0)
@@ -214,8 +241,8 @@ class DynamicPlanner:
         * Discomfort increases linearly between these values.
         :return: None
         """
-        self.discomfort_field = DynamicPlanner.get_normalized_field(self.density, self.min_density, self.max_density)
-
+        self.discomfort_field = DynamicPlanner.get_normalized_field(self.density_field, self.min_density,
+                                                                    self.max_density)
 
     def conpute_random_discomfort_field(self):
         """
@@ -237,10 +264,8 @@ class DynamicPlanner:
         gamma = self.discomfort_field_weight
         f = self.speed_field_dict[direction]
         g = DynamicPlanner._get_center_field_with_offset(self.discomfort_field, direction)
-        # Todo: Process obstacles
         # Todo (after merge): Change to EPS
         self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
-
 
     def compute_potential_field(self):
         """
@@ -248,24 +273,16 @@ class DynamicPlanner:
         Also computes the gradient of the potential field
         Implemented using the fast marching method
 
+        Potential is initialized with zero on exits, and a fixed high value on inaccessible cells.
         :return:
         """
         opposites = {'left': 'right', 'right': 'left', 'up': 'down', 'down': 'up'}
-        # Experiment with a different (maybe smaller) grid,
-        # so that you can define potentials on faces (and walls)
-        # Example: Grid with shape + [1,1]
-        # This implementation can be naive: it's costly and should be implemented in C(++)
+        # This implementation is allowed to be naive: it's costly and should be implemented in C(++)
         # But maybe do a heap structure first?
-        self.potential_grad_x.fill(1)
-        self.potential_grad_y.fill(1)
-        where_zero = np.where(self.initial_interface ==0)
-        potential_field = np.ones_like(self.initial_interface) * np.Inf
-        potential_field[where_zero] = 0
-        zeros = np.vstack(where_zero)
-        all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
-        known_cells = {tuple(array) for array in zeros.T}
-        unknown_cells = all_cells - known_cells
-
+        potential_field = self.initial_interface.copy()
+        known_cells = self.exit_cell_set.copy()
+        unknown_cells = self.all_cells - known_cells  # - self.obstacle_cell_set
+        # All the inaccessible cells are not required.
         def get_new_candidate_cells(new_known_cells):
             new_candidate_cells = set()
             for cell in new_known_cells:
@@ -319,12 +336,19 @@ class DynamicPlanner:
                         assert False
             coef = np.empty(3)
             coef[0] = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
-            coef[1] = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost **2)
+            coef[1] = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost ** 2)
             coef[2] = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
             # Coefficients of quadratic equation
             roots = np.roots(coef)
             # Roots of equation
             return roots[0]  # Which one?
+
+        def correct_for_obstacles(pot_field):
+            correction_value = np.max(pot_field[pot_field != np.Inf]) / 2
+            for cell in self.obstacle_cell_set:
+                pot_field[cell] = correction_value  # some value?
+            for cell in self.part_obstacle_cell_dict:
+                pot_field[cell] = correction_value * self.part_obstacle_cell_dict[cell]
 
         candidate_cells = get_new_candidate_cells(known_cells)
         while unknown_cells:
@@ -341,6 +365,7 @@ class DynamicPlanner:
             candidate_cells.remove(best_cell)
             known_cells.add(best_cell)
             candidate_cells |= get_new_candidate_cells({best_cell})
+        correct_for_obstacles(potential_field)
         self.potential_field = potential_field
 
     def compute_potential_gradient(self):
@@ -355,7 +380,6 @@ class DynamicPlanner:
         right_field = self._get_center_field_with_offset(self.potential_field, 'right')
         assert self.potential_grad_x.shape == left_field.shape
         self.potential_grad_x = (right_field - left_field) / self.dx
-
         down_field = self.potential_field[:, :-1]
         up_field = self._get_center_field_with_offset(self.potential_field, 'up')
         assert self.potential_grad_y.shape == up_field.shape
@@ -395,7 +419,7 @@ class DynamicPlanner:
     def plot_grid_values(self):
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.density))
+        self.graphs[0, 0].imshow(np.rot90(self.density_field))
         self.graphs[0, 0].set_title('Density')
         self.graphs[1, 0].imshow(np.rot90(self.discomfort_field))
         self.graphs[1, 0].set_title('Discomfort')

@@ -36,7 +36,7 @@ class VisualScene:
             self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.draws_cells = False
+        self.draws_cells = True
 
     @property
     def size(self):

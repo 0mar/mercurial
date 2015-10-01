@@ -30,7 +30,7 @@ class TestDynamicPlanner:
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
         dyn_plan.compute_density_and_velocity_field()
-        density = dyn_plan.density
+        density = dyn_plan.density_field
         assert np.all(density >= 0)
 
     def test_velocity_never_negative(self):
@@ -44,7 +44,7 @@ class TestDynamicPlanner:
 
     def test_local_contributions_cross_threshold(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density
+        density = self.dyn_plan.density_field
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -56,7 +56,7 @@ class TestDynamicPlanner:
 
     def test_non_local_contributions_below_threshold(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density
+        density = self.dyn_plan.density_field
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -72,7 +72,7 @@ class TestDynamicPlanner:
 
     def test_other_contributions_vanish(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density
+        density = self.dyn_plan.density_field
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         for i, j in np.ndindex(self.dyn_plan.grid_dimension):
@@ -83,7 +83,7 @@ class TestDynamicPlanner:
         upper_left_corner = Point([self.dyn_plan.dx / 2, self.scene.size[1] - self.dyn_plan.dy / 2])
         self.pedestrian.manual_move(upper_left_corner)
         self.dyn_plan.compute_density_and_velocity_field()
-        assert self.dyn_plan.density is not None
+        assert self.dyn_plan.density_field is not None
 
     def test_normalize_field_non_negative_entries(self):
         field = np.random.random([20, 20]) * 3 - 1  # between 1 and 2
@@ -103,7 +103,7 @@ class TestDynamicPlanner:
 
     def test_speed_contribution_to_neighbour_cells(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density
+        density = self.dyn_plan.density_field
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
