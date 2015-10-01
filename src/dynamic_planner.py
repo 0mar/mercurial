@@ -445,7 +445,7 @@ class DynamicPlanner:
         :param max_value: upper value ->1
         :return: Array with all values between 0 and 1
         """
-        rel_field = (field - min_value) / (max_value - min_value)
+        rel_field = (field - min_value) / (max_value - min_value)  # Todo: Compare with np.clip
         return np.minimum(1, np.maximum(rel_field, 0))
 
 #

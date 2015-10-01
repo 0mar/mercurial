@@ -1,0 +1,29 @@
+{
+  "obstacles": [
+  ],
+  "exits": [
+    {
+      "name": "Exit 1",
+      "begin": [
+        0.1,
+        0
+      ],
+      "size": [
+        0.8,
+        0.025
+      ]
+    },
+    {
+      "name": "Exit 2",
+      "begin": [
+        0,
+        0.1
+      ],
+      "size": [
+        0.025,
+        0.8
+      ]
+    }
+  ],
+  "entrances": []
+}
