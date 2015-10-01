@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 from scipy.interpolate import RectBivariateSpline as Rbs
-
+import functions as ft
 from geometry import Point
 
 
@@ -23,6 +23,10 @@ class DynamicPlanner:
     This is (supposedly) beneficial for performance.
     Note that this means the methods in this class are all stateful
     and that order of execution is important.
+
+    For now, since the potential is a center field, we need an exit that covers cell centers.
+    This means exits need a certain width.
+    As a consequence, obstacles should be introduced next to thick exits.
     """
     # Todo (after merge): We should build a wrapper around internal numpy 2D arrays.
     # Functionalities: Time steps, printing, updating, getting
@@ -85,16 +89,24 @@ class DynamicPlanner:
     def _compute_initial_interface(self):
         """
         Compute the initial zero interface; a potential field with zeros on exits
-        and infinity elsewhere. Stores inside object
+        and infinity elsewhere. Stores inside object.
+        This method also validates exits. If no exit is found, the method raises an error.
         :return: None
         """
         self.initial_interface = np.ones(self.grid_dimension)
+        valid_exits = {goal: False for goal in self.scene.exit_set}
         goals = self.scene.exit_set
         for i, j in np.ndindex(self.grid_dimension):
             cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
             for goal in goals:
                 if cell_center in goal:
                     self.initial_interface[i, j] = 0
+                    valid_exits[goal] = True
+        if not any(valid_exits.values()):
+            raise RuntimeError("No cell centers in exit. Redo the scene")
+        if not all(valid_exits.values()):
+            ft.warn("%s not properly processed" % "/"
+                    .join([repr(goal) for goal in self.scene.exit_set if not valid_exits[goal]]))
 
     def _exists(self, index, max_index=None):
         """
