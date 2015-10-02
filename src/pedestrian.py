@@ -189,7 +189,7 @@ class EmptyPedestrian(Pedestrian):
         :param counter: integer. The actual pedestrian object is not required.
         :return:
         """
-        super(EmptyPedestrian, self).__init__(scene=scene, counter=counter, goals=None, size=None, max_speed=0)
+        super().__init__(scene=scene, counter=counter, goals=None, size=None, max_speed=0)
 
     def is_done(self):
         return True
