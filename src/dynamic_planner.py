@@ -50,8 +50,7 @@ class DynamicPlanner:
         self.y_hor_face_range = np.linspace(self.dy, self.scene.size.height - self.dy, self.grid_dimension[1] - 1)
         self.x_ver_face_range = np.linspace(self.dx, self.scene.size.width - self.dx, self.grid_dimension[0] - 1)
         self.y_ver_face_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.grid_dimension[1])
-        # Todo (after merge): Replace with general eps
-        self.density_epsilon = 0.001
+        self.density_epsilon = ft.EPS
         self.cell_center_dims = self.grid_dimension
 
         self.max_speed = 2
@@ -264,8 +263,7 @@ class DynamicPlanner:
         gamma = self.discomfort_field_weight
         f = self.speed_field_dict[direction]
         g = DynamicPlanner._get_center_field_with_offset(self.discomfort_field, direction)
-        # Todo (after merge): Change to EPS
-        self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + 0.001)
+        self.unit_field_dict[direction] = alpha + (f + beta + gamma * g) / (f + ft.EPS)
 
     def compute_potential_field(self):
         """
@@ -392,9 +390,8 @@ class DynamicPlanner:
         solved_grad_x = grad_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
-        self.scene.velocity_array = -4 * solved_grad / np.linalg.norm(solved_grad, axis=1)[:,
-                                                       None]
-        # todo (after merge): max_velocity
+        self.scene.velocity_array = self.scene.max_speed_array * solved_grad / \
+                                    np.linalg.norm(solved_grad, axis=1)[:, None]
 
     def step(self):
         self.compute_density_and_velocity_field()
@@ -425,8 +422,6 @@ class DynamicPlanner:
         self.graphs[1, 0].set_title('Discomfort')
         self.graphs[0, 1].imshow(np.rot90(self.potential_field))
         self.graphs[0, 1].set_title('Potential field')
-        # self.graphs[1, 1].imshow(np.rot90(self.discomfort_field))
-        # self.graphs[1, 1].set_title('Discomfort')
         # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
         # self.graphs[1, 1].set_title('Velocity field')
         # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
@@ -445,8 +440,8 @@ class DynamicPlanner:
         :param max_value: upper value ->1
         :return: Array with all values between 0 and 1
         """
-        rel_field = (field - min_value) / (max_value - min_value)  # Todo: Compare with np.clip
-        return np.minimum(1, np.maximum(rel_field, 0))
+        rel_field = (field - min_value) / (max_value - min_value)
+        return np.clip(rel_field, 0, 1)
 
 #
 # if __name__ == '__main__':
