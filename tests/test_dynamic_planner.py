@@ -7,6 +7,8 @@ sys.path.insert(1, '..')
 from scene import Scene
 from geometry import Size, Point, Velocity
 from dynamic_planner import DynamicPlanner
+from scalar_field import ScalarField as Field
+import functions as ft
 
 empty_file_name = '../scenes/large_exit.json'
 
@@ -15,7 +17,6 @@ class TestDynamicPlanner:
     def __init__(self):
         self.scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=1)
         self.dyn_plan = DynamicPlanner(self.scene)
-        self.dyn_plan.grid_dimension = (20, 20)
         self.pedestrian = self.scene.pedestrian_list[0]
         self.ped_x = np.random.randint(3, self.scene.size.width - 2)
         self.ped_y = np.random.randint(3, self.scene.size.height - 2)
@@ -30,7 +31,7 @@ class TestDynamicPlanner:
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene, False)
         dyn_plan.compute_density_and_velocity_field()
-        density = dyn_plan.density_field
+        density = dyn_plan.density_field.array
         assert np.all(density >= 0)
 
     def test_velocity_never_negative(self):
@@ -38,13 +39,13 @@ class TestDynamicPlanner:
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
         dyn_plan.compute_density_and_velocity_field()
-        v_x, v_y = dyn_plan.v_x, dyn_plan.v_y
+        v_x, v_y = dyn_plan.v_x.array, dyn_plan.v_y.array
         assert np.all(v_x >= 0)
         assert np.all(v_y >= 0)
 
     def test_local_contributions_cross_threshold(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density_field
+        density = self.dyn_plan.density_field.array
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -52,11 +53,14 @@ class TestDynamicPlanner:
             for y in range(2):
                 assert density[tuple(center_cell + [x, y])] > 0
                 if tuple(center_cell + [x, y]) == tuple(pedestrian_cell):
-                    assert density[tuple(center_cell + [x, y])] >= self.dyn_plan.density_threshold
+                    print("Local density: %.4f, threshold %.4f" % (
+                        density[tuple(center_cell + [x, y])], self.dyn_plan.density_threshold))
+                    assert density[tuple(
+                        center_cell + [x, y])] >= self.dyn_plan.density_threshold - self.dyn_plan.density_epsilon
 
     def test_non_local_contributions_below_threshold(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density_field
+        density = self.dyn_plan.density_field.array
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
@@ -72,7 +76,7 @@ class TestDynamicPlanner:
 
     def test_other_contributions_vanish(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density_field
+        density = self.dyn_plan.density_field.array
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         for i, j in np.ndindex(self.dyn_plan.grid_dimension):
@@ -86,34 +90,36 @@ class TestDynamicPlanner:
         assert self.dyn_plan.density_field is not None
 
     def test_normalize_field_non_negative_entries(self):
-        field = np.random.random([20, 20]) * 3 - 1  # between 1 and 2
-        rel_field = DynamicPlanner.get_normalized_field(field, 0, 1)
+        field = Field((20, 20), Field.Orientation.center, '')
+        field.update(np.random.random([20, 20]) * 3 - 1)
+        rel_field = field.normalized(0, 1)
         assert np.all(rel_field >= 0)
 
     def test_normalize_field_smaller_equal_one(self):
-        field = np.random.random([20, 20]) * 3 - 1  # between 1 and 2
-        rel_field = DynamicPlanner.get_normalized_field(field, 0, 1)
+        field = Field((20, 20), Field.Orientation.center, '')
+        field.update(np.random.random([20, 20]) * 3 - 1)
+        rel_field = field.normalized(0, 1)
         assert np.all(rel_field <= 1)
 
     def test_normalize_field_relative(self):
-        field = np.random.random([5, 5]) * 3  # between 0 and 3
-        rel_field = DynamicPlanner.get_normalized_field(field, 0, 4)
-
-        assert np.allclose(rel_field, field / 4)
+        field = Field((20, 20), Field.Orientation.center, '')
+        field.update(np.random.random([20, 20]) * 4)
+        rel_field = field.normalized(0, 4)
+        assert np.allclose(rel_field, field.array / 4)
 
     def test_speed_contribution_to_neighbour_cells(self):
         self.dyn_plan.compute_density_and_velocity_field()
-        density = self.dyn_plan.density_field
+        density = self.dyn_plan.density_field.array
         center_cell = np.around(np.array([self.ped_x / self.dyn_plan.dx, self.ped_y / self.dyn_plan.dy]) - 1).astype(
             int)
         pedestrian_cell = np.floor(np.array([self.ped_x, self.ped_y]) / [self.dyn_plan.dx, self.dyn_plan.dy])
-        for dir in DynamicPlanner.DIRECTIONS:
+        for dir in ft.DIRECTIONS:
             self.dyn_plan.compute_speed_field(dir)
             for x in range(2):
-                if 0 <= x + center_cell[0] < self.dyn_plan.speed_field_dict[dir].shape[0]:
+                if 0 <= x + center_cell[0] < self.dyn_plan.speed_field_dict[dir].array.shape[0]:
                     for y in range(2):
-                        if 0 <= y + center_cell[y] < self.dyn_plan.speed_field_dict[dir].shape[1]:
-                            assert self.dyn_plan.speed_field_dict[dir][tuple(center_cell + [x, y])] <= \
+                        if 0 <= y + center_cell[y] < self.dyn_plan.speed_field_dict[dir].array.shape[1]:
+                            assert self.dyn_plan.speed_field_dict[dir].array[tuple(center_cell + [x, y])] <= \
                                    self.dyn_plan.max_speed
                             print("center cell: %s" % center_cell)
                             print("pedestrian %s" % self.pedestrian)
@@ -123,35 +129,83 @@ class TestDynamicPlanner:
         scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
         dyn_plan.compute_density_and_velocity_field()
-        for dir in DynamicPlanner.DIRECTIONS:
+        for dir in ft.DIRECTIONS:
             dyn_plan.compute_speed_field(dir)
-            assert np.all(dyn_plan.speed_field_dict[dir] <= dyn_plan.max_speed)
+            assert np.all(dyn_plan.speed_field_dict[dir].array <= dyn_plan.max_speed)
 
     def test_alignment_makes_speed_max_speed(self):
-        for direction in DynamicPlanner.DIRECTIONS:
+        for direction in ft.DIRECTIONS:
             self.pedestrian.max_speed = self.dyn_plan.max_speed
-            self.pedestrian.velocity = Velocity(DynamicPlanner.DIRECTIONS[direction])
+            self.pedestrian.velocity = Velocity(ft.DIRECTIONS[direction])
             self.dyn_plan.compute_density_and_velocity_field()
             self.dyn_plan.compute_speed_field(direction)
-            print("Velocity v_x\n%s\n\n" % self.dyn_plan.v_x)
-            print("Velocity v_y\n%s\n\n" % self.dyn_plan.v_y)
+            print("Velocity v_x\n%s\n\n" % self.dyn_plan.v_x.array)
+            print("Velocity v_y\n%s\n\n" % self.dyn_plan.v_y.array)
             print("Speed field %s:\n%s\n" % (direction, self.dyn_plan.speed_field_dict[direction]))
-            assert np.allclose(self.dyn_plan.speed_field_dict[direction], self.dyn_plan.max_speed, 0.01)
+            assert np.allclose(self.dyn_plan.speed_field_dict[direction].array, self.dyn_plan.max_speed, 0.01)
 
     def test_discomfort_field_normalized(self):
         self.dyn_plan.compute_density_and_velocity_field()
         self.dyn_plan.compute_discomfort_field()
-        assert np.all(self.dyn_plan.discomfort_field >= 0) and np.all(self.dyn_plan.discomfort_field <= 1)
+        assert np.all(self.dyn_plan.discomfort_field.array >= 0) and np.all(self.dyn_plan.discomfort_field.array <= 1)
 
     def test_unit_cost_field_always_positive(self):
         # Might be zero if self.time_weight == 0. Zero is bad.
         self.dyn_plan.compute_density_and_velocity_field()
         self.dyn_plan.compute_discomfort_field()
-        for direction in DynamicPlanner.DIRECTIONS:
+        for direction in ft.DIRECTIONS:
             self.dyn_plan.compute_speed_field(direction)
             self.dyn_plan.compute_unit_cost_field(direction)
-            assert np.all(self.dyn_plan.unit_field_dict[direction] > 0)
+            assert np.all(self.dyn_plan.unit_field_dict[direction].array > 0)
 
     def test_initial_potential_respects_exits(self):
-        # Should work
-        pass
+        mesh = self.dyn_plan.potential_field.mesh_grid
+        for i, j in np.ndindex(self.dyn_plan.grid_dimension):
+            interface_val = self.dyn_plan.initial_interface[(i, j)]
+            is_in_exit = any([Point([mesh[0][(i, j)], mesh[1][(i, j)]]) in exit for exit in self.scene.exit_set])
+            assert (interface_val == 0) == is_in_exit
+
+    def test_no_obstacle_means_no_fraction(self):
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        dyn_plan = DynamicPlanner(scene)
+        # Cell (7,10) is a free cell.
+        assert (7, 10) not in dyn_plan.obstacle_cell_set and (7, 10) not in dyn_plan.part_obstacle_cell_dict
+
+    def test_fully_covered_means_high_potential(self):
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        dyn_plan = DynamicPlanner(scene)
+        # Cell (9,9) is a fully covered cell.
+        assert (9, 9) in dyn_plan.obstacle_cell_set
+        dyn_plan.compute_density_and_velocity_field()
+        dyn_plan.compute_discomfort_field()
+        for direction in ft.DIRECTIONS:
+            dyn_plan.compute_speed_field(direction)
+            dyn_plan.compute_unit_cost_field(direction)
+        dyn_plan.compute_potential_field()
+        print("Real potential: %.2f" % (np.max(dyn_plan.potential_field.array[9, 9])))
+        print("Theoretical potential: %.2f" % (np.max(dyn_plan.potential_field.array)))
+        assert dyn_plan.potential_field.array[9, 9] == np.max(dyn_plan.potential_field.array)
+
+    def test_fraction_method(self):
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        dyn_plan = DynamicPlanner(scene)
+        # Cell (8,10) is a partly covered cell.
+        assert (8, 10) in dyn_plan.part_obstacle_cell_dict
+        frac_val = dyn_plan.part_obstacle_cell_dict[(8, 10)]
+        assert np.allclose(frac_val, 0.25)
+        dyn_plan.compute_density_and_velocity_field()
+        dyn_plan.compute_discomfort_field()
+        for direction in ft.DIRECTIONS:
+            dyn_plan.compute_speed_field(direction)
+            dyn_plan.compute_unit_cost_field(direction)
+        dyn_plan.compute_potential_field()
+        print("Theoretical potential: %.2f" % (np.max(dyn_plan.potential_field.array) * frac_val))
+        print("Real potential: %.2f" % (dyn_plan.potential_field.array[8, 10]))
+        assert np.allclose(
+            dyn_plan.potential_field.array[8, 10], np.max(dyn_plan.potential_field.array) * frac_val)
+
+    def test_max_index_method(self):
+        dim = (5, 5)
+        cell_list = [(-1, 4), (0, -1), (5, 4), (-1, 4)]
+        for cell in cell_list:
+            assert not self.dyn_plan._exists(cell, dim)

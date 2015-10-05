@@ -30,22 +30,27 @@ class TestGraphPlanner:
     def test_path_from_pedestrian_to_finish(self):
         ped = self.filled_scene.pedestrian_list[0]
         if ped.path:
-            assert ped.path[-1].end in ped.goal
+            assert any([ped.path[-1].end in exit for exit in self.filled_scene.exit_set])
         else:
-            assert ped.line.end in ped.goal
+            assert any([ped.line.end in exit for exit in self.filled_scene.exit_set])
 
     def test_path_at_least_distance(self):
+        distances = []
         for pedestrian in self.filled_scene.pedestrian_list:
-            distance = np.linalg.norm(pedestrian.position.array -
-                                      self.gt1.get_closest_goal_position(pedestrian.position,
-                                                                         self.filled_scene.exit_obs))
-            path_length = GraphPlanner.get_path_length(pedestrian)
-            assert distance <= path_length
+            for exit in self.filled_scene.exit_set:
+                print(exit)
+                distance = np.linalg.norm(pedestrian.position.array -
+                                          self.gt1.get_closest_goal_position(pedestrian.position, exit))
+                path_length = GraphPlanner.get_path_length(pedestrian)
+                print("Distance: %.2f " % distance)
+                print("path_length: %.2f " % path_length)
+                distances.append(distance)
+            assert any([distance <= path_length for distance in distances])
 
     def test_path_equal_to_distance_without_obstacles(self):
         for pedestrian in self.empty_scene.pedestrian_list:
-            distance = np.linalg.norm(pedestrian.position.array -
-                                      self.gt2.get_closest_goal_position(pedestrian.position,
-                                                                         self.empty_scene.exit_obs))
-            path_length = GraphPlanner.get_path_length(pedestrian)
-            assert distance == path_length
+            for exit in self.empty_scene.exit_set:
+                distance = np.linalg.norm(pedestrian.position.array -
+                                          self.gt2.get_closest_goal_position(pedestrian.position, exit))
+                path_length = GraphPlanner.get_path_length(pedestrian)
+                assert distance >= path_length

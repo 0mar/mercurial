@@ -19,7 +19,7 @@ class DynamicPlanner:
     Maximum speed and unit costs are defined on faces of cells
     These fields are called face fields.
 
-    These class stores all arrays internally.
+    These class stores all arrays internally, in ScalarFields
     This is (supposedly) beneficial for performance.
     Note that this means the methods in this class are all stateful
     and that order of execution is important.
@@ -28,10 +28,6 @@ class DynamicPlanner:
     This means exits need a certain width.
     As a consequence, obstacles should be introduced next to thick exits.
     """
-    # Todo: Find and fix potential time instability. Think its alive array
-    # Todo: Fix high pot bug on  py main.py -aip -o scenes/large_exit.json -n 150
-
-
     def __init__(self, scene, show_plot=False):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
@@ -54,7 +50,7 @@ class DynamicPlanner:
 
         self.min_density = 0
         # This is likely on another scale than in grid computer
-        self.max_density = 5
+        self.max_density = 10
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -119,10 +115,12 @@ class DynamicPlanner:
 
     def process_obstacles(self):
         """
-        [checks which cells are moot or have fractions of obstacle (put in report)]
-        [Reuses Cell objects.].
+        Checks the scene for obstacles. Cells fully covered by obstacles are labeled.
+        Their potential is known (a high value).
+        Cells partially covered by obstacles are labeled as well.
+        Their potential is also high, measured by the fraction of coverage.
 
-        :return:
+        :return: None
         """
         cell_dict = {}
         cell_size = Size([self.dx, self.dy])
@@ -139,7 +137,7 @@ class DynamicPlanner:
 
     def _exists(self, index, max_index=None):
         """
-        Checks whether an index exists
+        Checks whether an index exists within the max_index dimensions
         :param index: 2D index tuple
         :param max_index: max index tuple
         :return: true if lower than tuple, false otherwise
@@ -180,20 +178,21 @@ class DynamicPlanner:
         # For each cell center surrounding the pedestrian, add (in either dimension) 1-\delta . or \delta .
 
         for pedestrian in self.scene.pedestrian_list:
-            for x in range(2):
-                x_coord = cell_center_indices[pedestrian.counter][0] + x
-                if 0 <= x_coord < self.grid_dimension[0]:
-                    for y in range(2):
-                        y_coord = cell_center_indices[pedestrian.counter][1] + y
-                        if 0 <= y_coord < self.grid_dimension[1]:
-                            density_field[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
-                            v_x[x_coord, y_coord] += \
-                                density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
-                            v_y[x_coord, y_coord] += \
-                                density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
+            if self.scene.alive_array[pedestrian.counter]:
+                for x in range(2):
+                    x_coord = cell_center_indices[pedestrian.counter][0] + x
+                    if 0 <= x_coord < self.grid_dimension[0]:
+                        for y in range(2):
+                            y_coord = cell_center_indices[pedestrian.counter][1] + y
+                            if 0 <= y_coord < self.grid_dimension[1]:
+                                density_field[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
+                                v_x[x_coord, y_coord] += \
+                                    density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
+                                v_y[x_coord, y_coord] += \
+                                    density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
         # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
         self.v_x.update(v_x / density_field)
-        self.v_x.update(v_x / density_field)
+        self.v_y.update(v_y / density_field)
         density_field -= self.density_epsilon
         self.density_field.update(density_field)
 
@@ -232,7 +231,7 @@ class DynamicPlanner:
         """
         self.discomfort_field.update(self.density_field.normalized(self.min_density, self.max_density))
 
-    def conpute_random_discomfort_field(self):
+    def compute_random_discomfort_field(self):
         """
         Obtain discomfort field G.
         We pick a random field so we can see the influence of this field to the paths
@@ -244,7 +243,7 @@ class DynamicPlanner:
     def compute_unit_cost_field(self, direction):
         """
         Compute the unit cost vector field in the provided direction
-        Stores face field in class object
+        Updates the class unit cost scalar field
         :return: None
         """
         alpha = self.path_length_weight
@@ -280,6 +279,9 @@ class DynamicPlanner:
             return new_candidate_cells
 
         def compute_potential(cell):
+            """
+            Computes the potential in one cell, using potential in neighbouring cells.
+            """
             # Find the minimal directions along a grid cell.
             # Assume left and below are best, then overwrite with right and up if they are better
             neighbour_pots = {direction: np.Inf for direction in ft.DIRECTIONS}
@@ -327,6 +329,10 @@ class DynamicPlanner:
             return roots[0]  # Which one?
 
         def correct_for_obstacles(pot_field):
+            """
+            Computes (or in case of partially covered obstacles, correct) the potential for cells
+            with objects.
+            """
             correction_value = np.max(pot_field[pot_field != np.Inf])
             for cell in self.obstacle_cell_set:
                 pot_field[cell] = correction_value  # some value?
@@ -354,7 +360,8 @@ class DynamicPlanner:
     def compute_potential_gradient(self):
         """
         Compute a gradient component approximation of the provided field.
-        Considering 2th order CD as an approximation.
+        Only computed for face fields.
+        Gradient approximation is computed using a central difference scheme
         """
         left_field = self.potential_field.array[:-1, :]
         right_field = Field.get_with_offset(self.potential_field.array, 'right')
@@ -366,6 +373,10 @@ class DynamicPlanner:
         self.pot_grad_y.update((up_field - down_field) / self.dy)
 
     def assign_velocities(self):
+        """
+        Interpolates the potential gradients for this time step and computes the velocities.
+        :return: None
+        """
         grad_x_func = self.pot_grad_x.get_interpolation_function()
         grad_y_func = self.pot_grad_y.get_interpolation_function()
         # Todo: How:? speed_x_func = Rbs(self.x_range,self.y_range,self.speed_field_dict)
@@ -376,6 +387,11 @@ class DynamicPlanner:
                                     np.linalg.norm(solved_grad, axis=1)[:, None]
 
     def step(self):
+        """
+        Computes the scalar fields (in the correct order) necessary for the dynamic planner.
+        If plotting is enables, updates the plot.
+        :return: None
+        """
         self.compute_density_and_velocity_field()
         self.compute_discomfort_field()
         for direction in ft.DIRECTIONS:
@@ -396,6 +412,10 @@ class DynamicPlanner:
                     self.scene.remove_pedestrian(ped)
 
     def plot_grid_values(self):
+        """
+        Plots the grid values density, discomfort and potential
+        :return: None
+        """
         for graph in self.graphs.flatten():
             graph.cla()
         self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
@@ -409,20 +429,3 @@ class DynamicPlanner:
         # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
         # self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
-
-# if __name__ == '__main__':
-#     from scene import Scene
-#     from geometry import Size, Velocity, Point
-#
-#     n = 1
-#     g_scene = Scene(size=Size([100, 100]), obstacle_file='empty_scene.json', pedestrian_number=n)
-#     dyn_plan = DynamicPlanner(g_scene)
-#     ped = g_scene.pedestrian_list[0]
-#     ped.manual_move(Point([55.38, 91.66]))
-#     ped.velocity = Velocity([1, -0.5])
-#     print(ped.velocity)
-#     dyn_plan.compute_density_and_velocity_field()
-#     dyn_plan.compute_discomfort_field()
-#     for dir in DynamicPlanner.DIRECTIONS:
-#         dyn_plan.compute_speed_field(dir)
-#         dyn_plan.compute_unit_cost_field(dir)
