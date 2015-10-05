@@ -12,7 +12,7 @@ from visualization import VisualScene
 from dynamic_planner import DynamicPlanner
 from grid_computer import GridComputer
 from static_planner import GraphPlanner
-from scene_cases import ImpulseScene, LoopScene
+from scene_cases import LoopScene, TwoImpulseScene
 
 # Default parameters
 number_of_pedestrians = 100
@@ -45,8 +45,12 @@ args = parser.parse_args()
 # Initialization
 functions.VERBOSE = args.verbose
 if args.impulse:
-    scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                         pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
+    # scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    #                    pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
+
+    scene = TwoImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+                            pedestrian_number=args.number, impulse_locations=[Point([40, 20]), Point([30, 20])],
+                            impulse_size=45)
 elif args.loop:
     scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json', pedestrian_number=args.number)
     # Integrate in scene

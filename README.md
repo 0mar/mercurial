@@ -18,7 +18,7 @@ Any information on simulation techniques and features can be found in the includ
 
 * Summary of set up
 
-The repository can be cloned using the link above. Use python 3.2 or higher to run the application.
+The repository can be cloned using the link above. Use python 3.4 or higher to run the application.
 All source files are collected in folder `src/`.
 The simulation can be run like so: `python3 main.py`. 
 Additional command line arguments can be inspected by appending `-h`.
