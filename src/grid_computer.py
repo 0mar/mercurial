@@ -164,7 +164,7 @@ class GridComputer:
         flat_p = np.zeros([nx * ny, 1])
         try:
             result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
-            if result['status'] == '':
+            if result['status'] == 'optimal':
                 flat_p = result['x']
             else:
                 ft.warn("Warning, density exceeds max density sharply")
@@ -191,7 +191,7 @@ class GridComputer:
         and added to the velocity field.
         :return: None
         """
-        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)  # Todo:Recheck
+        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)
         v_y_func = Rbs(self.x_range, self.y_range, self.v_y)
         dens_func = Rbs(self.x_range, self.y_range, self.rho)
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
@@ -261,6 +261,7 @@ class GridComputer:
         :param axis: 'x' or 'y'
         :return: vector field representing gradient component.
         """
+        # Todo: Solve for boundary conditions and integrate with ScalarField
         assert all(dim > 2 for dim in field.shape)
         if axis == 'x':
             grad_field_x = np.zeros(field.shape)

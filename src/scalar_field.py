@@ -2,9 +2,12 @@ __author__ = 'omar'
 from enum import Enum
 
 import numpy as np
+from scipy.interpolate import RectBivariateSpline as Rbs
+
+import functions as ft
 
 
-class ScalarField(np.ndarray):
+class ScalarField:
     """
     Wrapper class around 2D numpy arrays.
 
@@ -16,42 +19,88 @@ class ScalarField(np.ndarray):
         vertical_face = (-1, 0)
         center = (0, 0)
 
-    def __new__(cls, grid_shape, orientation, name, time_step=0):
+    def __init__(self, grid_shape, orientation, name, cell_size=(1, 1), time_step=0):
         try:
             shape = (grid_shape[0] + orientation.value[0], grid_shape[1] + orientation.value[1])
         except TypeError:
             raise AttributeError("%s is not iterable" % grid_shape)
         if not isinstance(orientation, ScalarField.Orientation):
             raise AttributeError("Keyword orientation expects ScalarField.Orientation enum")
-        obj = np.ndarray.__new__(cls, shape=shape, dtype=float, buffer=None, order='C')
-        obj.name = name
-        obj.orientation = orientation
-        obj.time_step = time_step
-        return obj
+        self.array = np.zeros(shape, float)
+        self.name = name
+        self.orientation = orientation
+        self.time_step = time_step
+        self.dx, self.dy = cell_size
+
+        self.width = self.dx * grid_shape[0]
+        self.height = self.dy * grid_shape[1]
+        if self.orientation.value[0] == 0:
+            # x-coordinates lie on cell centers
+            self.x_range = np.linspace(self.dx / 2, self.width - self.dx / 2, shape[0])
+        else:
+            # x-coordinates lie on cell faces
+            self.x_range = np.linspace(self.dx, self.width - self.dx, shape[0])
+        if self.orientation.value[1] == 0:
+            # y-coordinates lie on cell centers
+            self.y_range = np.linspace(self.dy / 2, self.height - self.dy / 2, shape[1])
+        else:
+            # y-coordinates lie on cell faces
+            self.y_range = np.linspace(self.dy, self.height - self.dy, shape[1])
+
+        self.mesh_grid = np.meshgrid(self.x_range, self.y_range)
 
     def update(self, new_field):
-        self[:, :] = new_field
+        """
+        Preferred way of updating a field.
+        :param new_field: np.array (must be same size) to update the Scalar field with
+        :return:
+        """
+        if not self.array.shape == new_field.shape:
+            print(self.name, self.array.shape, new_field.shape)
+            assert self.array.shape == new_field.shape
+
+        self.array = new_field.copy()
         self.time_step += 1
 
-    def domain(self):
-        return None
-
     def __repr__(self):
-        return "%s(%d,%d)#%d" % (self.name, self.shape[0], self.shape[1], self.time_step)
+        return "%s%s#%d" % (self.name, self.array.shape, self.time_step)
 
     def __str__(self):
         field_repr = ""
-        for row in self:
+        for row in self.array:
             field_repr += " [%s]\n" % "\t".join(["%4.2f" % val for val in row])
         return repr(self) + "\n[%s]" % field_repr[1:-1]
 
-    def __array_finalize__(self, obj):
-        if obj is None:
-            print("Making new object")
-            return
-        print("Starting from older object")
-        if not hasattr(obj, 'orientation'):
-            raise AttributeError('Numpy array is being cast to scalar field without orientation')
-        self.name = getattr(obj, 'name', '')
-        self.orientation = obj.orientation
-        self.time_step = getattr(obj, 'time_step', '0')
+    def with_offset(self, direction):
+        """
+        Returns a slice of the center field with all {direction} neighbour values of the cells.
+        So, offset 'top' returns a center field slice omitting the bottom row.
+        Example present in one of the ipython notebooks.
+        :param direction: any of the 4 directions
+        :return: slice of center field with almost the same dimensions
+        """
+        if self.orientation != ScalarField.Orientation.center:
+            raise NotImplementedError("We only take offset fields of center fields.")
+        return ScalarField.get_with_offset(self.array, direction)
+
+    @staticmethod
+    def get_with_offset(array, direction):
+        size = array.shape
+        normal = ft.DIRECTIONS[direction]
+        return array[max(0, normal[0]):size[0] + normal[0], max(0, normal[1]):size[1] + normal[1]]
+
+    def normalized(self, min_value=0, max_value=1):
+        """
+        Normalizes field by bringing all values of field into [0,1]:
+        for all x in field:     x < min_value => norm_x = 0
+                    min_value < x < max_value => norm_x = (x - min_value)/(max_value - min_value)
+                    max_value < x             -> norm_x = 1
+        :param min_value: lower value -> 0
+        :param max_value: upper value ->1
+        :return: Array with all values between 0 and 1
+        """
+        rel_field = (self.array - min_value) / (max_value - min_value)
+        return np.clip(rel_field, 0, 1)
+
+    def get_interpolation_function(self):
+        return Rbs(self.x_range, self.y_range, self.array)
