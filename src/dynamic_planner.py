@@ -28,8 +28,6 @@ class DynamicPlanner:
     This means exits need a certain width.
     As a consequence, obstacles should be introduced next to thick exits.
     """
-    # Todo (after merge): We should build a wrapper around internal numpy 2D arrays.
-    # Functionalities: Time steps, printing, updating, getting
     HORIZONTAL_DIRECTIONS = ['left', 'right']
     VERTICAL_DIRECTIONS = ['up', 'down']
     DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
@@ -70,7 +68,7 @@ class DynamicPlanner:
         self.exit_cell_set = set()
         self.obstacle_cell_set = set()
         self.part_obstacle_cell_dict = dict()  # Immediately store the fractions
-        self.obstacle_potential = 100
+        self.obstacle_potential = 100  # Unused
         self.density_field = np.array([])
         self.v_x = self.v_y = np.array([])
         self.potential_field = self.discomfort_field = np.array([])
@@ -342,7 +340,7 @@ class DynamicPlanner:
             return roots[0]  # Which one?
 
         def correct_for_obstacles(pot_field):
-            correction_value = np.max(pot_field[pot_field != np.Inf]) / 2
+            correction_value = np.max(pot_field[pot_field != np.Inf])
             for cell in self.obstacle_cell_set:
                 pot_field[cell] = correction_value  # some value?
             for cell in self.part_obstacle_cell_dict:
@@ -390,7 +388,7 @@ class DynamicPlanner:
         solved_grad_x = grad_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
-        self.scene.velocity_array = self.scene.max_speed_array * solved_grad / \
+        self.scene.velocity_array = - self.scene.max_speed_array[:, None] * solved_grad / \
                                     np.linalg.norm(solved_grad, axis=1)[:, None]
 
     def step(self):

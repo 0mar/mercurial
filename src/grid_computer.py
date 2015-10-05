@@ -53,8 +53,8 @@ class GridComputer:
         self.grad_p_x = np.zeros(self.cell_dimension)
         self.grad_p_y = np.zeros(self.cell_dimension)
 
-        self.x_range = np.linspace(0, self.scene.size.width, self.cell_dimension[0])
-        self.y_range = np.linspace(0, self.scene.size.height, self.cell_dimension[1])
+        self.x_range = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.cell_dimension[0])
+        self.y_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.cell_dimension[1])
 
         if self.show_plot:
             # Plotting hooks
@@ -161,12 +161,15 @@ class GridComputer:
         cvx_G = cvxopt.matrix(np.vstack((C * self.dt, -I)))
         zeros = np.zeros([nx * ny, 1])
         cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
+        flat_p = np.zeros([nx * ny, 1])
         try:
             result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
-            flat_p = result['x']
+            if result['status'] == '':
+                flat_p = result['x']
+            else:
+                ft.warn("Warning, density exceeds max density sharply")
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
-            flat_p = np.zeros([0, nx * ny])
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')
 
     def adjust_velocity(self):
