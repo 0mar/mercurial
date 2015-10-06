@@ -8,13 +8,14 @@ from static_planner import GraphPlanner
 
 
 class Result:
-    def __init__(self, scene, result_directory='results/'):
+    def __init__(self, scene, result_directory='results/', subsequent=True):
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).
         - Planned path length (measuring the sum of line segment lengths of the planned path).
         - Time spent (number of time steps * dt pedestrians spend inside the scene).
         - Density (total mass (=number of pedestrians) divided by the area of the scene (minus obstacles)).
+        - Origin (starting point of each pedestrian, to see the results as a relative factor).
 
         Derived results:
         - Path length ratio: Path length over planned path length per pedestrian.
@@ -28,31 +29,37 @@ class Result:
         """
         self.result_dir = result_directory
         self.scene = scene
+        self.subsequent = subsequent
         self.scene.set_on_step_functions(self.on_step)
         self.scene.set_on_pedestrian_exit_functions(self.on_pedestrian_exit)
         self.scene.set_on_finish_functions(self.on_finish)
 
         ft.log("Simulations results are processed and stored in folder '%s'" % result_directory)
         if not scene.pedestrian_list[0].line:
-            raise AttributeError("Pedestrians have no paths. Assert Graphplanner module is used")
+            raise AttributeError("Pedestrians have no paths. Assert GraphPlanner module is used")
         self.planned_path_length = np.zeros(self.scene.pedestrian_number)
         self.path_length = np.zeros(self.scene.pedestrian_number)
         self.time_spent = np.zeros(self.scene.pedestrian_number)
         self.mean_speed = np.zeros(self.scene.pedestrian_number)
         self.path_length_ratio = np.zeros(self.scene.pedestrian_number)
+        self.max_speed = np.zeros(self.scene.pedestrian_number)
         self.avg_path_length_ratio = 0
-        self.density = 0
+        self.avg_mean_speed = 0
+        self.density = self.scene.pedestrian_number / (self.scene.size.width * self.scene.size.height)
+        self.origins = np.zeros([self.scene.pedestrian_number, 2])
 
         self.on_init()
 
     def on_init(self):
         """
-        All preprocessing and calls that should be executed before the simulation starts.
+        All pre-processing and calls that should be executed before the simulation starts.
         :return: None
         """
         for pedestrian in self.scene.pedestrian_list:
             self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
+            self.origins[pedestrian.counter] = pedestrian.origin.array
         self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)
+        self.max_speed = self.scene.max_speed_array
 
     def on_step(self):
         """
@@ -79,9 +86,11 @@ class Result:
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter] == 1:
                 self.time_spent[pedestrian.counter] = self.scene.time
-        self.path_length_ratio = self.path_length / self.planned_path_length
+        self.path_length_ratio = self.planned_path_length[np.invert(self.scene.alive_array.astype(bool))] / \
+                                 self.path_length[np.invert(self.scene.alive_array.astype(bool))]
         self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
+        self.avg_mean_speed = np.mean(self.mean_speed)
         self.write_matlab_results()
 
     def write_results(self):
@@ -106,7 +115,17 @@ class Result:
         filename = self.result_dir + 'results'
         sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
                                      "path_length": self.path_length,
-                                     "path_ratio": self.path_length_ratio,
+                                     "path_length_ratio": self.path_length_ratio,
                                      "avg_path_length_ratio": self.avg_path_length_ratio,
+                                     "max_speed": self.max_speed,
                                      "time_spent": self.time_spent,
+                                     "origins": self.origins,
+                                     "avg_mean_speed": self.avg_mean_speed,
                                      "mean_speed": self.mean_speed})
+
+    def write_density_results(self, filename):
+        import os
+        if not os.path.exists(filename):
+            raise IOError("file %s not found" % filename)
+        with open(filename, 'a') as o:
+            o.write("%.4f\t%.4f\t%.4f\n" % (self.density, self.avg_path_length_ratio, self.avg_mean_speed))

@@ -65,8 +65,10 @@ class Pedestrian(object):
         Red is fast, blue is slow.
         :return: tkinter RGB code for color
         """
-        start = 1
-        end = 2
+        start = np.min(self.scene.max_speed_array)
+        end = np.max(self.scene.max_speed_array)
+        if start == end:
+            return 'blue'
         max_val = 255
         speed = self.max_speed
         red = max_val * (speed - start) / (end - start)
@@ -155,7 +157,7 @@ class Pedestrian(object):
         """
         Position setter. Eases checks and debugging.
         Note that setting a point this way does not update the scene position array.
-        USe manual_move() for that.
+        Use manual_move() for that.
         :param point: New position
         :return: None
         """

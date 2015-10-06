@@ -209,3 +209,9 @@ class TestDynamicPlanner:
         cell_list = [(-1, 4), (0, -1), (5, 4), (-1, 4)]
         for cell in cell_list:
             assert not self.dyn_plan._exists(cell, dim)
+
+    def test_updating_dynamic_planner(self):
+        self.dyn_plan.step()
+        for member in self.dyn_plan.__dict__:
+            if isinstance(member, Field):
+                assert member.time_step == 1

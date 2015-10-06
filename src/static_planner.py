@@ -146,22 +146,19 @@ class GraphPlanner:
     def collective_update(self):
         """
         The update step of the simulation
-        # 1: Progresses one time step.
-        # 2: Moves the pedestrians according to desired velocity, group velocity and UIC
+        # 1: Moves the pedestrians according to desired velocity, group velocity and UIC
                 * Account for MDE
-        # 3: Corrects for obstacles and walls
-        # 3.5: Check all pedestrians if arrived at location
-        # 3.75: Check if path is still correct (using last location and such)
+        # 2: Corrects for obstacles and walls
+        # 3: Check all pedestrians if arrived at location
+        # 3.5: Check if path is still correct (using last location and such)
         # 4: Provides the new desired velocity.
         # 5: Enforce minimal distance between pedestrians.
         :return: None
         """
         # 1
-        self.scene.time += self.scene.dt
-        # 2
         self.scene.move_pedestrians()
 
-        # 3
+        # 2
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.alive_array[pedestrian.counter]:
                 pedestrian.correct_for_geometry()
