@@ -16,6 +16,7 @@ class Result:
         - Time spent (number of time steps * dt pedestrians spend inside the scene).
         - Density (total mass (=number of pedestrians) divided by the area of the scene (minus obstacles)).
         - Origin (starting point of each pedestrian, to see the results as a relative factor).
+        - Path (as a sequence of followed points per pedestrian)
 
         Derived results:
         - Path length ratio: Path length over planned path length per pedestrian.
@@ -47,6 +48,7 @@ class Result:
         self.avg_mean_speed = 0
         self.density = self.scene.pedestrian_number / (self.scene.size.width * self.scene.size.height)
         self.origins = np.zeros([self.scene.pedestrian_number, 2])
+        self.paths_list = [[] for _ in range(self.scene.pedestrian_number)]
 
         self.on_init()
 
@@ -70,6 +72,10 @@ class Result:
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
         self.path_length[np.where(self.scene.alive_array)] += distance[np.where(self.scene.alive_array)]
+        for pedestrian in self.scene.pedestrian_list:
+            if self.scene.alive_array[pedestrian.counter]:
+                # Comment out if not needed.
+                self.paths_list[pedestrian.counter].append(pedestrian.position.array)
 
     def on_pedestrian_exit(self, pedestrian):
         """
@@ -90,6 +96,7 @@ class Result:
                                  self.path_length[np.invert(self.scene.alive_array.astype(bool))]
         self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
+        self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
         self.write_matlab_results()
 
@@ -121,6 +128,7 @@ class Result:
                                      "time_spent": self.time_spent,
                                      "origins": self.origins,
                                      "avg_mean_speed": self.avg_mean_speed,
+                                     "paths_list": self.paths_list,
                                      "mean_speed": self.mean_speed})
 
     def write_density_results(self, filename):
