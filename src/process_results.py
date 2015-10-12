@@ -53,4 +53,4 @@ class Processor:
 
 if __name__ == '__main__':
     proc = Processor()
-    proc.path_plot()
+    proc.delay_scatter_plot()

@@ -13,7 +13,7 @@ class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, width, height, step_functions, loop, delay):
+    def __init__(self, scene, width, height, step_functions, loop, delay, draw_cells=False):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
@@ -37,7 +37,7 @@ class VisualScene:
             self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.draws_cells = False
+        self.draws_cells = draw_cells
 
     @property
     def size(self):
