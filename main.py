@@ -85,6 +85,7 @@ if args.results:
 vis = VisualScene(scene, 1500, 1000, step_functions=step_functions,
                   loop=not args.step, delay=args.time_delay, draw_cells=args.draw_cells)
 
+
 # Running
 vis.loop()
 vis.window.mainloop()

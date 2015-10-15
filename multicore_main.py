@@ -5,7 +5,7 @@ import sys
 sys.path.insert(1, 'src')
 from mpi4py import MPI
 from geometry import Size
-import scene as scene_module
+from scene_cases import TopScene
 import functions
 from results import Result
 from visualization import VisualScene
@@ -19,7 +19,7 @@ size = comm.Get_size()
 
 domain_width = 70
 domain_height = 70
-obstacle_file = 'scenes/demo_obstacle_list.json'
+obstacle_file = 'scenes/narrowing_scene.json'
 result_file_name = 'results/density_dependent.txt'
 
 
@@ -39,23 +39,24 @@ if rank == 0:
         f.write('')
 
 for i in sim_list:
-    print("Core %d starts on sim %d" % (rank, i))
+    sys.stdout.write("Core %d starts on sim %d" % (rank, i))
+    sys.stdout.flush()
     # Default parameters
-    number_of_pedestrians = 100 * (i + 1)
+    number_of_pedestrians = 500 * (i + 1)
 
 
 
     # Initialization
     functions.VERBOSE = False
-    scene = scene_module.Scene(size=Size([domain_width, domain_height]), obstacle_file=obstacle_file,
-                               pedestrian_number=number_of_pedestrians)
+    scene = TopScene(size=Size([domain_width, domain_height]), obstacle_file=obstacle_file,
+                     pedestrian_number=number_of_pedestrians, barrier=0.8)
     planner = GraphPlanner(scene)
     grid = GridComputer(scene, show_plot=False, apply_interpolation=False,
                         apply_pressure=False)
     step_functions = [planner.collective_update, grid.step]
     result = Result(scene)
 
-    vis = VisualScene(scene, 1500, 1000, step_functions=step_functions, loop=True, delay=1)
+    vis = VisualScene(scene, 300, 200, step_functions=step_functions, loop=True, delay=1)
 
     # Running
     vis.loop()
