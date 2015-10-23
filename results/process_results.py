@@ -5,18 +5,18 @@ sys.path.insert(0, '../src')
 import scipy.io as sio
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
-
 import functions as ft
 
 
 class Processor:
     def __init__(self, result=None):
         if not result:
-            filename = "obstacle.mat"
+            filename = "narrow1000.mat"
             self.s = 100
             self.norm_l = -0.1
             self.norm_u = 1
             self.alpha = 0.6
+            self.dt = 0.05
             self.clip = False
             ft.log("No results passed, reading from %s" % filename)
             result_dict = sio.loadmat(filename)
@@ -62,8 +62,16 @@ class Processor:
         plt.colorbar()
         plt.show()
 
+    def time_spent_histogram(self):
+        time = self.result.time_spent.T / self.dt
+        plt.hist(time, bins=50)
+        plt.xlabel('Time steps to reach exit')
+        plt.ylabel('Number of pedestrians')
+        plt.suptitle('Histogram of pedestrian walking time')
+        plt.show()
 
 if __name__ == '__main__':
     proc = Processor()
-    proc.delay_scatter_plot()
-    proc.time_scatter_plot()
+    proc.time_spent_histogram()
+    # proc.delay_scatter_plot()
+    # proc.time_scatter_plot()
