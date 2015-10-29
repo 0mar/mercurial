@@ -591,7 +591,7 @@ with the constraints:
 Note that these constraints assert $f(\vec{z}) \geq 0$. 
 
 \ \\
-$\vec{z}$ is a solution to our LCP if and only if $f(\vec{z})=0$. Should it be that due to numerical errors no such $\vec{z}$ can be found, we still yield a satisfying\footnote{verify this} approximation by having found a minimum for $f(\vec{z})$.
+$\vec{z}$ is a solution to our LCP if and only if $f(\vec{z})=0$. 
 \subsection{Adjusting velocity with pressure}
 We obtained our pressure term $\vec{p}^n$. We compute the gradient $\nabla\vec{p}^n$ and substract it from the velocity. After that, we normalize the velocity to $v_{\max}$.
 The result is our final grid velocity $\tilde{v}^n$ satisfying
@@ -599,10 +599,114 @@ The result is our final grid velocity $\tilde{v}^n$ satisfying
 	\tilde{v}^n = \frac{\vec{v}^n-\nabla\vec{p}^n}{||\vec{v}^n-\nabla\vec{p}^n||}
 	\label{eq:finvelocity}
 \end{equation}
-We use $\tilde{v}^n$ to steer the velocity of the agents. First we interpolate the final crowd velocity $\tilde{v}^n_{a_i}$ at the agents location $(x_{a_i},y_{a_i})$ by applying bilinear interpolation from the 4 surrounding cell values\footnote{check in implementation}. We determine the individual velocity $v^{n+1}_{a_i}$ by computing the weighted average as described in \eqref{eq:dens_velo}.
+We use $\tilde{v}^n$ to steer the velocity of the agents. First we interpolate the final crowd velocity $\tilde{v}^n_{a_i}$ at the agents location $(x_{a_i},y_{a_i})$ by applying bilinear interpolation from the 4 surrounding cell values. We determine the individual velocity $v^{n+1}_{a_i}$ by computing the weighted average as described in \eqref{eq:dens_velo}.
 \newpage
 \section{Results}
-\emph{We investigate three(?) scenarios. We are mainly interested in how the density affects the walking speed and travelled paths of the pedestrians. To do so, we measure the time spent in the scene per pedestrian, the ratio of distance covered to distance planned to cover, and the density perceived.}
-\bibliographystyle{abbrv}
+To test our model, we create three different scenarios. For each scenario, we measure the density field, the final path taken, the time spent in the scene and the time spent waiting.
+\subsection{Scenario 1: Narrowing scene}
+We test the model on the scene depicted in Figure~\ref{fig:narrowing_scene}. We initialize all pedestrians in the top section of the screen, The only exit is in the bottom section, so the pedestrians have to follow the funnel-like corridor.
+The goal of this scenario is to investigate how well the simulation deals with many aggregated obstacles and slowly increasing pressure.\\
+\paragraph{Quantitative results}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.5\textwidth]{narrow_scene.pdf}
+	\caption{Initial state of the scenario. All pedestrians must exit through the red rectangle}
+	\label{fig:narrowing_scene}
+\end{figure}
+Figure~\ref{fig:narrow_scene2} shows the scene after several time steps. It is difficult to visualize the progress of the simulation in an image. Still, we try to capture the characteristic movements of the pedestrians by showing what happens to the uniformly distributed crowd after several time steps.\\
+Notice the crowd congestion takes place close to the obstacles, while in the center the density has barely increased. Left and right we see trails of pedestrians pushed back for exceeding the maximum density. The density is highest near the corners of the obstacles. This is visible in the density plot in Figure~\ref{fig:narrow_dens_plot}.
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.5\textwidth]{narrow_scene2.pdf}
+	\caption{State of the scenario after 100 time steps}
+	\label{fig:narrow_scene2}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{narrow_density_field.pdf}
+	\caption{Density field plot corresponding to Figure~\ref{fig:narrow_scene2}}
+    \label{fig:narrow_scene2}
+\end{figure}
+The scene is cleared after 1.059 time steps, an order of magnitude larger than the number of time steps in Figure~\ref{fig:narrow_scene2}. This shows that the amount of congestion has a large effect on the evacuation of the scene. \\
+To support this observation, Figure~\ref{fig:narrow_time_histogram} shows a histogram of the pedestrians exit times. We observe a large variance; the last pedestrian takes more than twice as much time to exit the scene as the first pedestrian.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{narrow_time_histogram.pdf}
+    \caption{Histogram of the pedestrian exit times. This serves as a measure of throughput}
+    \label{fig:narrow_time_histogram}
+\end{figure}
+
+
+\ \\
+We plot both the time spent in the scene as the relative delay (the average speed over the maximum speed) per pedestrian as a function of the initial location. 
+This way, we can determine 'hot spots' of locations which are susceptible to a long evacuation time. 
+These plots are presented in Figure~\ref{fig:narrow_time} and Figure~\ref{fig:narrow_delay}. The time a pedestrian spends in the scene is equal to the number of time steps required to enter the exit. 
+The delay represents the increase in walking time a pedestrian experiences due to interactions with other pedestrians. The delay is defined as the quotient of the maximum speed and the observed speed and represents the amount of time a pedestrians waits (instead of walks).
+\begin{figure}[h]
+\centering
+\begin{minipage}{.45\textwidth}
+	\centering
+	\includegraphics[width=\textwidth]{narrow_time.pdf}
+	\captionof{figure}{Walking time to exit as a function of initial location}
+	\label{fig:narrow_time}
+\end{minipage}%
+\hfill
+\begin{minipage}{.45\textwidth}
+	\centering
+	\includegraphics[width=\textwidth]{narrow_delay.pdf}
+	\captionof{figure}{Experienced delay as a function of initial location}
+	\label{fig:narrow_delay}
+\end{minipage}
+\end{figure}
+We see a smooth transition in walking times. The pedestrians spawned in the bottom center exit first, and the time spent in the scene increases in a radially symmetric fashion.\\
+The delay has a less continuous distribution. This is caused by the fact that most pedestrians plan a path directly to the exit. 
+This path can only be maintained for the most centered people. The rest has to wait until these pedestrians have passed, and therefore have to divert from their path. This is also visible in the path plot provided in Figure~\ref{fig:narrow_paths}.\\
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.7\textwidth]{narrow_paths.png}
+	\caption{Paths of each pedestrian from their initial position to the exit}
+	\label{fig:narrow_paths}
+\end{figure}\\
+When comparing the density to the average delay we obtain the following plot:
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{delay_vs_density.png}
+    \caption{Delay measured over several simulations with variying densities}
+    \label{fig:narrow_paths}
+\end{figure}
+The delay increases with the density. However, for high density values the increase in delay becomes smaller. While it would be interesting to examine the limiting behaviour of the delay, it would require large density values. These values fall outside the range of realistic situation, so they provide no relevant information.
+\paragraph{Discussion}
+To assess the strong points, the weak points, and the overall quality of the simulation, we analyse the results and compare them to literature.
+
+\ \\
+Regarding the structure of the scene: the obstacles represent a funnel. A limitation of the obstacle setup and the path planning algoritms is that all obstacle faces are horizontal or vertical. 
+Straight lines with different angles, like a diagonally placed wall, can only be approximated by placing a number of obstacles along that wall. 
+While this method does ensure pedestrians are correctly manoeuvred to the exit, when the number of pedestrians becomes large, the their paths become less smooth and the path planning takes more time. This is a direct consequence of the path planning algorithm, that attempts to guide the pedestrians past certain 'checkpoints' close to obstacle corners.
+In the simulation this is observed in Figure~\ref{fig:narrow_scene2}, where the pedestrians near the obstacles have difficulty passing their checkpoint.\\
+The velocity field plot shows regions of [conflicting] velocities near the obstacle corners.
+Note that it is not very unlikely to have congestions near the narrowing boundaries. [The congestion location just seems to be off. Instead of past the corner, you'd say it would be near the edge, where people cannot pass].
+\ \\
+A strong point of the algorithm is that in spite of fixed angles for the walls and obstacles, the pedestrians path angle is not restricted. This means that smooth diagonal paths are generated, respecting the pedestrians intent to reach the exit as soon as possible, avoiding obstacles. This is visible in Figure~\ref{fig:narrow_paths}, where we see the paths for the leftmost and rightmost pedestrians are diagonal at first, but become increasingly vertical as they approach their goal.
+
+When we look at the propagation of the evacuation, we see that apart from curves, the paths follow the shape of the funnel. However, the paths in the center of the funnel are more straight than to be expected for a crowd this dense. This is caused by the low density in the center of the crowd, as visible in Figure~\ref{narrow_scene2}. No pressure is observed, so the pedestrians do not need to deviate from their original paths.
+The low density in the center is caused by the inflexibility of the path. Pedestrians are able to deviate from the planned path as long as they pass within a certain radius of their checkpoints.
+This means that in case of congestions, pedestrians will wait until the blocked path is free, instead of passing around the blockage to regions with a lower density. This causes both the low density in the center as well as the trails of pedestrians near the edges of the funnel.
+
+\ \\
+Finally, we examine the rate of pedestrians leaving the exit. Figure~\ref{fig:narrow_time} shows that the time spent in the scene is lowest for people closest to the exit and from there increases gradually. This is in accordance with the histogram in Figure~\ref{fig:narrow_histogram}. \\
+Besides the distribution of pedestrian exit times, the histogram shows us something else; the maximum throughput of the exit. Looking at the shape of the histogram, we see that after the first pedestrian reaches the exit, the throughput increases up to almost 4 pedestrians per time step.
+After reaching this maximum, the throughput gradually decreases until the final pedestrian leaves the scene. 
+While the distributed behaviour of exiting is good and reported in observations [PAPER], it would [be more realistic if the throughput remained on its maximum longer]. [The pedestrian trails clearly work through in this].
+\section{Future Research}
+We would like to increase the number of pedestrians even further by using a different programming language and improving algoritms\\
+We would like a better path planner: for instance [jalba] or [dynamic]
+We would like to have different obstacle handling
+We would like to have entrances and see lane formation
+We would like to indicate regions of walking
+\section{Conclusion}
+This is the simulation. it performs quite well and has little demands in domaindrawing. Path planning could be better but pressure term really seems to work.
+
+\newpage
 \bibliography{bib} 
 \end{document}
