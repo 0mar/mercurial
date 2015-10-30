@@ -267,7 +267,7 @@ class Path(object):
         elif isinstance(other, Point):
             if not self.list:
                 raise AssertionError("List must have elements before adding Points")
-            print("Last element: %s\n Last point of last element: %s\n" % (self.list[-1], self.list[-1][-1]))
+            ft.debug("Last element: %s\n Last point of last element: %s\n" % (self.list[-1], self.list[-1][-1]))
             new_line_segment = LineSegment([Point(self.list[-1][-1]), other])
             self.list.append(new_line_segment)
         else:

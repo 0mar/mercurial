@@ -47,6 +47,10 @@ class VisualScene:
     def size(self, value):
         self.window.geometry("%dx%d" % tuple(value))
 
+    def start(self):
+        self.loop()
+        self.window.mainloop()
+
     def _advance_simulation(self, _):
         """
         Method required for moving the simulation forward one time unit
@@ -64,7 +68,7 @@ class VisualScene:
 
     def loop(self):
         """
-        Public interface for visual scene loop. If requested, had a callback reference to itself to keep the simulation going.
+        Public interface for visual scene loop. If required, has a callback reference to itself to keep the simulation going.
         :return: None
         """
         self._advance_simulation(None)
@@ -81,7 +85,7 @@ class VisualScene:
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
         ft.log("Mouse location: %s" % scene_point)
         clicked_cell = self.scene.get_cell_from_position(scene_point)
-        print(str(clicked_cell))
+        ft.debug(str(clicked_cell))
         # for ped in self.scene.pedestrian_list:p
         # fyi(str(ped))
         #     fyi("Origin: %s" % ped.origin)
@@ -209,3 +213,18 @@ class VisualScene:
         :return: a Size with the coordinates of screen
         """
         return Size([coord[0], 1 - coord[1]]) * self.size
+
+
+class NoVisualScene(VisualScene):
+    def __init__(self, scene, step_functions):
+        self.scene = scene
+        self.step_functions = step_functions
+        self.autoloop = True
+
+    def start(self):
+        while not self.scene.status == 'DONE':
+            self._advance_simulation(None)
+            ft.log("Time step %d" % (self.scene.time / self.scene.dt))
+
+    def _advance_simulation(self, _):
+        [step_function() for step_function in self.step_functions]

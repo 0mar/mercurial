@@ -8,7 +8,7 @@ from geometry import Size, Point
 import scene as scene_module
 import functions
 from results import Result
-from visualization import VisualScene
+from visualization import VisualScene, NoVisualScene
 from dynamic_planner import DynamicPlanner
 from grid_computer import GridComputer
 from static_planner import GraphPlanner
@@ -43,6 +43,8 @@ parser.add_argument('-l', '--loop', action='store_true', help='Pedestrians reapp
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to console')
 parser.add_argument('-d', '--dynamic', action='store_true', help='Apply the dynamic planner to pedestrians')
+parser.add_argument('-k', '--kernel', action='store_true',
+                    help='Don\'t run visualization, do results only (-r implied)')
 
 args = parser.parse_args()
 
@@ -81,12 +83,13 @@ else:
 
 if args.results:
     result = Result(scene)
-
-vis = VisualScene(scene, 1500, 1000, step_functions=step_functions,
+if not args.kernel:
+    vis = VisualScene(scene, 1500, 1000, step_functions=step_functions,
                   loop=not args.step, delay=args.time_delay, draw_cells=args.draw_cells)
+else:
+    vis = NoVisualScene(scene, step_functions=step_functions)
 
 
 # Running
-vis.loop()
-vis.window.mainloop()
+vis.start()
 scene.finish()

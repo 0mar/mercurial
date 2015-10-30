@@ -56,7 +56,7 @@ class ScalarField:
         :return:
         """
         if not self.array.shape == new_field.shape:
-            print(self.name, self.array.shape, new_field.shape)
+            ft.debug(str(self.name, self.array.shape, new_field.shape))
             assert self.array.shape == new_field.shape
 
         self.array = new_field.copy()
