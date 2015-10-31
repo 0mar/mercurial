@@ -108,10 +108,10 @@ class SceneCreator:
     def save(self, save_name):
         obstacle_data = {"obstacles": [], "exits": []}
         for number, obstacle in enumerate(self.obstacle_list):
-            name = "Obstacle#%d" % number
+            name = "obstacle%d" % number
             obstacle_data["obstacles"].append({"name": name, "begin": obstacle.start, "size": obstacle.size})
         for number, exit_obstacle in enumerate(self.exit_list):
-            name = "Exit#%d" % number
+            name = "exit%d" % number
             obstacle_data["exits"].append({"name": name, "begin": exit_obstacle.start, "size": exit_obstacle.size})
         with open('../scenes/%s.json' % save_name, 'w') as object_file:
             object_file.write(json.dumps(obstacle_data, indent=4, sort_keys=True))

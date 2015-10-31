@@ -169,9 +169,11 @@ class Pedestrian(object):
         Provides a warning when it has left the scene without exiting through its exit object.
         :return: True when the pedestrian has left the scene, false otherwise.
         """
-        if any(self.position in goal for goal in self.goals):
-            return True
-        elif any(self.position.array < 0) or any(self.position.array > self.scene.size.array):
+        for goal in self.goals:
+            if self.position in goal:
+                goal.log_pedestrian(self, self.scene.time)
+                return True
+        if any(self.position.array < 0) or any(self.position.array > self.scene.size.array):
             ft.warn("Dirty exit of %s, leaving on %s" % (self, self.position))
             return True
         else:

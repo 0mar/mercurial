@@ -167,7 +167,7 @@ class GridComputer:
             if result['status'] == 'optimal':
                 flat_p = result['x']
             else:
-                ft.warn("Warning, density exceeds max density sharply")
+                ft.warn("density exceeds max density sharply")
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
         self.p = np.reshape(flat_p, self.cell_dimension, order='F')

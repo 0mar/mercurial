@@ -26,11 +26,11 @@ parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in s
 parser.add_argument('-s', '--step', action='store_true', help='Let simulation progress on mouse click only')
 parser.add_argument('-g', '--graph', action='store_true', help='Let simulation graph global values on each time step')
 parser.add_argument('-i', '--apply-interpolation', action='store_true',
-                    help='Let simulation impose swarm behaviour to the pedestrians')
+                    help='Let simulation impose swarm behaviour to pedestrians')
 parser.add_argument('-p', '--apply-pressure', action='store_true',
                     help='Let simulation impose UIC (pressure term) to the pedestrians (-c implied)')
-parser.add_argument('-x', '--width', type=int, help='Width of the simulation domain', default=domain_width)
-parser.add_argument('-y', '--height', type=int, help='Height of the simulation domain', default=domain_height)
+parser.add_argument('-x', '--width', type=int, help='Width of simulation domain', default=domain_width)
+parser.add_argument('-y', '--height', type=int, help='Height of simulation domain', default=domain_height)
 parser.add_argument('-t', '--time-delay', type=int, help='Delay between time steps (in milliseconds)', default=1)
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
@@ -38,11 +38,12 @@ parser.add_argument('-c', '--configuration', type=str, choices=['uniform', 'top'
                     default='uniform',
                     help='Specify configuration of pedestrian initialization')
 parser.add_argument('--draw-cells', action='store_true',
-                    help='Draw the boundaries and cell centers of the cells. Slow, should only be used for debugging')
-parser.add_argument('-l', '--loop', action='store_true', help='Pedestrians reappear on the other side (experimental)')
+                    help='Draw the boundaries and cell centers of the cells. Slow, only use for debugging')
+parser.add_argument('-l', '--loop', action='store_true', help='Pedestrians reappear on the other side (beta)')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('-v', '--verbose', action='store_true', help='Print debugging information to console')
-parser.add_argument('-d', '--dynamic', action='store_true', help='Apply the dynamic planner to pedestrians')
+parser.add_argument('-d', '--dynamic', action='store_true', help='Apply dynamic planner to pedestrians')
+parser.add_argument('--log-exits', action='store_true', help='Store exit data so simulation results can be reused')
 parser.add_argument('-k', '--kernel', action='store_true',
                     help='Don\'t run visualization, do results only (-r implied)')
 
@@ -81,7 +82,7 @@ else:
                         apply_pressure=args.apply_pressure)
     step_functions = [planner.collective_update, grid.step]
 
-if args.results:
+if args.results or args.kernel:
     result = Result(scene)
 if not args.kernel:
     vis = VisualScene(scene, 1500, 1000, step_functions=step_functions,

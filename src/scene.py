@@ -3,20 +3,23 @@ __author__ = 'omar'
 import pickle
 import itertools
 import json
+import math
 
 import numpy as np
+import scipy.io as sio
 
 import functions as ft
 from pedestrian import Pedestrian, EmptyPedestrian
 from geometry import Point, Size, LineSegment, Interval
 
 
+# TODO: This file is +500 lines. Bad.
 class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, cache='read'):
+    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, cache='read', log_exits=True):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -50,6 +53,8 @@ class Scene:
         self._load_parameters()
 
         self.cell_size = Size(self.size.array / self.number_of_cells)
+        if log_exits:
+            self.set_on_finish_functions(self.store_exit_logs)
         self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
             self._load_cells()
@@ -155,8 +160,6 @@ class Scene:
             self.obstacle_list.append(Obstacle(begin, size, name))
         if len(data['exits']) == 0:
             raise AttributeError('No exits specified in %s' % file_name)
-        elif len(data['exits']) > 1:
-            ft.warn('Multiple exits specified in %s' % file_name)
         for exit_data in data['exits']:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])
@@ -390,6 +393,13 @@ class Scene:
         self.update_cells()
         [function() for function in self.on_step_functions]
 
+    def store_exit_logs(self, file_name=None):
+        log_dir = 'results/'
+        if not file_name:
+            file_name = 'logs'
+        log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_set}
+        sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
+
     def finish(self):
         """
         Call all methods that need to be called upon finish.
@@ -427,7 +437,7 @@ class Cell:
             if ft.rectangles_intersect(self.begin, self.begin + self.size, obstacle.begin, obstacle.end, True):
                 self.obstacle_set.add(obstacle)
                 corner_points = [(Point(obstacle.begin + Size([x, y]) * obstacle.size)) for x in range(2) for y in
-                         range(2)]
+                                 range(2)]
                 corner_points[2], corner_points[3] = corner_points[3], corner_points[2]
                 # Create edges
                 edge_list = []
@@ -588,3 +598,18 @@ class Exit(Obstacle):
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
+        self.log_list = []
+
+    def log_pedestrian(self, pedestrian, time):
+        """
+        Logs the exit location and time of the pedestrian, so we can reuse it in an Entrance
+        The current log format is [angle,time].
+        The current log format is positional so we can easily convert the data to a numpy array.
+        :param pedestrian: Pedestrian that left the exit at time epoch time
+        :param time: time at which pedestrian first entered an (this) exit.
+        :return: None
+        """
+        distance_to_center = pedestrian.position - self.center
+        angle = math.atan2(distance_to_center[1], distance_to_center[0])
+        # We could process more pedestrian properties, like max speed or 'class'. We omit this for now.
+        self.log_list.append([angle, time])

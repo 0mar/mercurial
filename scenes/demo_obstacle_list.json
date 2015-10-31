@@ -36,7 +36,7 @@
   ],
   "exits": [
     {
-      "name": "Exit 1",
+      "name": "Exit1",
       "begin": [
         0.3,
         0
@@ -47,7 +47,7 @@
       ]
     },
     {
-      "name": "Exit 2",
+      "name": "Exit2",
       "begin": [
         0,
         0.3
