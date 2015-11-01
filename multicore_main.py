@@ -49,7 +49,7 @@ for i in sim_list:
     # Initialization
     functions.VERBOSE = False
     scene = TopScene(size=Size([domain_width, domain_height]), obstacle_file=obstacle_file,
-                     pedestrian_number=number_of_pedestrians, barrier=0.8)
+                     initial_pedestrian_number=number_of_pedestrians, barrier=0.8)
     planner = GraphPlanner(scene)
     grid = GridComputer(scene, show_plot=False, apply_interpolation=False,
                         apply_pressure=False)

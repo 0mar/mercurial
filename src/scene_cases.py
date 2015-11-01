@@ -7,12 +7,12 @@ from scene import Scene, Pedestrian
 
 
 class ImpulseScene(Scene):
-    def __init__(self, size, pedestrian_number, obstacle_file,
+    def __init__(self, size, initial_pedestrian_number, obstacle_file,
                  impulse_location, impulse_size, mde=True, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
-        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
         :param impulse_location: Center of the pedestrians impulse
         :param impulse_size: (Ellipse-like) radius of the impulse
@@ -24,7 +24,7 @@ class ImpulseScene(Scene):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_location = impulse_location
-        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
     def _init_pedestrians(self):
         center = np.array(self.impulse_location)
@@ -44,12 +44,12 @@ class ImpulseScene(Scene):
 
 
 class TwoImpulseScene(Scene):
-    def __init__(self, size, pedestrian_number, obstacle_file,
+    def __init__(self, size, initial_pedestrian_number, obstacle_file,
                  impulse_locations, impulse_size, mde=True, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
-        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
         :param impulse_locations: Center of the pedestrians impulses
         :param impulse_size: (Ellipse-like) radius of the impulses
@@ -61,7 +61,7 @@ class TwoImpulseScene(Scene):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_locations = impulse_locations
-        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
     def _init_pedestrians(self):
 
@@ -85,18 +85,18 @@ class TwoImpulseScene(Scene):
 
 
 class LoopScene(Scene):
-    def __init__(self, size, pedestrian_number, obstacle_file, mde=True, cache='read'):
+    def __init__(self, size, initial_pedestrian_number, obstacle_file, mde=True, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
-        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
         :param mde: Boolean flag for enforcing minimal distance between pedestrians.
         :param cache: 'read' or 'write' the cell cache to increase init speed.
         :return: scene instance.
         """
 
-        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
     def remove_pedestrian(self, pedestrian):
         new_point = Point([pedestrian.position.x, self.size.height - 1])
@@ -104,11 +104,11 @@ class LoopScene(Scene):
 
 
 class TopScene(Scene):
-    def __init__(self, size, pedestrian_number, obstacle_file, barrier, mde=True, cache='read'):
+    def __init__(self, size, initial_pedestrian_number, obstacle_file, barrier, mde=True, cache='read'):
         """
         Initializes an impulse scene
         :param size: Size object holding the size values of the scene
-        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
         :param barrier: Relative y coordinate from which the pedestrians should be spawned.
         :param mde: Boolean flag for enforcing minimal distance between pedestrians.
@@ -118,7 +118,7 @@ class TopScene(Scene):
         if not 0 <= barrier < 1:
             raise ValueError("Barrier must be between 0 and 1")
         self.barrier = barrier
-        super().__init__(size, pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
     def _init_pedestrians(self):
         self.pedestrian_list = []

@@ -71,9 +71,9 @@ class Result:
         :return: None
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
-        self.path_length[np.where(self.scene.alive_array)] += distance[np.where(self.scene.alive_array)]
+        self.path_length[np.where(self.scene.active_entries)] += distance[np.where(self.scene.active_entries)]
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.alive_array[pedestrian.counter]:
+            if self.scene.active_entries[pedestrian.counter]:
                 # Comment out if not needed.
                 self.paths_list[pedestrian.counter].append(pedestrian.position.array)
 
@@ -90,10 +90,10 @@ class Result:
         :return: None
         """
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.alive_array[pedestrian.counter] == 1:
+            if self.scene.active_entries[pedestrian.counter] == 1:
                 self.time_spent[pedestrian.counter] = self.scene.time
-        self.path_length_ratio = self.planned_path_length[np.invert(self.scene.alive_array.astype(bool))] / \
-                                 self.path_length[np.invert(self.scene.alive_array.astype(bool))]
+        self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries.astype(bool))] / \
+                                 self.path_length[np.invert(self.scene.active_entries.astype(bool))]
         self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
         self.paths_list = np.array(self.paths_list)

@@ -13,7 +13,7 @@ empty_file_name = '../scenes/empty_scene.json'
 class TestCell:
     def __init__(self):
         self.ped_number = 1000
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=self.ped_number,
+        self.scene = Scene(size=Size([250, 150]), initial_pedestrian_number=self.ped_number,
                            obstacle_file=demo_file_name)
 
     def test_ped_distribution(self):

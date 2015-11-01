@@ -18,7 +18,7 @@ class GraphPlanner:
     Lower level objects should be agnostic of the planner.
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
     """
-
+    # TODO: when time step is too large, bugs occur
     def __init__(self, scene):
         """
         Constructs a Graph planner
@@ -29,17 +29,16 @@ class GraphPlanner:
         self.scene = scene
         self.graph = None
         self._create_obstacle_graph()
-        ft.log("Started preprocessing global paths")
+        ft.log("Started pre-processing global paths")
         for pedestrian in scene.pedestrian_list:
             pedestrian.path = self.create_path(pedestrian)
             pedestrian.line = pedestrian.path.pop_next_segment()
             pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
-        ft.log("Finished preprocessing global paths")
+        ft.log("Finished pre-processing global paths")
 
     def _create_obstacle_graph(self):
         """
         Create the graph of the obstacles. Details on implementation are found in the report.
-        :param goal_obstacle: The goal under consideration.
         :return:
         """
         self.graph = nx.Graph()
@@ -129,7 +128,7 @@ class GraphPlanner:
             except nx.NetworkXNoPath:
                 continue
         if not best_path:
-            raise RuntimeError("No path could be found from %s to exit. Check your obstacles" % pedestrian)
+            raise RuntimeError("No path from %s to exit. Check your obstacles" % pedestrian)
         path_to_exit = Path([])
         prev_point = best_path[0]
         for point in best_path[1:-1]:
@@ -160,12 +159,12 @@ class GraphPlanner:
 
         # 2
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.alive_array[pedestrian.counter]:
+            if self.scene.active_entries[pedestrian.index]:
                 pedestrian.correct_for_geometry()
 
         stationary_pedestrian_array = self.scene.get_stationary_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
-            if not stationary_pedestrian_array[pedestrian.counter] and self.scene.alive_array[pedestrian.counter]:
+            if not stationary_pedestrian_array[pedestrian.index] and self.scene.active_entries[pedestrian.index]:
                 # assert self.scene.is_accessible(pedestrian.position)
                 pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 remaining_path = pedestrian.line.end - pedestrian.position
@@ -181,7 +180,7 @@ class GraphPlanner:
                         pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position)
                 else:
                     pedestrian.velocity = Velocity(remaining_path)  # Expensive...
-            elif self.scene.alive_array[pedestrian.counter]:
+            elif self.scene.active_entries[pedestrian.index]:
                 # Stationary pedestrian. Creating new path.
                 pedestrian.path = self.create_path(pedestrian)
                 pedestrian.line = pedestrian.path.pop_next_segment()

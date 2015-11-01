@@ -13,7 +13,7 @@ empty_file_name = '../scenes/empty_scene.json'
 class TestPedestrian:
     def __init__(self):
         print("Initializing the class")
-        self.scene = Scene(size=Size([250, 150]), pedestrian_number=1000, obstacle_file=demo_file_name)
+        self.scene = Scene(size=Size([250, 150]), initial_pedestrian_number=1000, obstacle_file=demo_file_name)
 
     def setup(self):
         # print("Supposed to happen for each class")

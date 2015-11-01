@@ -9,7 +9,7 @@ import numpy as np
 import scipy.io as sio
 
 import functions as ft
-from pedestrian import Pedestrian, EmptyPedestrian
+from pedestrian import Pedestrian
 from geometry import Point, Size, LineSegment, Interval
 
 
@@ -19,18 +19,18 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, pedestrian_number, obstacle_file, mde=True, cache='read', log_exits=True):
+    def __init__(self, size: Size, initial_pedestrian_number, obstacle_file, mde=True, cache='read', log_exits=True):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
-        :param pedestrian_number: Number of pedestrians on initialization in the scene
+        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
         :param dt: update time step
         :return: scene instance.
         """
         self.size = size
-        self.pedestrian_number = pedestrian_number
         self.time = 0
+        self.total_pedestrians = initial_pedestrian_number
         self.obstacle_list = []
         self.exit_set = set()  # mix set ands lists?
         self.on_step_functions = []
@@ -39,15 +39,16 @@ class Scene:
 
         # Array initialization
         self._read_json_file(file_name=obstacle_file)
-        self.position_array = np.zeros([self.pedestrian_number, 2])
-        self.last_position_array = np.zeros([self.pedestrian_number, 2])
-        self.velocity_array = np.zeros([self.pedestrian_number, 2])
-        self.max_speed_array = np.empty(self.pedestrian_number)
-        self.pedestrian_cells = np.zeros([self.pedestrian_number, 2])
-        self.alive_array = np.ones(self.pedestrian_number)
+        self.position_array = np.zeros([initial_pedestrian_number, 2])
+        self.last_position_array = np.zeros([initial_pedestrian_number, 2])
+        self.velocity_array = np.zeros([initial_pedestrian_number, 2])
+        self.max_speed_array = np.empty(initial_pedestrian_number)
+        self.pedestrian_cells = np.zeros([initial_pedestrian_number, 2])
+        self.active_entries = np.ones(initial_pedestrian_number)
+        self._expand_arrays()
         self.cell_dict = {}
 
-        # Parameter initialization
+        # Parameter initialization (will be overwritten by _load_parameters)
         self.minimal_distance = self.dt = 0
         self.number_of_cells = self.pedestrian_size = None
         self._load_parameters()
@@ -63,18 +64,18 @@ class Scene:
         if cache == 'write':
             self._store_cells()
         self.pedestrian_list = []
-        self._init_pedestrians()
+        self._init_pedestrians(initial_pedestrian_number)
         self.status = 'RUNNING'
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, init_number):
         """
         Protected method that determines how the pedestrians are initially distributed,
         as well as with what properties they come. Overridable.
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, self.exit_set, size=self.size, max_speed=self.max_speed_array[counter])
-            for counter in range(self.pedestrian_number)]
+            Pedestrian(self, counter, goals=self.exit_set, size=self.size, max_speed=self.max_speed_array[counter])
+            for counter in range(init_number)]
         self._fill_cells()
 
     def _load_parameters(self, filename='params.json'):
@@ -112,9 +113,25 @@ class Scene:
         self.minimal_distance = data_dict['minimal_distance']
         self.pedestrian_size = Size(data_dict['pedestrian_size'])
         interval = Interval(data_dict['max_speed_interval'])
-        self.max_speed_array = interval.begin + np.random.random(self.pedestrian_number) * interval.length
+        self.max_speed_array = interval.begin + np.random.random(self.position_array.shape[0]) * interval.length
         self.interpolation_factor = data_dict['interpolation_factor']
         self.packing_factor = data_dict['packing_factor']
+
+    def _expand_arrays(self):
+        """
+        Increases the size (first dimension) of a numpy array with the given factor.
+        Missing entries are set to zero
+        :param factor: Multiplication factor for the size
+        :return: None
+        """
+        # I don't like [gs]etattr, but this is pretty explicit
+        attr_list = ["position_array", "last_position_array", "velocity_array",
+                     "max_speed_array", "pedestrian_cells", "active_entries"]
+        for attr in attr_list:
+            array = getattr(self, attr)
+            addition = np.zeros(array.shape)
+            setattr(self, attr, np.concatenate((array, addition), axis=0))
+
 
     def set_on_step_functions(self, *on_step):
         """
@@ -195,9 +212,9 @@ class Scene:
         """
         cell_locations = np.floor(self.position_array / self.cell_size)
         self.pedestrian_cells = cell_locations
-        for index in range(self.pedestrian_number):
-            cell_location = (int(cell_locations[index, 0]), int(cell_locations[index, 1]))
-            self.cell_dict[cell_location].add_pedestrian(self.pedestrian_list[index])
+        for pedestrian in self.pedestrian_list:
+            cell_location = (int(cell_locations[pedestrian.index, 0]), int(cell_locations[pedestrian.index, 1]))
+            self.cell_dict[cell_location].add_pedestrian(pedestrian)
 
     def _store_cells(self, filename='cells.bin'):
         """
@@ -267,10 +284,10 @@ class Scene:
     def get_stationary_pedestrians(self):
         """
         Computes which pedestrians have not moved since the last time step
-        :return: nx1 boolean np.array, True if pedestrian is stationary, False otherwise
+        :return: nx1 boolean np.array, True if (existing) pedestrian is stationary, False otherwise
         """
         pos_difference = np.linalg.norm(self.position_array - self.last_position_array, axis=1)
-        not_moved = pos_difference == 0
+        not_moved = np.logical_and(pos_difference == 0, self.active_entries == 1)
         # is_alive = np.array(self.alive_array,dtype=bool) # Not necessary, we check in planner anyway
         # combined_stationary_information = np.hstack([not_moved[:,None],is_alive[:,None]])
         return not_moved
@@ -282,18 +299,18 @@ class Scene:
         """
         new_ped_cells = self.get_pedestrian_cells()
         needs_update = self.pedestrian_cells != new_ped_cells
-        for index in range(self.pedestrian_number):
-            if self.alive_array[index]:
-                if any(needs_update[index]):
-                    pedestrian = self.pedestrian_list[index]
-                    cell = pedestrian.cell
-                    new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))
-                    if new_cell_orientation in self.cell_dict:
-                        cell.remove_pedestrian(self.pedestrian_list[index])
-                        new_cell = self.cell_dict[new_cell_orientation]
-                        new_cell.add_pedestrian(pedestrian)
-                    else:
-                        pass
+        for pedestrian in self.pedestrian_list:
+            index = pedestrian.index
+            assert self.active_entries[index]
+            if any(needs_update[index]):
+                cell = pedestrian.cell
+                new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))
+                if new_cell_orientation in self.cell_dict:
+                    cell.remove_pedestrian(pedestrian)
+                    new_cell = self.cell_dict[new_cell_orientation]
+                    new_cell.add_pedestrian(pedestrian)
+                else:
+                    pass
         self.pedestrian_cells = new_ped_cells
 
     def _minimum_distance_enforcement(self, min_distance):
@@ -310,10 +327,10 @@ class Scene:
         list_b = []
         index_list = []
         for cell in self.cell_dict.values():
-            for comb in itertools.combinations(cell.pedestrian_set, 2):
-                list_a.append(comb[0].position.array)
-                list_b.append(comb[1].position.array)
-                index_list.append([comb[0].counter, comb[1].counter])
+            for ped_combination in itertools.combinations(cell.pedestrian_set, 2):
+                list_a.append(ped_combination[0].position.array)
+                list_b.append(ped_combination[1].position.array)
+                index_list.append([ped_combination[0].index, ped_combination[1].index])
         array_a = np.array(list_a)
         array_b = np.array(list_b)
         array_index = np.array(index_list)
@@ -323,34 +340,31 @@ class Scene:
         distances = np.linalg.norm(differences, axis=1)
         indices = np.where(distances < min_distance)[0]
 
-        mde_pairs = array_index[indices]
+        mde_index_pairs = array_index[indices]
         mde_corrections = (min_distance / (distances[indices][:, None] + ft.EPS) - 1) * differences[indices] / 2
-        ordered_corrections = np.zeros([self.pedestrian_number, 2])
-        for it in range(len(mde_pairs)):
-            pair = mde_pairs[it]
-            ped_a = self.pedestrian_list[pair[0]]
-            ped_b = self.pedestrian_list[pair[1]]
-            ordered_corrections[ped_a.counter] += mde_corrections[it]
-            ordered_corrections[ped_b.counter] -= mde_corrections[it]
+        ordered_corrections = np.zeros(self.position_array.shape)
+        for it in range(len(mde_index_pairs)):
+            pair = mde_index_pairs[it]
+            ordered_corrections[pair[0]] += mde_corrections[it]
+            ordered_corrections[pair[1]] -= mde_corrections[it]
         self.position_array += ordered_corrections
 
     def remove_pedestrian(self, pedestrian):
         """
-        Removes a pedestrian from the scene by replacing it with an empty pedestrian
-        The replace is required so that the indexing is not disturbed.
+        Removes a pedestrian from the scene.
         :param pedestrian: The pedestrian instance to be removed.
         :return: None
         """
         # assert pedestrian.is_done()
-        assert self.pedestrian_list[pedestrian.counter] == pedestrian
+        assert self.active_entries[pedestrian.index]
         pedestrian.cell.remove_pedestrian(pedestrian)
-        counter = pedestrian.counter
-        empty_ped = EmptyPedestrian(self, counter)
-        self.pedestrian_list[counter] = empty_ped
-        self.alive_array[counter] = 0
+        index = pedestrian.index
+        self.pedestrian_list.remove(pedestrian)
+
+        self.active_entries[index] = 0
         for function in self.on_pedestrian_exit_functions:
             function(pedestrian)
-        if np.sum(self.alive_array) == 0:
+        if np.sum(self.active_entries) == 0:
             self.status = 'DONE'
 
     def is_within_boundaries(self, coord: Point):

@@ -86,7 +86,7 @@ def get_hyperplane_functional(p, q):
     Returns a functional that computes whether a vector is on either side (or on) a hyperplane.
     The hyperplane (in 2D) is determined by the input vectors.
     :param p: one of the 2D vectors determining the hyperplane
-    :param q:one of the 2D vectors (!=p) determining the hyplerplane
+    :param q:one of the 2D vectors (!=p) determining the hyperplane
     :return: 2D functional that is positive for vectors on one side of the hyperplane, negative
     for vectors on the other side, and zero for vectors on the plane
     """
@@ -94,3 +94,18 @@ def get_hyperplane_functional(p, q):
     a2 = p[0] - q[0]
     b = p[1] * (p[0] - q[0]) - p[0] * (p[1] - q[1])
     return lambda x1, x2: a1 * x1 + a2 * x2 - b
+
+
+def increase_array_size(array, increment_factor=2):
+    """
+    Increases the size (first dimension) of a numpy array with the given factor
+    :param array: Original array
+    :param increment_factor: Multiplication factor for the size
+    :return: array with same values for each entry of the old array, and 0 further
+    """
+    inc = int(increment_factor)
+    new_shape = array.shape
+    new_shape[0] = 2 * array.shape[0]
+    new_array = np.zeros(new_shape)
+    new_array[0:array.shape[0], :] = array
+    return new_array

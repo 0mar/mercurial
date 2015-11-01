@@ -15,7 +15,7 @@ empty_file_name = '../scenes/large_exit.json'
 
 class TestDynamicPlanner:
     def __init__(self):
-        self.scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=1)
+        self.scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=1)
         self.dyn_plan = DynamicPlanner(self.scene)
         self.pedestrian = self.scene.pedestrian_list[0]
         self.ped_x = np.random.randint(3, self.scene.size.width - 2)
@@ -28,7 +28,7 @@ class TestDynamicPlanner:
 
     def test_density_never_negative(self):
         n = 5
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
+        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene, False)
         dyn_plan.compute_density_and_velocity_field()
         density = dyn_plan.density_field.array
@@ -36,7 +36,7 @@ class TestDynamicPlanner:
 
     def test_velocity_never_negative(self):
         n = 5
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
+        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
         dyn_plan.compute_density_and_velocity_field()
         v_x, v_y = dyn_plan.v_x.array, dyn_plan.v_y.array
@@ -126,7 +126,7 @@ class TestDynamicPlanner:
 
     def test_speed_no_larger_than_max_speed(self):
         n = 10
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, pedestrian_number=n)
+        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
         dyn_plan = DynamicPlanner(scene)
         dyn_plan.compute_density_and_velocity_field()
         for dir in ft.DIRECTIONS:
@@ -166,13 +166,13 @@ class TestDynamicPlanner:
             assert (interface_val == 0) == is_in_exit
 
     def test_no_obstacle_means_no_fraction(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
         dyn_plan = DynamicPlanner(scene)
         # Cell (7,10) is a free cell.
         assert (7, 10) not in dyn_plan.obstacle_cell_set and (7, 10) not in dyn_plan.part_obstacle_cell_dict
 
     def test_fully_covered_means_high_potential(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
         dyn_plan = DynamicPlanner(scene)
         # Cell (9,9) is a fully covered cell.
         assert (9, 9) in dyn_plan.obstacle_cell_set
@@ -187,7 +187,7 @@ class TestDynamicPlanner:
         assert dyn_plan.potential_field.array[9, 9] == np.max(dyn_plan.potential_field.array)
 
     def test_fraction_method(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', pedestrian_number=1)
+        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
         dyn_plan = DynamicPlanner(scene)
         # Cell (8,10) is a partly covered cell.
         assert (8, 10) in dyn_plan.part_obstacle_cell_dict

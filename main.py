@@ -54,19 +54,20 @@ functions.VERBOSE = args.verbose
 scene = None
 if args.configuration == 'uniform':
     scene = scene_module.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                               pedestrian_number=args.number)
+                               initial_pedestrian_number=args.number)
 elif args.configuration == 'top':
     scene = TopScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file, barrier=0.8,
-                     pedestrian_number=args.number)
+                     initial_pedestrian_number=args.number)
 elif args.configuration == 'center':
     scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                         pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
+                         initial_pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
 elif args.configuration == 'bottom':
     scene = TwoImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                            pedestrian_number=args.number, impulse_locations=[Point([40, 20]), Point([30, 20])],
+                            initial_pedestrian_number=args.number, impulse_locations=[Point([40, 20]), Point([30, 20])],
                             impulse_size=45)
 if args.loop:
-    scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json', pedestrian_number=args.number)
+    scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json',
+                      initial_pedestrian_number=args.number)
     # Todo: Integrate in scene
 
 if not scene:

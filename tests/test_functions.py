@@ -1,6 +1,8 @@
 __author__ = 'omar'
 import sys
 
+import numpy as np
+
 sys.path.insert(1, '../src')
 
 from geometry import Point
@@ -46,3 +48,10 @@ class TestFunctions:
         start1, end1 = self.rec3
         start2, end2 = self.rec5
         assert not ft.rectangles_intersect(start1, end1, start2, end2)
+
+    def test_increase_array_size_old_values(self):
+        array = np.fromfunction(lambda i, j: i * j + 1, (5, 2))
+        new_array = ft.increase_array_size(array)
+        for i in array.shape[0]:
+            for j in array.shape[1]:
+                assert new_array[i, j] == array[i, j]

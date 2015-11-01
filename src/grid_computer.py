@@ -101,7 +101,8 @@ class GridComputer:
                         # Valid neighbour cell
                         relevant_pedestrian_set |= cell_dict[neighbour_cell_location].pedestrian_set
             distance_array = np.linalg.norm(self.scene.position_array - cell.center, axis=1)
-            weights = GridComputer.weight_function(distance_array / self.interpolation_factor) * self.scene.alive_array
+            weights = GridComputer.weight_function(
+                distance_array / self.interpolation_factor) * self.scene.active_entries
             density = np.sum(weights) + 0.01
             self.rho[cell_location] = density
 
@@ -214,7 +215,8 @@ class GridComputer:
         Adjusts the velocities of the pedestrians according to the velocity field
         :return: None
         """
-        self.get_grid_values()
+        if self.show_plot:
+            self.get_grid_values()
         if self.apply_interpolation:
             if self.apply_pressure:
                 self.solve_LCP()

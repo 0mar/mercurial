@@ -175,21 +175,21 @@ class DynamicPlanner:
                 density_contributions[x][y] = np.minimum(
                     1 - rel_differences[:, 0] + (2 * rel_differences[:, 0] - 1) * x,
                     1 - rel_differences[:, 1] + (2 * rel_differences[:, 1] - 1) * y) ** self.density_exponent
-        # For each cell center surrounding the pedestrian, add (in either dimension) 1-\delta . or \delta .
+        # For each cell center surrounding the pedestrian, add (in both dimensions) 1-\delta . or \delta .
 
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.alive_array[pedestrian.counter]:
+            if self.scene.active_entries[pedestrian.index]:
                 for x in range(2):
-                    x_coord = cell_center_indices[pedestrian.counter][0] + x
+                    x_coord = cell_center_indices[pedestrian.index][0] + x
                     if 0 <= x_coord < self.grid_dimension[0]:
                         for y in range(2):
-                            y_coord = cell_center_indices[pedestrian.counter][1] + y
+                            y_coord = cell_center_indices[pedestrian.index][1] + y
                             if 0 <= y_coord < self.grid_dimension[1]:
-                                density_field[x_coord, y_coord] += density_contributions[x][y][pedestrian.counter]
+                                density_field[x_coord, y_coord] += density_contributions[x][y][pedestrian.index]
                                 v_x[x_coord, y_coord] += \
-                                    density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.x
+                                    density_contributions[x][y][pedestrian.index] * pedestrian.velocity.x
                                 v_y[x_coord, y_coord] += \
-                                    density_contributions[x][y][pedestrian.counter] * pedestrian.velocity.y
+                                    density_contributions[x][y][pedestrian.index] * pedestrian.velocity.y
         # For each pedestrian, and for each surrounding cell center, add the corresponding density distribution.
         self.v_x.update(v_x / density_field)
         self.v_y.update(v_y / density_field)
@@ -406,7 +406,7 @@ class DynamicPlanner:
         self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
         for ped in self.scene.pedestrian_list:
-            if self.scene.alive_array[ped.counter]:
+            if self.scene.active_entries[ped.index]:
                 ped.correct_for_geometry()
                 if ped.is_done():
                     self.scene.remove_pedestrian(ped)

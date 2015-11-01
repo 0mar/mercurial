@@ -15,7 +15,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goals, size, max_speed, position=Point([0, 0])):
+    def __init__(self, scene, counter, goals, size, max_speed, position=Point([0, 0]), index=-1):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -28,6 +28,10 @@ class Pedestrian(object):
         """
         self.scene = scene
         self.counter = counter
+        if index < 0:
+            self.index = counter
+        else:
+            self.index = index
         self._position = None
         self._velocity = Velocity([0, 0])
         self.position = position
@@ -42,7 +46,7 @@ class Pedestrian(object):
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
             ft.warn("Ped %s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
-        self.scene.position_array[self.counter] = self._position.array
+        self.scene.position_array[self.index] = self._position.array
 
     def __str__(self):
         """
@@ -50,14 +54,14 @@ class Pedestrian(object):
         and whether or not pedestrian is still in the scene
         :return: string representation
         """
-        return "Moving pedestrian %d\tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self.position, self._velocity.angle / np.pi)
+        return "Pedestrian %d (index %d) \tPosition: %s\tAngle %.2f pi" % \
+               (self.counter, self.index, self.position, self._velocity.angle / np.pi)
 
     def __repr__(self):
         """
         :return: Unique string identifier using counter integer
         """
-        return "Pedestrian#%d" % self.counter
+        return "Pedestrian#%d (%d)" % (self.counter, self.index)
 
     def _convert_speed_to_color(self):
         """
@@ -84,11 +88,11 @@ class Pedestrian(object):
         and the scene position array entry is reset.
         :return: None
         """
-        new_point = Point(self.scene.position_array[self.counter])
+        new_point = Point(self.scene.position_array[self.index])
         if self.scene.is_within_boundaries(new_point) and self.cell.is_accessible(new_point):
             self._position = new_point
         else:
-            self.scene.position_array[self.counter] = self._position.array
+            self.scene.position_array[self.index] = self._position.array
 
     def manual_move(self, position, at_start=False):
         """
@@ -100,7 +104,7 @@ class Pedestrian(object):
         # Should a whole scene check take too much time, then this should be replaced
         if self.scene.is_accessible(position, at_start):
             self.position = position
-            self.scene.position_array[self.counter] = self.position.array
+            self.scene.position_array[self.index] = self.position.array
             if self.cell:
                 self.cell.remove_pedestrian(self)
                 self.scene.get_cell_from_position(self.position).add_pedestrian(self)
@@ -142,7 +146,7 @@ class Pedestrian(object):
         self._velocity = value
         if value:
             self._velocity.rescale(self.max_speed)
-            self.scene.velocity_array[self.counter] = self._velocity.array
+            self.scene.velocity_array[self.index] = self._velocity.array
 
     @property
     def position(self):
@@ -183,7 +187,7 @@ class Pedestrian(object):
 class EmptyPedestrian(Pedestrian):
     """
     To decrease computational overhead, pedestrians that left the scene are switched to dummy objects.
-    For each pedestrian, self.alive_array[pedestrian.counter] == !pedestrian.is_done()
+    For each pedestrian, self.active_entries[pedestrian..index] == !pedestrian.is_done()
     """
 
     def __init__(self, scene, counter):

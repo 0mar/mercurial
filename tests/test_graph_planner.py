@@ -16,8 +16,8 @@ from static_planner import GraphPlanner
 
 class TestGraphPlanner:
     def __init__(self):
-        self.filled_scene = Scene(size=Size([250, 150]), pedestrian_number=10, obstacle_file=demo_file_name)
-        self.empty_scene = Scene(size=Size([250, 150]), pedestrian_number=10, obstacle_file=empty_file_name)
+        self.filled_scene = Scene(size=Size([250, 150]), initial_pedestrian_number=10, obstacle_file=demo_file_name)
+        self.empty_scene = Scene(size=Size([250, 150]), initial_pedestrian_number=10, obstacle_file=empty_file_name)
         self.gt1 = GraphPlanner(self.filled_scene)
         self.gt2 = GraphPlanner(self.empty_scene)
 

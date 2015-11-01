@@ -119,11 +119,11 @@ class VisualScene:
         :return: None
         """
         start_pos_array, end_pos_array = self.get_visual_pedestrian_coordinates()
-        for counter in range(self.scene.pedestrian_number):
-            if self.scene.alive_array[counter]:
-                self.canvas.create_oval(start_pos_array[counter, 0], start_pos_array[counter, 1],
-                                        end_pos_array[counter, 0], end_pos_array[counter, 1],
-                                        fill=self.scene.pedestrian_list[counter].color)
+        for pedestrian in self.scene.pedestrian_list:
+            index = pedestrian.index
+            self.canvas.create_oval(start_pos_array[index, 0], start_pos_array[index, 1],
+                                    end_pos_array[index, 0], end_pos_array[index, 1],
+                                    fill=pedestrian.color)
 
     def get_visual_pedestrian_coordinates(self):
         """
@@ -132,8 +132,8 @@ class VisualScene:
         :return: relative start coordinates, relative end coordinates.
         """
         rel_pos_array = self.scene.position_array / self.scene.size.array
-        rel_size_array = np.ones([self.scene.pedestrian_number,
-                                  2]) * self.scene.pedestrian_size.array / self.scene.size.array * self.size.array
+        rel_size_array = np.ones(
+            self.scene.position_array.shape) * self.scene.pedestrian_size.array / self.scene.size.array * self.size.array
         vis_pos_array = np.hstack((rel_pos_array[:, 0][:,None], 1 - rel_pos_array[:, 1][:,None]))* self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
