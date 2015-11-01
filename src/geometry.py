@@ -20,7 +20,7 @@ class Coordinate(object):
         """
         :param x: iterable of coordinates. Requires a list of length 2.
         """
-        self.array = np.array(x)
+        self.array = np.array(x, dtype='float64')
         self.type = self.__class__.__name__
 
     angle = property(lambda s: math.atan2(s[1], s[0]))
@@ -55,7 +55,7 @@ class Coordinate(object):
         Check whether coordinates are within tolerance of zero point
         :return: True if 2-norm of coordinate is smaller than epsilon
         """
-        return np.linalg.norm(self.array) < ft.EPS
+        return math.sqrt(self.array[0] ** 2 + self.array[1] ** 2) < ft.EPS
 
 
 class Size(Coordinate):
@@ -96,7 +96,7 @@ class Velocity(Coordinate):
 
     def rescale(self, max_speed=5.):
         if not self.is_zero():
-            self.array = self.array * (max_speed / np.linalg.norm(self.array))
+            self.array *= (max_speed / math.sqrt(self.array[0] ** 2 + self.array[1] ** 2))
 
 
 class Interval(object):
@@ -140,7 +140,7 @@ class LineSegment(object):
         self.array = np.array(point_list)
         self.color = 'gray'
 
-    length = property(lambda s: np.linalg.norm(s[0] - s[1]))
+    length = property(lambda s: math.sqrt((s.begin[0] - s.end[0]) ** 2 + (s.begin[1] - s.end[1]) ** 2))
     begin = property(lambda s: s[0])
     end = property(lambda s: s[1])
 

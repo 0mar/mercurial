@@ -98,8 +98,8 @@ class DynamicPlanner:
         :return: None
         """
         self.initial_interface = np.ones(self.grid_dimension) * np.inf
-        valid_exits = {goal: False for goal in self.scene.exit_set}
-        goals = self.scene.exit_set
+        valid_exits = {goal: False for goal in self.scene.exit_list}
+        goals = self.scene.exit_list
         for i, j in np.ndindex(self.grid_dimension):
             cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
             for goal in goals:
@@ -111,7 +111,7 @@ class DynamicPlanner:
             raise RuntimeError("No cell centers in exit. Redo the scene")
         if not all(valid_exits.values()):
             ft.warn("%s not properly processed" % "/"
-                    .join([repr(goal) for goal in self.scene.exit_set if not valid_exits[goal]]))
+                    .join([repr(goal) for goal in self.scene.exit_list if not valid_exits[goal]]))
 
     def process_obstacles(self):
         """
@@ -129,7 +129,7 @@ class DynamicPlanner:
             cell = Cell(row, col, start, cell_size)
             cell_dict[(row, col)] = cell
             cell.obtain_relevant_obstacles(self.scene.obstacle_list)
-            non_exit_obstacles = cell.obstacle_set - self.scene.exit_set
+            non_exit_obstacles = cell.obstacle_set - set(self.scene.exit_list)
             if cell.is_inaccessible and non_exit_obstacles:
                 self.obstacle_cell_set.add((row, col))
             elif non_exit_obstacles:
@@ -406,10 +406,10 @@ class DynamicPlanner:
         self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
         for ped in self.scene.pedestrian_list:
-            if self.scene.active_entries[ped.index]:
-                ped.correct_for_geometry()
-                if ped.is_done():
-                    self.scene.remove_pedestrian(ped)
+            assert self.scene.active_entries[ped.index]
+            ped.correct_for_geometry()
+            if ped.is_done():
+                self.scene.remove_pedestrian(ped)
 
     def plot_grid_values(self):
         """

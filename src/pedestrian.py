@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 import numpy as np
 
 import functions as ft
@@ -44,7 +46,7 @@ class Pedestrian(object):
             new_position = scene.size.random_internal_point()
             self.manual_move(new_position, at_start=True)
         if not scene.is_accessible(self.position) and type(self) == Pedestrian:
-            ft.warn("Ped %s has no accessible coordinates. Check your initialization" % self)
+            ft.warn("%s has no accessible coordinates. Check your initialization" % self)
         self.origin = self.position
         self.scene.position_array[self.index] = self._position.array
 
@@ -121,7 +123,8 @@ class Pedestrian(object):
         :return: True when position is attained, false otherwise
         """
         distance = position - self.position
-        if np.linalg.norm(distance.array) < self.max_speed * dt:  # should be enough to avoid small numerical error
+        if math.sqrt(distance.array[0] ** 2 + distance.array[
+            1] ** 2) < self.max_speed * dt:  # should be enough to avoid small numerical error
             moved_to_position = self.manual_move(position)
             return moved_to_position
         else:
@@ -182,40 +185,3 @@ class Pedestrian(object):
             return True
         else:
             return False
-
-
-class EmptyPedestrian(Pedestrian):
-    """
-    To decrease computational overhead, pedestrians that left the scene are switched to dummy objects.
-    For each pedestrian, self.active_entries[pedestrian..index] == !pedestrian.is_done()
-    """
-
-    def __init__(self, scene, counter):
-        """
-        Initialized a empty pedestrian used when a pedestrian leaves the scene.
-        :param scene: scene object
-        :param counter: integer. The actual pedestrian object is not required.
-        :return:
-        """
-        super().__init__(scene=scene, counter=counter, goals=None, size=None, max_speed=0)
-
-    def is_done(self):
-        return True
-
-    def __repr__(self):
-        """
-        :return: String identifier for empty pedestrian
-        """
-        return "DonePedestrian#%d" % self.counter
-
-    def __str__(self):
-        """
-        :return:String representation for empty pedestrian, not really required
-        """
-        return "Finished Pedestrian %d" % self.counter
-
-    def correct_for_geometry(self):
-        """
-        Overrides the pedestrians (expensive) method
-        :return: None
-        """

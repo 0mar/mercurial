@@ -4,6 +4,7 @@ import pickle
 import itertools
 import json
 import math
+import random
 
 import numpy as np
 import scipy.io as sio
@@ -32,7 +33,8 @@ class Scene:
         self.time = 0
         self.total_pedestrians = initial_pedestrian_number
         self.obstacle_list = []
-        self.exit_set = set()  # mix set ands lists?
+        self.exit_list = []
+        self.entrance_list = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_finish_functions = []
@@ -50,7 +52,7 @@ class Scene:
 
         # Parameter initialization (will be overwritten by _load_parameters)
         self.minimal_distance = self.dt = 0
-        self.number_of_cells = self.pedestrian_size = None
+        self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
         self._load_parameters()
 
         self.cell_size = Size(self.size.array / self.number_of_cells)
@@ -74,9 +76,40 @@ class Scene:
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, goals=self.exit_set, size=self.size, max_speed=self.max_speed_array[counter])
+            Pedestrian(self, counter, goals=self.exit_list, size=self.size, max_speed=self.max_speed_array[counter])
             for counter in range(init_number)]
         self._fill_cells()
+
+    def create_new_pedestrians(self):
+        for entrance in self.entrance_list:
+            ft.debug("Polling %s" % entrance)
+            new_position = entrance.poll_for_new_pedestrian()
+            if new_position:
+                ft.debug("Found a new position %s" % new_position)
+                if not self.is_accessible(new_position):
+                    continue
+                free_indices = np.where(self.active_entries == 0)[0]
+                ft.debug(self.active_entries.shape)
+                ft.debug(free_indices)
+                if len(free_indices):
+                    new_index = free_indices[0]
+                    ft.debug("Found a new index at %d" % new_index)
+                else:
+                    new_index = self.active_entries.shape[0]
+                    self._expand_arrays()
+                    ft.debug("Indices full. doubling array size to %d" % (2 * new_index))
+                new_max_speed = self.max_speed_interval.random()
+                self.max_speed_array[new_index] = new_max_speed  # todo: remove max speed
+                new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list, self.pedestrian_size,
+                                            new_max_speed, new_position, new_index)
+                ft.debug("Created new pedestrian %s" % str(new_pedestrian))
+                self.total_pedestrians += 1
+                self.active_entries[new_index] = 1
+                self.pedestrian_list.append(new_pedestrian)
+                cell_location = np.floor(new_position / self.cell_size)
+                cell_index = int(cell_location[0]), int(cell_location[1])
+                ft.debug("Adding the pedestrian to cell %s" % str(cell_index))
+                self.cell_dict[cell_index].add_pedestrian(new_pedestrian)
 
     def _load_parameters(self, filename='params.json'):
         """
@@ -112,8 +145,9 @@ class Scene:
         self.number_of_cells = tuple(data_dict['number_of_cells'])
         self.minimal_distance = data_dict['minimal_distance']
         self.pedestrian_size = Size(data_dict['pedestrian_size'])
-        interval = Interval(data_dict['max_speed_interval'])
-        self.max_speed_array = interval.begin + np.random.random(self.position_array.shape[0]) * interval.length
+        self.max_speed_interval = Interval(data_dict['max_speed_interval'])
+        self.max_speed_array = self.max_speed_interval.begin + \
+                               np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.interpolation_factor = data_dict['interpolation_factor']
         self.packing_factor = data_dict['packing_factor']
 
@@ -186,8 +220,23 @@ class Scene:
                 if size[dim] == 0.:
                     size[dim] = 1.
             exit_obs = Exit(begin, Size(size), name)
-            self.exit_set.add(exit_obs)
+            self.exit_list.append(exit_obs)
             self.obstacle_list.append(exit_obs)
+        for entrance_data in data['entrances']:  # Todo: Merge
+            begin = Point(self.size * entrance_data['begin'])
+            size = self.size.array * np.array(entrance_data['size'])
+            name = entrance_data["name"]
+
+            for dim in range(2):
+                if size[dim] == 0.:
+                    size[dim] = 1.
+            entrance_obs = Entrance(begin, Size(size), name)
+            self.entrance_list.append(entrance_obs)
+            self.obstacle_list.append(entrance_obs)
+
+        if len(data['entrances']):
+            self.set_on_step_functions(self.create_new_pedestrians)
+
 
     def _create_cells(self):
         """
@@ -411,7 +460,7 @@ class Scene:
         log_dir = 'results/'
         if not file_name:
             file_name = 'logs'
-        log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_set}
+        log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_list}
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
     def finish(self):
@@ -514,8 +563,8 @@ class Cell:
         """
         if self.is_inaccessible:
             return False
-        within_cell_boundaries = all(self.begin.array < coord.array) and all(
-            coord.array < self.begin.array + self.size.array)
+        within_cell_boundaries = all(self.begin.array <= coord.array) and all(
+            coord.array <= self.begin.array + self.size.array)
         if not within_cell_boundaries:
             ft.warn('Accessibility of %s requested outside of %s' % (coord, self))
             return False
@@ -594,12 +643,51 @@ class Obstacle:
 
 class Entrance(Obstacle):
     """
-    Not yet implemented
+    Models an entrance.
     """
 
-    def __init__(self, begin: Point, size: Size, name: str, spawn_rate=0):
+    def __init__(self, begin, size, name, spawn_rate=10, exit_data=None):
         super().__init__(begin, size, name, permeable=False)
-        raise NotImplementedError("Sorry, entrance prohibited")
+        self.spawn_rate = spawn_rate
+        ft.debug("begin:%s,end:%s" % (begin, self.end))
+        self.exit_data = None
+        self.angle_interval = Interval([0, 2 * math.pi])
+        self.color = 'green'
+
+    def convert_angle_to_vector(self, angle):
+        """
+        Converts an angle into a vector on the boundary of the cube.
+        Uses some basic linear algebra
+        """
+        # Todo: Vectorize
+        object_radius = math.sqrt(self.size[0] ** 2 + self.size[1] ** 2) / 2
+        x = math.cos(angle) * object_radius
+        abs_x = math.fabs(x)
+        y = math.sin(angle) * object_radius
+        abs_y = math.fabs(y)
+        assert bool(abs_x > self.size[0] / 2) ^ bool(
+            abs_y > self.size[1] / 2)  # Fails on equality, but how probable is that?
+        if abs_x > self.size[0] / 2:
+            correction = self.size[0] / (2 * abs_x) + 1e-2
+        else:
+            correction = self.size[1] / (2 * abs_y) + 1e-2
+        return np.array([x, y]) * correction
+
+    def poll_for_new_pedestrian(self):
+        """
+        param: angle
+        :return Position if time for new pedestrian, zero otherwise
+        """
+        if self.exit_data:
+            pass
+        else:
+            if random.random() < 1 / self.spawn_rate:
+                angle = self.angle_interval.random()
+                boundary_vector = self.convert_angle_to_vector(angle)
+                new_position = Point(boundary_vector + self.center)
+                return new_position
+            else:
+                return None
 
 
 class Exit(Obstacle):

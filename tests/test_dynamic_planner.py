@@ -162,7 +162,7 @@ class TestDynamicPlanner:
         mesh = self.dyn_plan.potential_field.mesh_grid
         for i, j in np.ndindex(self.dyn_plan.grid_dimension):
             interface_val = self.dyn_plan.initial_interface[(i, j)]
-            is_in_exit = any([Point([mesh[0][(i, j)], mesh[1][(i, j)]]) in exit for exit in self.scene.exit_set])
+            is_in_exit = any([Point([mesh[0][(i, j)], mesh[1][(i, j)]]) in exit for exit in self.scene.exit_list])
             assert (interface_val == 0) == is_in_exit
 
     def test_no_obstacle_means_no_fraction(self):

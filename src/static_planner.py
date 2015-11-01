@@ -1,5 +1,7 @@
 __author__ = 'omar'
 
+import math
+
 import networkx as nx
 import numpy as np
 
@@ -42,7 +44,7 @@ class GraphPlanner:
         :return:
         """
         self.graph = nx.Graph()
-        for goal in self.scene.exit_set:
+        for goal in self.scene.exit_list:
             self.graph.add_node(goal)
         for obstacle in self.scene.obstacle_list:
             if obstacle.in_interior and not obstacle.permeable:
@@ -50,7 +52,7 @@ class GraphPlanner:
                 for point in ordered_list:
                     self.graph.add_node(point)
         for node in self.graph.nodes():
-            if node not in self.scene.exit_set:
+            if node not in self.scene.exit_list:
                 self._fill_with_required_edges(node, self.graph)
 
     @staticmethod
@@ -82,7 +84,7 @@ class GraphPlanner:
         :param graph: Graph the node is part of
         :return:
         """
-        for goal in self.scene.exit_set:
+        for goal in self.scene.exit_list:
             goal_point = GraphPlanner.get_closest_goal_position(node, goal)
             line = LineSegment([node, goal_point])
             path_free = True
@@ -93,7 +95,8 @@ class GraphPlanner:
             if path_free:
                 graph.add_edge(u=node, v=goal, weight=line.length)
         for other_node in graph.nodes():
-            if (other_node is not node) and (other_node not in self.scene.exit_set) and self.scene.is_within_boundaries(
+            if (other_node is not node) and (
+                other_node not in self.scene.exit_list) and self.scene.is_within_boundaries(
                     other_node):
                 path = LineSegment([node, other_node])
                 path_free = True
@@ -117,7 +120,7 @@ class GraphPlanner:
         shortest_length = np.Inf
         closest_goal = None
         self._fill_with_required_edges(pedestrian.position, ped_graph)
-        for goal in self.scene.exit_set:
+        for goal in self.scene.exit_list:
             try:
                 path = nx.astar_path(ped_graph, pedestrian.position, goal)
                 length = nx.astar_path_length(ped_graph, pedestrian.position, goal)
@@ -159,17 +162,16 @@ class GraphPlanner:
 
         # 2
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.active_entries[pedestrian.index]:
-                pedestrian.correct_for_geometry()
+            pedestrian.correct_for_geometry()
 
         stationary_pedestrian_array = self.scene.get_stationary_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
-            if not stationary_pedestrian_array[pedestrian.index] and self.scene.active_entries[pedestrian.index]:
+            if not stationary_pedestrian_array[pedestrian.index] and hasattr(pedestrian, 'line'):
                 # assert self.scene.is_accessible(pedestrian.position)
                 pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 remaining_path = pedestrian.line.end - pedestrian.position
                 allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
-                checkpoint_reached = np.linalg.norm(remaining_path) < allowed_range
+                checkpoint_reached = math.sqrt(remaining_path[0] ** 2 + remaining_path[1] ** 2) < allowed_range
                 done = pedestrian.is_done()
                 if done:
                     self.scene.remove_pedestrian(pedestrian)
@@ -180,8 +182,8 @@ class GraphPlanner:
                         pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position)
                 else:
                     pedestrian.velocity = Velocity(remaining_path)  # Expensive...
-            elif self.scene.active_entries[pedestrian.index]:
-                # Stationary pedestrian. Creating new path.
+            else:
+                # Stationary pedestrian or new. Creating new path.
                 pedestrian.path = self.create_path(pedestrian)
                 pedestrian.line = pedestrian.path.pop_next_segment()
                 pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)

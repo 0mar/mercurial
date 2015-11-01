@@ -6,7 +6,7 @@ import numpy as np
 EPS = 1e-6
 # Verbosity
 VERBOSE = False
-
+# Todo: Move single norm to here
 HORIZONTAL_DIRECTIONS = ['left', 'right']
 VERTICAL_DIRECTIONS = ['up', 'down']
 DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
