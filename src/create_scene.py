@@ -106,7 +106,7 @@ class SceneCreator:
         self.save(save_name)
 
     def save(self, save_name):
-        obstacle_data = {"obstacles": [], "exits": []}
+        obstacle_data = {"obstacles": [], "exits": [], "entrances": []}
         for number, obstacle in enumerate(self.obstacle_list):
             name = "obstacle%d" % number
             obstacle_data["obstacles"].append({"name": name, "begin": obstacle.start, "size": obstacle.size})

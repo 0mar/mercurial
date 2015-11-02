@@ -19,7 +19,8 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, initial_pedestrian_number, obstacle_file, mde=True, cache='read', log_exits=True):
+    def __init__(self, size: Size, initial_pedestrian_number, obstacle_file,
+                 mde=True, cache='read', log_exits=False, reuse_exits=True):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -67,6 +68,9 @@ class Scene:
         self.pedestrian_list = []
         self._init_pedestrians(initial_pedestrian_number)
         self.status = 'RUNNING'
+        # Todo: Add handle for reuse_exits
+        # Todo: Almost time to move settings to a settingsmanager
+        # Todo: How about creating a scene manager?
 
     def _init_pedestrians(self, init_number):
         """
@@ -81,18 +85,18 @@ class Scene:
 
     def create_new_pedestrians(self):
         for entrance in self.entrance_list:
-            ft.debug("Polling %s" % entrance)
-            new_position = entrance.poll_for_new_pedestrian()
-            if new_position:
-                ft.debug("Found a new position %s" % new_position)
+            new_number = entrance.get_new_number_of_pedestrians(self.time)
+            tries = 0  # when this becomes large, chances are the entrance can produce no valid new position.
+            while new_number > 0:
+                tries += 1
+                new_position = entrance.get_spawn_location()
                 if not self.is_accessible(new_position):
+                    if tries > 10:
+                        raise RuntimeError("Can't find new spawn locations for %s. Check the scene" % entrance)
                     continue
                 free_indices = np.where(self.active_entries == 0)[0]
-                ft.debug(self.active_entries.shape)
-                ft.debug(free_indices)
                 if len(free_indices):
                     new_index = free_indices[0]
-                    ft.debug("Found a new index at %d" % new_index)
                 else:
                     new_index = self.active_entries.shape[0]
                     self._expand_arrays()
@@ -101,14 +105,13 @@ class Scene:
                 self.max_speed_array[new_index] = new_max_speed  # todo: remove max speed
                 new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list, self.pedestrian_size,
                                             new_max_speed, new_position, new_index)
-                ft.debug("Created new pedestrian %s" % str(new_pedestrian))
                 self.total_pedestrians += 1
                 self.active_entries[new_index] = 1
                 self.pedestrian_list.append(new_pedestrian)
                 cell_location = np.floor(new_position / self.cell_size)
                 cell_index = int(cell_location[0]), int(cell_location[1])
-                ft.debug("Adding the pedestrian to cell %s" % str(cell_index))
                 self.cell_dict[cell_index].add_pedestrian(new_pedestrian)
+                new_number -=1
 
     def _load_parameters(self, filename='params.json'):
         """
@@ -164,7 +167,6 @@ class Scene:
             array = getattr(self, attr)
             addition = np.zeros(array.shape)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
-
 
     def set_on_step_functions(self, *on_step):
         """
@@ -227,13 +229,12 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin, Size(size), name)
+            entrance_obs = Entrance(begin, Size(size), name, exit_data=self.load_exit_logs())
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
 
         if len(data['entrances']):
             self.set_on_step_functions(self.create_new_pedestrians)
-
 
     def _create_cells(self):
         """
@@ -411,7 +412,7 @@ class Scene:
         self.active_entries[index] = 0
         for function in self.on_pedestrian_exit_functions:
             function(pedestrian)
-        if np.sum(self.active_entries) == 0:
+        if self.is_done():
             self.status = 'DONE'
 
     def is_within_boundaries(self, coord: Point):
@@ -460,6 +461,22 @@ class Scene:
             file_name = 'logs'
         log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_list}
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
+
+    def load_exit_logs(self, file_name=None):
+        """
+        Open logs, convert them to a list.
+        :param file_name:
+        :return:
+        """
+        log_dir = 'results/'
+        if not file_name:
+            file_name = 'logs'
+        log_dict = sio.loadmat(file_name=log_dir + file_name)
+        log_lists = [log_list for log_list in log_dict.values() if isinstance(log_list, np.ndarray)]
+        return log_lists
+
+    def is_done(self):
+        return np.sum(self.active_entries) == 0 and all([entrance.depleted for entrance in self.entrance_list])
 
     def finish(self):
         """

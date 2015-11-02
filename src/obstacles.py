@@ -60,13 +60,32 @@ class Entrance(Obstacle):
     Models an entrance.
     """
 
-    def __init__(self, begin, size, name, spawn_rate=10, exit_data=None):
+    def __init__(self, begin, size, name, spawn_rate=10, max_pedestrians=500, exit_data=[]):
         super().__init__(begin, size, name, permeable=False)
         self.spawn_rate = spawn_rate
-        ft.debug("begin:%s,end:%s" % (begin, self.end))
-        self.exit_data = None
+        self.spawned_pedestrian_number = 0
+        self.depleted = False
+        self.exit_data = exit_data
+        if self.exit_data:
+            self.full_data = np.zeros([0, 2])
+            self._init_exit_data()
+            self.max_pedestrians = len(self.full_data)
+            ft.debug("Have %d max pedestrians" % self.max_pedestrians)
+        else:
+            self.max_pedestrians = max_pedestrians
         self.angle_interval = Interval([0, 2 * math.pi])
         self.color = 'green'
+
+    def _init_exit_data(self):
+        full_data = np.zeros([0, 2])
+        for exit_array in self.exit_data:
+            if exit_array.size:
+                full_data = np.vstack((full_data, exit_array))
+        if not full_data.size:
+            ft.warn("No exit data specified. Polling randomly with rate %.2f" % self.spawn_rate)
+            self.exit_data = []
+        else:
+            self.full_data = full_data[full_data[:, 1].argsort()].tolist()
 
     def convert_angle_to_vector(self, angle):
         """
@@ -87,22 +106,43 @@ class Entrance(Obstacle):
             correction = self.size[1] / (2 * abs_y) + 1e-2
         return np.array([x, y]) * correction
 
-    def poll_for_new_pedestrian(self):
+    def get_new_number_of_pedestrians(self, time):
+        debug_bool = False
+        if self.depleted:
+            return 0
+        total_number = 0
+        if self.exit_data:
+            poll_successful = True
+            while poll_successful:
+                if len(self.full_data) > 0:
+                    poll_successful = ft.is_close(time, self.full_data[0][1])
+                    if poll_successful:
+                        self.full_data.pop(0)
+                        total_number += 1
+                else:
+                    debug_bool = True
+                    poll_successful = False
+        else:
+            total_number = int(random.random() < 1 / self.spawn_rate)
+            # Todo: Make a decent Poisson distribution
+        self.spawned_pedestrian_number += total_number
+
+        self.depleted = self.spawned_pedestrian_number >= self.max_pedestrians
+        if debug_bool:
+            assert self.depleted
+        return total_number
+
+    def get_spawn_location(self):
         """
-        param: angle
+        :param time: Time on which we poll
         :return Position if time for new pedestrian, zero otherwise
         """
-        if self.exit_data:
-            pass
-        else:
-            if random.random() < 1 / self.spawn_rate:
-                angle = self.angle_interval.random()
-                boundary_vector = self.convert_angle_to_vector(angle)
-                new_position = Point(boundary_vector + self.center)
-                return new_position
-            else:
-                return None
 
+        angle = self.angle_interval.random()
+        # Todo: This angle should be coming from the data, not implemented.
+        boundary_vector = self.convert_angle_to_vector(angle)
+        new_position = Point(boundary_vector + self.center)
+        return new_position
 
 class Exit(Obstacle):
     """

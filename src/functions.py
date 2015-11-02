@@ -56,6 +56,10 @@ def empty_method():
 def norm(a, b):
     return math.sqrt(a ** 2 + b ** 2)
 
+
+def is_close(a, b):
+    return math.fabs(a - b) < EPS
+
 def rot_mat(angle):
     """
     Computes a 2D rotation matrix
