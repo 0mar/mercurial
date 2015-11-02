@@ -20,7 +20,7 @@ class Scene:
     """
 
     def __init__(self, size: Size, initial_pedestrian_number, obstacle_file,
-                 mde=True, cache='read', log_exits=False, reuse_exits=True):
+                 mde=True, cache='read', log_exits=False, use_exit_logs=False):
         """
         Initializes a Scene
         :param size: Size object holding the size values of the scene
@@ -38,6 +38,9 @@ class Scene:
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_finish_functions = []
+
+        self.mde = mde  # Minimum Distance Enforcement
+        self.use_exit_logs = use_exit_logs
 
         # Array initialization
         self._read_json_file(file_name=obstacle_file)
@@ -58,7 +61,6 @@ class Scene:
         self.cell_size = Size(self.size.array / self.number_of_cells)
         if log_exits:
             self.set_on_finish_functions(self.store_exit_logs)
-        self.mde = mde  # Minimum Distance Enforcement
         if cache == 'read':
             self._load_cells()
         else:
@@ -86,12 +88,13 @@ class Scene:
     def create_new_pedestrians(self):
         for entrance in self.entrance_list:
             new_number = entrance.get_new_number_of_pedestrians(self.time)
+            max_tries = 10 * new_number
             tries = 0  # when this becomes large, chances are the entrance can produce no valid new position.
             while new_number > 0:
                 tries += 1
                 new_position = entrance.get_spawn_location()
                 if not self.is_accessible(new_position):
-                    if tries > 10:
+                    if tries > max_tries:
                         raise RuntimeError("Can't find new spawn locations for %s. Check the scene" % entrance)
                     continue
                 free_indices = np.where(self.active_entries == 0)[0]
@@ -464,16 +467,20 @@ class Scene:
 
     def load_exit_logs(self, file_name=None):
         """
-        Open logs, convert them to a list.
+        If flagged: Open logs, convert them to a list.
         :param file_name:
         :return:
         """
-        log_dir = 'results/'
-        if not file_name:
-            file_name = 'logs'
-        log_dict = sio.loadmat(file_name=log_dir + file_name)
-        log_lists = [log_list for log_list in log_dict.values() if isinstance(log_list, np.ndarray)]
-        return log_lists
+        # Todo: No pretty call.
+        if self.use_exit_logs:
+            log_dir = 'results/'
+            if not file_name:
+                file_name = 'logs'
+            log_dict = sio.loadmat(file_name=log_dir + file_name)
+            log_lists = [log_list for log_list in log_dict.values() if isinstance(log_list, np.ndarray)]
+            return log_lists
+        else:
+            return []
 
     def is_done(self):
         return np.sum(self.active_entries) == 0 and all([entrance.depleted for entrance in self.entrance_list])

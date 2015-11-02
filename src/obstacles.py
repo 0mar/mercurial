@@ -1,7 +1,6 @@
 __author__ = 'omar'
 
 import math
-import random
 
 import numpy as np
 
@@ -73,6 +72,9 @@ class Entrance(Obstacle):
             ft.debug("Have %d max pedestrians" % self.max_pedestrians)
         else:
             self.max_pedestrians = max_pedestrians
+            self.people_queue = np.random.poisson(spawn_rate, 2000)
+            self.queue_iterator = 0
+
         self.angle_interval = Interval([0, 2 * math.pi])
         self.color = 'green'
 
@@ -92,7 +94,7 @@ class Entrance(Obstacle):
         Converts an angle into a vector on the boundary of the cube.
         Uses some basic linear algebra
         """
-        # Todo: Vectorize
+        # Todo: Vectorize for exit_log implementation
         object_radius = ft.norm(self.size[0], self.size[1]) / 2
         x = math.cos(angle) * object_radius
         abs_x = math.fabs(x)
@@ -123,8 +125,8 @@ class Entrance(Obstacle):
                     debug_bool = True
                     poll_successful = False
         else:
-            total_number = int(random.random() < 1 / self.spawn_rate)
-            # Todo: Make a decent Poisson distribution
+            total_number = self.people_queue[self.queue_iterator]
+            self.queue_iterator = (self.queue_iterator + 1) % len(self.people_queue)
         self.spawned_pedestrian_number += total_number
 
         self.depleted = self.spawned_pedestrian_number >= self.max_pedestrians

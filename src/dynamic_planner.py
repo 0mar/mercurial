@@ -5,6 +5,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from scene import Cell
 import numpy as np
+import math
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
@@ -28,6 +29,7 @@ class DynamicPlanner:
     This means exits need a certain width.
     As a consequence, obstacles should be introduced next to thick exits.
     """
+
     def __init__(self, scene, show_plot=False):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
@@ -319,14 +321,14 @@ class DynamicPlanner:
                         # lowest in vertical direction
                     else:
                         assert False
-            coef = np.empty(3)
-            coef[0] = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
-            coef[1] = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost ** 2)
-            coef[2] = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
             # Coefficients of quadratic equation
-            roots = np.roots(coef)
-            # Roots of equation
-            return roots[0]  # Which one?
+            a = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
+            b = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost ** 2)
+            c = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
+
+            D = b ** 2 - 4 * a * c
+            x_high = (-b + math.sqrt(D)) / (2 * a)
+            return x_high
 
         def correct_for_obstacles(pot_field):
             """
