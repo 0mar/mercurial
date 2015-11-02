@@ -76,8 +76,8 @@ class Scene:
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, counter, goals=self.exit_list, size=self.size, max_speed=self.max_speed_array[counter])
-            for counter in range(init_number)]
+            Pedestrian(self, index, goals=self.exit_list, size=self.size, max_speed=self.max_speed_array[index])
+            for index in range(init_number)]
         self._fill_cells()
 
     def create_new_pedestrians(self):
@@ -200,8 +200,6 @@ class Scene:
         :param file_name: file name string of the JSON file
         :return: None
         """
-        import json
-
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
         for obstacle_data in data["obstacles"]:
@@ -283,6 +281,7 @@ class Scene:
         :param filename: name of pickled scene file
         :return: None
         """
+        # Todo: Depends on scene
         ft.log("Loading cell objects from file")
 
         def reject_cells():
