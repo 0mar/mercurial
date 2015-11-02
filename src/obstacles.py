@@ -74,7 +74,7 @@ class Entrance(Obstacle):
         Uses some basic linear algebra
         """
         # Todo: Vectorize
-        object_radius = math.sqrt(self.size[0] ** 2 + self.size[1] ** 2) / 2
+        object_radius = ft.norm(self.size[0], self.size[1]) / 2
         x = math.cos(angle) * object_radius
         abs_x = math.fabs(x)
         y = math.sin(angle) * object_radius

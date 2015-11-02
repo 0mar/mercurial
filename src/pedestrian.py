@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import math
-
 import numpy as np
 
 import functions as ft
@@ -123,8 +121,8 @@ class Pedestrian(object):
         :return: True when position is attained, false otherwise
         """
         distance = position - self.position
-        if math.sqrt(distance.array[0] ** 2 + distance.array[
-            1] ** 2) < self.max_speed * dt:  # should be enough to avoid small numerical error
+        if ft.norm(distance.array[0], distance.array[1]) < self.max_speed * dt:
+            # should be enough to avoid small numerical error
             moved_to_position = self.manual_move(position)
             return moved_to_position
         else:

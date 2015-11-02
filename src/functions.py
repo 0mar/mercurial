@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+import math
+
 import numpy as np
 
 # Numerical tolerance
 EPS = 1e-6
 # Verbosity
 VERBOSE = False
-# Todo: Move single norm to here
 HORIZONTAL_DIRECTIONS = ['left', 'right']
 VERTICAL_DIRECTIONS = ['up', 'down']
 DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
@@ -51,6 +52,9 @@ def debug(msg: str):
 def empty_method():
     pass
 
+
+def norm(a, b):
+    return math.sqrt(a ** 2 + b ** 2)
 
 def rot_mat(angle):
     """

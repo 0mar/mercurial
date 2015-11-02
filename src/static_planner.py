@@ -1,7 +1,5 @@
 __author__ = 'omar'
 
-import math
-
 import networkx as nx
 import numpy as np
 
@@ -20,7 +18,7 @@ class GraphPlanner:
     Lower level objects should be agnostic of the planner.
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
     """
-    # TODO: when time step is too large, bugs occur
+    # TODO: when time step is too large, bugs occur. This is likely caused by the cell check.
     def __init__(self, scene):
         """
         Constructs a Graph planner
@@ -171,7 +169,7 @@ class GraphPlanner:
                 pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 remaining_path = pedestrian.line.end - pedestrian.position
                 allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
-                checkpoint_reached = math.sqrt(remaining_path[0] ** 2 + remaining_path[1] ** 2) < allowed_range
+                checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
                 done = pedestrian.is_done()
                 if done:
                     self.scene.remove_pedestrian(pedestrian)

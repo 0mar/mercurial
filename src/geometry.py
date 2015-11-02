@@ -55,7 +55,7 @@ class Coordinate(object):
         Check whether coordinates are within tolerance of zero point
         :return: True if 2-norm of coordinate is smaller than epsilon
         """
-        return math.sqrt(self.array[0] ** 2 + self.array[1] ** 2) < ft.EPS
+        return ft.norm(self.array[0], self.array[1]) < ft.EPS
 
 
 class Size(Coordinate):
@@ -96,7 +96,7 @@ class Velocity(Coordinate):
 
     def rescale(self, max_speed=5.):
         if not self.is_zero():
-            self.array *= (max_speed / math.sqrt(self.array[0] ** 2 + self.array[1] ** 2))
+            self.array *= (max_speed / ft.norm(self.array[0], self.array[1]))
 
 
 class Interval(object):
@@ -140,7 +140,7 @@ class LineSegment(object):
         self.array = np.array(point_list)
         self.color = 'gray'
 
-    length = property(lambda s: math.sqrt((s.begin[0] - s.end[0]) ** 2 + (s.begin[1] - s.end[1]) ** 2))
+    length = property(lambda s: ft.norm(s.begin[0] - s.end[0], s.begin[1] - s.end[1]))
     begin = property(lambda s: s[0])
     end = property(lambda s: s[1])
 
