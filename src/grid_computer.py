@@ -264,7 +264,6 @@ class GridComputer:
         :return: vector field representing gradient component.
         """
         # Todo: Solve for boundary conditions and integrate with ScalarField
-        assert all(dim > 2 for dim in field.shape)
         if axis == 'x':
             grad_field_x = np.zeros(field.shape)
             grad_field_x[1:-1, :] = field[2:, :] - field[:-2, :]

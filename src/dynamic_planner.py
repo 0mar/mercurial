@@ -320,7 +320,7 @@ class DynamicPlanner:
                         ver_cost = cost
                         # lowest in vertical direction
                     else:
-                        assert False
+                        raise ValueError("Direction unknown")
             # Coefficients of quadratic equation
             a = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
             b = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost ** 2)
@@ -328,6 +328,7 @@ class DynamicPlanner:
 
             D = b ** 2 - 4 * a * c
             x_high = (-b + math.sqrt(D)) / (2 * a)
+            # Might not be obvious, but why we take the largest root is found in report.
             return x_high
 
         def correct_for_obstacles(pot_field):

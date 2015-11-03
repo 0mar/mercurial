@@ -339,8 +339,6 @@ class Scene:
         """
         pos_difference = np.linalg.norm(self.position_array - self.last_position_array, axis=1)
         not_moved = np.logical_and(pos_difference == 0, self.active_entries == 1)
-        # is_alive = np.array(self.alive_array,dtype=bool) # Not necessary, we check in planner anyway
-        # combined_stationary_information = np.hstack([not_moved[:,None],is_alive[:,None]])
         return not_moved
 
     def update_cells(self):
@@ -352,7 +350,6 @@ class Scene:
         needs_update = self.pedestrian_cells != new_ped_cells
         for pedestrian in self.pedestrian_list:
             index = pedestrian.index
-            assert self.active_entries[index]
             if any(needs_update[index]):
                 cell = pedestrian.cell
                 new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))

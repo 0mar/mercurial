@@ -100,8 +100,6 @@ class Entrance(Obstacle):
         abs_x = math.fabs(x)
         y = math.sin(angle) * object_radius
         abs_y = math.fabs(y)
-        assert bool(abs_x > self.size[0] / 2) ^ bool(
-            abs_y > self.size[1] / 2)  # Fails on equality, but how probable is that?
         if abs_x > self.size[0] / 2:
             correction = self.size[0] / (2 * abs_x) + 1e-2
         else:
