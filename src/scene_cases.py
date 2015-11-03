@@ -35,7 +35,7 @@ class ImpulseScene(Scene):
             while not ped_loc:
                 x, y = (np.random.rand(2) * 2 - 1) * self.impulse_size
                 ped_loc = Point(center + np.array([x, y]))
-                if x ** 2 + y ** 2 > self.impulse_size or not self.is_accessible(ped_loc):
+                if x ** 2 + y ** 2 > self.impulse_size ** 2 or not self.is_accessible(ped_loc):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list,
                                                    position=ped_loc, size=self.pedestrian_size,

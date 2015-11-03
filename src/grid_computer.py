@@ -1,8 +1,7 @@
 __author__ = 'omar'
 import matplotlib
-import numpy as np
-
 matplotlib.use('TkAgg')
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as Rbs
 import cvxopt
@@ -36,7 +35,7 @@ class GridComputer:
         self.dt = self.scene.dt
         self.interpolation_factor = self.scene.interpolation_factor
         self.packing_factor = self.scene.packing_factor
-        self.max_density = 2 * 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
+        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -215,7 +214,7 @@ class GridComputer:
         Adjusts the velocities of the pedestrians according to the velocity field
         :return: None
         """
-        if self.show_plot:
+        if self.apply_interpolation or self.show_plot:
             self.get_grid_values()
         if self.apply_interpolation:
             if self.apply_pressure:
