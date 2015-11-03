@@ -606,6 +606,8 @@ To test our model, we create three different scenarios. For each scenario, we me
 \subsection{Scenario 1: Narrowing scene}
 We test the model on the scene depicted in Figure~\ref{fig:narrowing_scene}. We initialize all pedestrians in the top section of the screen, The only exit is in the bottom section, so the pedestrians have to follow the funnel-like corridor.
 The goal of this scenario is to investigate how well the simulation deals with many aggregated obstacles and slowly increasing pressure.\\
+\paragraph{Parameters}
+We chose for a constant speed for all pedestrians[More parameters].
 \paragraph{Quantitative results}
 \begin{figure}[h]
 	\centering
@@ -613,7 +615,7 @@ The goal of this scenario is to investigate how well the simulation deals with m
 	\caption{Initial state of the scenario. All pedestrians must exit through the red rectangle}
 	\label{fig:narrowing_scene}
 \end{figure}
-Figure~\ref{fig:narrow_scene2} shows the scene after several time steps. It is difficult to visualize the progress of the simulation in an image. Still, we try to capture the characteristic movements of the pedestrians by showing what happens to the uniformly distributed crowd after several time steps.\\
+Figure~\ref{fig:narrow_scene2} shows the scene after one hundred time steps. It is difficult to visualize the progress of the simulation in an image. Still, we try to capture the characteristic movements of the pedestrians by showing what happens to the uniformly distributed crowd after several time steps.\\
 Notice the crowd congestion takes place close to the obstacles, while in the center the density has barely increased. Left and right we see trails of pedestrians pushed back for exceeding the maximum density. The density is highest near the corners of the obstacles. This is visible in the density plot in Figure~\ref{fig:narrow_dens_plot}.
 \begin{figure}[h]
 	\centering
@@ -698,6 +700,16 @@ Finally, we examine the rate of pedestrians leaving the exit. Figure~\ref{fig:na
 Besides the distribution of pedestrian exit times, the histogram shows us something else; the maximum throughput of the exit. Looking at the shape of the histogram, we see that after the first pedestrian reaches the exit, the throughput increases up to almost 4 pedestrians per time step.
 After reaching this maximum, the throughput gradually decreases until the final pedestrian leaves the scene. 
 While the distributed behaviour of exiting is good and reported in observations [PAPER], it would [be more realistic if the throughput remained on its maximum longer]. [The pedestrian trails clearly work through in this].
+
+\subsection{Scenario 2: Dense moving crowd}
+We also test the simulation in a scenario without obstacles in which a packed crowd tries to make it to the exit. The purpose of this scenario is to test the quality of the [fluid flow solver] for high density crowds in unconstrained situations.\\
+The scenario with the initial crowd configuration is depicted in Figure~\ref{fig:scene2}.
+\paragraph{Parameters}
+Our simulation size is slightly larger, 80 by 80 meters. 50 meter from the exit, we spawn our pedestrians in a circle with a radius of 8 meters. We assume pedestrians have a size of $0.4\times 0.4m^2$, and a maximum density of $\rho_{\max} = 4\,\frac{m}{\textrm{m}^2}$ (where $m$ is the mass of a pedestrian). For [imagination], when we [fulfill] the maximum density by placing 4 pedestrians per square meter, each of the pedestrians has a distance of 0.1 meter to his neighbours.
+
+To satisfy the maximum density, we need $\pi 8^2 * \rho_{\max}$
+\paragraph{Quantitative results}
+We show the scene after s
 \section{Future Research}
 We would like to increase the number of pedestrians even further by using a different programming language and improving algoritms\\
 We would like a better path planner: for instance [jalba] or [dynamic]
@@ -705,7 +717,7 @@ We would like to have different obstacle handling
 We would like to have entrances and see lane formation
 We would like to indicate regions of walking
 \section{Conclusion}
-This is the simulation. it performs quite well and has little demands in domaindrawing. Path planning could be better but pressure term really seems to work.
+[This is the simulation. it performs quite well and has little demands in domaindrawing. Path planning could be better but pressure term really seems to work.]
 
 \newpage
 \bibliography{bib} 

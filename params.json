@@ -13,6 +13,6 @@
     1,
     2
   ],
-  "interpolation_factor": 1.5,
+  "smoothing_length": 0.75,
   "packing_factor": 0.9
 }

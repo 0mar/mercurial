@@ -12,34 +12,35 @@ HORIZONTAL_DIRECTIONS = ['left', 'right']
 VERTICAL_DIRECTIONS = ['up', 'down']
 DIRECTIONS = {'left': [-1, 0], 'right': [1, 0], 'up': [0, 1], 'down': [0, -1]}
 
-def error(msg: str):
+
+def error(msg):
     """
     Report error to stdout and quit application
     :param msg: error report
     :raises: Runtime error with error report
     """
-    raise RuntimeError("\033[91mError: %s \033[0m" % msg)
+    raise RuntimeError("\033[91mError: %s \033[0m" % str(msg))
 
 
-def warn(msg: str):
+def warn(msg):
     """
     Print warning message to stdout
     :param msg: warning
     :return: None
     """
-    print("\033[93mWarning: %s \033[0m" % msg)
+    print("\033[93mWarning: %s \033[0m" % str(msg))
 
 
-def log(msg: str):
+def log(msg):
     """
     Print logging message to stdout
     :param msg: log string
     :return: None
     """
-    print("\033[92m%s \033[0m" % msg)
+    print("\033[92m%s \033[0m" % str(msg))
 
 
-def debug(msg: str):
+def debug(msg):
     """
     Print debug information to stdout
     :param msg:

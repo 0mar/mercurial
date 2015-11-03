@@ -330,7 +330,7 @@ class DynamicPlanner:
             c = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
 
             D = b ** 2 - 4 * a * c
-            x_high = (-b + math.sqrt(D)) / (2 * a)
+            x_high = (-b + math.sqrt(D)) / (2 * a)  # Todo: Pick a numerical stable calculation
             # Might not be obvious, but why we take the largest root is found in report.
             return x_high
 

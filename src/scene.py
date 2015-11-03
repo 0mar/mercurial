@@ -128,7 +128,7 @@ class Scene:
                         "minimal_distance": 0.7,
                         "pedestrian_size": [0.4, 0.4],
                         "max_speed_interval": [1, 2],
-                        "interpolation_factor": 3,
+                        "smoothing_length": 0.75,  # times cell size
                         "packing_factor": 0.9}
         data_dict = {}
         if not os.path.isfile(filename):
@@ -153,7 +153,7 @@ class Scene:
         self.max_speed_interval = Interval(data_dict['max_speed_interval'])
         self.max_speed_array = self.max_speed_interval.begin + \
                                np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
-        self.interpolation_factor = data_dict['interpolation_factor']
+        self.smoothing_length = data_dict['smoothing_length']
         self.packing_factor = data_dict['packing_factor']
 
     def _expand_arrays(self):

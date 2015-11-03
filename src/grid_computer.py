@@ -2,6 +2,7 @@ __author__ = 'omar'
 import matplotlib
 matplotlib.use('TkAgg')
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline as Rbs
 import cvxopt
@@ -33,9 +34,11 @@ class GridComputer:
         self.cell_dimension = self.scene.number_of_cells
         self.dx, self.dy = self.scene.cell_size
         self.dt = self.scene.dt
-        self.interpolation_factor = self.scene.interpolation_factor
+        self.smoothing_length = self.scene.smoothing_length * ft.norm(self.dx, self.dy) / math.sqrt(2)
         self.packing_factor = self.scene.packing_factor
-        self.max_density = 2 * self.packing_factor / (np.sqrt(3) * self.scene.minimal_distance ** 2)  # Needs size.
+        self.min_distance = 0.1
+        self.max_density = 2 * self.packing_factor / \
+                           (np.sqrt(3) * (self.scene.pedestrian_size[0] + self.min_distance) ** 2)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_matrices()
@@ -89,8 +92,11 @@ class GridComputer:
         :return: None
         """
         cell_dict = self.scene.cell_dict
+        self.rho = np.zeros(self.cell_dimension)
+        self.v_x = np.zeros(self.cell_dimension)
+        self.v_y = np.zeros(self.cell_dimension)
         for cell_location in cell_dict:
-            relevant_pedestrian_set = set()
+            ped_index_list = []
             cell = cell_dict[cell_location]
             cell_row, cell_col = cell_location
             for i in range(-1, 2):
@@ -98,16 +104,21 @@ class GridComputer:
                     neighbour_cell_location = (cell_row + i, cell_col + j)
                     if neighbour_cell_location in cell_dict:
                         # Valid neighbour cell
-                        relevant_pedestrian_set |= cell_dict[neighbour_cell_location].pedestrian_set
-            distance_array = np.linalg.norm(self.scene.position_array - cell.center, axis=1)  # todo: 10 % of all time.
-            weights = GridComputer.weight_function(
-                distance_array / self.interpolation_factor) * self.scene.active_entries
-            density = np.sum(weights) + 0.01
-            self.rho[cell_location] = density
+                        ped_index_list += [ped.index for ped in cell_dict[neighbour_cell_location].pedestrian_set]
+            distance_array = np.linalg.norm(self.scene.position_array[ped_index_list] - cell.center,
+                                            axis=1)  # todo: 10 % of all time
 
-            vel_array = self.scene.velocity_array * weights[:, None]
-            self.v_x[cell_location] = np.sum(vel_array[:, 0]) / density
-            self.v_y[cell_location] = np.sum(vel_array[:, 1]) / density
+            if len(distance_array):
+                # ft.debug(distance_array)
+                weights = GridComputer.weight_function(distance_array / self.smoothing_length)
+                ft.debug(distance_array / self.smoothing_length)
+                total_weight = np.sum(weights) + ft.EPS
+                density = total_weight / (self.dx * self.dy)
+                # ft.debug(density)
+                self.rho[cell_location] = density
+                vel_array = self.scene.velocity_array[ped_index_list] * weights[:, None]
+                self.v_x[cell_location] = np.sum(vel_array[:, 0] / total_weight)
+                self.v_y[cell_location] = np.sum(vel_array[:, 1] / total_weight)
         ft.debug(self.max_density)
         ft.debug(self.orientation_correct_str(self.rho, True))
         if self.show_plot:
