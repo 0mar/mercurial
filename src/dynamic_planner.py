@@ -46,7 +46,7 @@ class DynamicPlanner:
 
         self.max_speed = 2
 
-        self.path_length_weight = 1
+        self.path_length_weight = 6
         self.time_weight = 1
         self.discomfort_field_weight = 1
 
@@ -68,6 +68,7 @@ class DynamicPlanner:
         self.v_y = Field(shape, Field.Orientation.center, 'v_y', (dx, dy))
         self.potential_field = Field(shape, Field.Orientation.center, 'potential', (dx, dy))
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
+        self.obstacle_discomfort_field = np.zeros(shape)
 
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
@@ -133,9 +134,9 @@ class DynamicPlanner:
             cell.obtain_relevant_obstacles(self.scene.obstacle_list)
             non_exit_obstacles = cell.obstacle_set - set(self.scene.exit_list)
             if cell.is_inaccessible and non_exit_obstacles:
-                self.obstacle_cell_set.add((row, col))
+                self.obstacle_discomfort_field[row, col] = 1
             elif non_exit_obstacles:
-                self.part_obstacle_cell_dict[(row, col)] = cell.get_covered_fraction()
+                self.obstacle_discomfort_field[row, col] = cell.get_covered_fraction()
 
     def _exists(self, index, max_index=None):
         """
@@ -231,7 +232,9 @@ class DynamicPlanner:
         * Discomfort increases linearly between these values.
         :return: None
         """
-        self.discomfort_field.update(self.density_field.normalized(self.min_density, self.max_density))
+        self.discomfort_field.update(
+            0.7 * self.obstacle_discomfort_field + 0.3 * self.density_field.normalized(self.min_density,
+                                                                                       self.max_density))
 
     def compute_random_discomfort_field(self):
         """

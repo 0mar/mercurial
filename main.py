@@ -4,7 +4,7 @@ import argparse
 import sys
 
 sys.path.insert(1, 'src')
-from geometry import Size, Point
+from geometry import Size
 import scene as scene_module
 import functions
 from results import Result
@@ -16,8 +16,8 @@ from scene_cases import LoopScene, ImpulseScene, TwoImpulseScene, TopScene
 
 # Default parameters
 number_of_pedestrians = 100
-domain_width = 200
-domain_height = 200
+domain_width = 70
+domain_height = 70
 obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
@@ -60,10 +60,10 @@ elif args.configuration == 'top':
                      initial_pedestrian_number=args.number)
 elif args.configuration == 'center':
     scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                         initial_pedestrian_number=args.number, impulse_location=Point([35, 50]), impulse_size=45)
+                         initial_pedestrian_number=args.number, impulse_location=(0.5, 0.6), impulse_size=45)
 elif args.configuration == 'bottom':
     scene = TwoImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
-                            initial_pedestrian_number=args.number, impulse_locations=[Point([40, 20]), Point([30, 20])],
+                            initial_pedestrian_number=args.number, impulse_locations=[(0.6, 0.4), (0.4, 0.2)],
                             impulse_size=45)
 if args.loop:
     scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json',

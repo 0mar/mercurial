@@ -10,7 +10,7 @@
     0.4
   ],
   "max_speed_interval": [
-    2,
+    1,
     2
   ],
   "interpolation_factor": 1.5,

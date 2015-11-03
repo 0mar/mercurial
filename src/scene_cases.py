@@ -20,16 +20,17 @@ class ImpulseScene(Scene):
         :param cache: 'read' or 'write' the cell cache to increase init speed.
         :return: scene instance.
         """
+        impulse_location = Point(size * impulse_location)
         if not all(impulse_location < size.array):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_location = impulse_location
         super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, initial_pedestrian_number):
         center = np.array(self.impulse_location)
         self.pedestrian_list = []
-        for counter in range(self.pedestrian_number):
+        for counter in range(initial_pedestrian_number):
             ped_loc = None
             while not ped_loc:
                 x, y = (np.random.rand(2) * 2 - 1) * self.impulse_size
@@ -57,17 +58,18 @@ class TwoImpulseScene(Scene):
         :param cache: 'read' or 'write' the cell cache to increase init speed.
         :return: scene instance.
         """
+        impulse_locations = [Point(size * imp_loc) for imp_loc in impulse_locations]
         if not np.all([loc.array < size.array for loc in impulse_locations]):
             raise ValueError("Impulse location not in scene")
         self.impulse_size = impulse_size
         self.impulse_locations = impulse_locations
         super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, initial_pedestrian_number):
 
         self.pedestrian_list = []
-        for counter in range(self.pedestrian_number):
-            if counter < self.pedestrian_number // 2:
+        for counter in range(initial_pedestrian_number):
+            if counter < initial_pedestrian_number // 2:
                 center = np.array(self.impulse_locations[0])
             else:
                 center = np.array(self.impulse_locations[1])
@@ -120,9 +122,9 @@ class TopScene(Scene):
         self.barrier = barrier
         super().__init__(size, initial_pedestrian_number, obstacle_file, mde, cache)
 
-    def _init_pedestrians(self):
+    def _init_pedestrians(self, initial_pedestrian_number):
         self.pedestrian_list = []
-        for counter in range(self.pedestrian_number):
+        for counter in range(initial_pedestrian_number):
             ped_loc = None
             while not ped_loc:
                 ped_loc = Point(self.size.array * [np.random.rand(), 1 - np.random.rand() * (1 - self.barrier)])
