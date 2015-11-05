@@ -12,6 +12,7 @@ from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
 from cells import Cell
+from cython_modules.mde import minimum_distance_enforcement
 
 
 class Scene:
@@ -32,6 +33,7 @@ class Scene:
         self.size = size
         self.time = 0
         self.total_pedestrians = initial_pedestrian_number
+
         self.obstacle_list = []
         self.exit_list = []
         self.entrance_list = []
@@ -50,7 +52,6 @@ class Scene:
         self.max_speed_array = np.empty(initial_pedestrian_number)
         self.pedestrian_cells = np.zeros([initial_pedestrian_number, 2])
         self.active_entries = np.ones(initial_pedestrian_number)
-        self._expand_arrays()
         self.cell_dict = {}
 
         # Parameter initialization (will be overwritten by _load_parameters)
@@ -69,6 +70,7 @@ class Scene:
             self._store_cells()
         self.pedestrian_list = []
         self._init_pedestrians(initial_pedestrian_number)
+        self.index_map = {i: self.pedestrian_list[i] for i in range(initial_pedestrian_number)}
         self.status = 'RUNNING'
         # Todo: Add handle for reuse_exits
         # Todo: Almost time to move settings to a settingsmanager
@@ -111,6 +113,7 @@ class Scene:
                 self.total_pedestrians += 1
                 self.active_entries[new_index] = 1
                 self.pedestrian_list.append(new_pedestrian)
+                self.index_map[new_index] = new_pedestrian
                 cell_location = np.floor(new_position / self.cell_size)
                 cell_index = int(cell_location[0]), int(cell_location[1])
                 self.cell_dict[cell_index].add_pedestrian(new_pedestrian)
@@ -170,6 +173,7 @@ class Scene:
             array = getattr(self, attr)
             addition = np.zeros(array.shape)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
+        self.index_map.update({100 + i: None for i in range(len(self.index_map))})
 
     def set_on_step_functions(self, *on_step):
         """
@@ -284,7 +288,7 @@ class Scene:
         :param filename: name of pickled scene file
         :return: None
         """
-        # Todo: Depends on scene
+        # Todo: Depends on scene.json
         ft.log("Loading cell objects from file")
 
         def reject_cells():
@@ -404,9 +408,9 @@ class Scene:
         :return: None
         """
         # assert pedestrian.is_done()
-        assert self.active_entries[pedestrian.index]
         pedestrian.cell.remove_pedestrian(pedestrian)
         index = pedestrian.index
+        self.index_map[index] = None
         self.pedestrian_list.remove(pedestrian)
 
         self.active_entries[index] = 0
@@ -451,9 +455,42 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
-            self._minimum_distance_enforcement(self.minimal_distance)
+            # time1 = time.time()
+            if True:
+                corrections = minimum_distance_enforcement(self.cell_dict.values(), self.position_array,
+                                                           self.minimal_distance)
+            else:
+                self._minimum_distance_enforcement(self.minimal_distance)
+                # print("time spent: %e"%(time1-time.time()))
         self.update_cells()
         [function() for function in self.on_step_functions]
+
+    def correct_for_geometry(self):
+        """
+        Performs a vectorized correction to make sure pedestrians do not run into walls
+        :return: None
+        """
+        geq_zero = np.logical_and(self.position_array[:, 0] > 0, self.position_array[:, 1] > 0)
+        leq_size = np.logical_and(self.position_array[:, 0] < self.size[0], self.position_array[:, 1] < self.size[1])
+        still_correct = np.logical_and(geq_zero, leq_size)
+        for obstacle in self.obstacle_list:
+            if not obstacle.permeable:
+                in_obstacle = np.logical_and(self.position_array > obstacle.begin, self.position_array < obstacle.end)
+                in_obs = np.logical_and(in_obstacle[:, 0], in_obstacle[:, 1])  # Faster than np.all(..,axis=1)
+                still_correct = np.logical_and(still_correct, np.logical_not(in_obs))
+        still_correct = np.logical_and(still_correct, self.active_entries)
+        self.position_array += np.logical_not(still_correct)[:, None] * (self.last_position_array - self.position_array)
+
+    def find_finished_pedestrians(self):
+        for goal in self.exit_list:
+            in_goal = np.logical_and(self.position_array >= goal.begin, self.position_array <= goal.end)
+            in_g = np.logical_and(in_goal[:, 0], in_goal[:, 1])
+            done = np.logical_and(in_g, self.active_entries)
+            for index in np.where(done)[0]:
+                finished_pedestrian = self.index_map[index]
+                goal.log_pedestrian(finished_pedestrian, self.time)
+                self.remove_pedestrian(finished_pedestrian)
+
 
     def store_exit_logs(self, file_name=None):
         log_dir = 'results/'

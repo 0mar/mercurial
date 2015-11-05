@@ -129,7 +129,7 @@ class SceneCreator:
             name = "exit%d" % number
             obstacle_data["exits"].append({"name": name, "begin": exit_obstacle.start, "size": exit_obstacle.size})
         for number, entrance_obstacle in enumerate(self.entrance_list):
-            name = "exit%d" % number
+            name = "entrance%d" % number
             obstacle_data["entrances"].append(
                 {"name": name, "begin": entrance_obstacle.start, "size": entrance_obstacle.size})
         with open('../scenes/%s.json' % save_name, 'w') as object_file:

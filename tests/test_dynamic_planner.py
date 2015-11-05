@@ -71,7 +71,7 @@ class TestDynamicPlanner:
                     print("center cell: %s" % center_cell)
                     print("pedestrian %s" % self.pedestrian)
                     print("Density in cell:  %.5f" % density[tuple(center_cell + [x, y])])
-                    print("Density treshold: %.5f" % self.dyn_plan.density_threshold)
+                    print("Density threshold: %.5f" % self.dyn_plan.density_threshold)
                     assert density[tuple(center_cell + [x, y])] <= self.dyn_plan.density_threshold
 
     def test_other_contributions_vanish(self):

@@ -32,7 +32,6 @@ class Pedestrian(object):
             self.index = counter
         else:
             self.index = index
-        self._position = None
         self._velocity = Velocity([0, 0])
         self.position = position
         self.size = size
@@ -42,11 +41,9 @@ class Pedestrian(object):
         self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
-            self.manual_move(new_position, at_start=True)
-        if not scene.is_accessible(self.position) and type(self) == Pedestrian:
-            ft.warn("%s has no accessible coordinates. Check your initialization" % self)
+            if scene.is_accessible(new_position, at_start=True):
+                self.position = new_position
         self.origin = self.position
-        self.scene.position_array[self.index] = self._position.array
 
     def __str__(self):
         """
@@ -80,36 +77,6 @@ class Pedestrian(object):
         blue = max_val * (speed - end) / (start - end)
         return "#%02x%02x%02x" % (red, green, blue)
 
-    def correct_for_geometry(self):
-        """
-        Updates the position of the pedestrian from the scene position array
-        by checking its accessibility in the corresponding cell.
-        If the position is not accessible, the pedestrian does not move
-        and the scene position array entry is reset.
-        :return: None
-        """
-        new_point = Point(self.scene.position_array[self.index])
-        if self.scene.is_within_boundaries(new_point) and self.cell.is_accessible(new_point):
-            self._position = new_point
-        else:
-            self.scene.position_array[self.index] = self._position.array
-
-    def manual_move(self, position, at_start=False):
-        """
-        Move the pedestrian to the give position manually; independent on the scene position array.
-        :param position: new pedestrian position (will still be checked)
-        :param at_start: Time of moving
-        :return: True when move is allowed and executed, false otherwise
-        """
-        # Should a whole scene check take too much time, then this should be replaced
-        if self.scene.is_accessible(position, at_start):
-            self.position = position
-            self.scene.position_array[self.index] = self.position.array
-            if self.cell:
-                self.cell.remove_pedestrian(self)
-                self.scene.get_cell_from_position(self.position).add_pedestrian(self)
-            return True
-        return False
 
     def move_to_position(self, position: Point, dt):
         """
@@ -123,10 +90,9 @@ class Pedestrian(object):
         distance = position - self.position
         if ft.norm(distance.array[0], distance.array[1]) < self.max_speed * dt:
             # should be enough to avoid small numerical error
-            moved_to_position = self.manual_move(position)
-            return moved_to_position
-        else:
-            return False
+            if self.scene.is_accessible(position):
+                self.position = position
+        return False
 
     @property
     def velocity(self):
@@ -155,7 +121,7 @@ class Pedestrian(object):
         Position getter
         :return: Current position
         """
-        return self._position
+        return Point(self.scene.position_array[self.index])
 
     @position.setter
     def position(self, point):
@@ -166,20 +132,4 @@ class Pedestrian(object):
         :param point: New position
         :return: None
         """
-        self._position = point
-
-    def is_done(self):
-        """
-        Determines whether the pedestrian has reached its goal.
-        Provides a warning when it has left the scene without exiting through its exit object.
-        :return: True when the pedestrian has left the scene, false otherwise.
-        """
-        for goal in self.goals:
-            if self.position in goal:
-                goal.log_pedestrian(self, self.scene.time)
-                return True
-        if any(self.position.array < 0) or any(self.position.array > self.scene.size.array):
-            ft.warn("Dirty exit of %s, leaving on %s" % (self, self.position))
-            return True
-        else:
-            return False
+        self.scene.position_array[self.index] = point.array

@@ -1,5 +1,4 @@
 __author__ = 'omar'
-
 import tkinter
 
 import numpy as np

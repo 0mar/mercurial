@@ -16,8 +16,8 @@ from scene_cases import LoopScene, ImpulseScene, TwoImpulseScene, TopScene
 
 # Default parameters
 number_of_pedestrians = 100
-domain_width = 80
-domain_height = 80
+domain_width = 70
+domain_height = 70
 obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")

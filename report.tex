@@ -705,9 +705,9 @@ While the distributed behaviour of exiting is good and reported in observations 
 We also test the simulation in a scenario without obstacles in which a packed crowd tries to make it to the exit. The purpose of this scenario is to test the quality of the [fluid flow solver] for high density crowds in unconstrained situations.\\
 The scenario with the initial crowd configuration is depicted in Figure~\ref{fig:scene2}.
 \paragraph{Parameters}
-Our simulation size is slightly larger, 80 by 80 meters. 50 meter from the exit, we spawn our pedestrians in a circle with a radius of 8 meters. We assume pedestrians have a size of $0.4\times 0.4m^2$, and a maximum density of $\rho_{\max} = 4\,\frac{m}{\textrm{m}^2}$ (where $m$ is the mass of a pedestrian). For [imagination], when we [fulfill] the maximum density by placing 4 pedestrians per square meter, each of the pedestrians has a distance of 0.1 meter to his neighbours.
+Our simulation size is slightly larger, 80 by 80 meters. 50 meter from the exit, we spawn our pedestrians in a circle with a radius of 8 meters. We assume a pedestrian size of $0.4\times 0.4\ \textrm{m}^2$ and a maximum density of $\rho_{\max} = 4\,\frac{m}{\textrm{m}^2}$ (where $m$ is the mass of a pedestrian). For [imagination], when we [fulfill] the maximum density by placing 4 pedestrians per square meter, each of the pedestrians has a distance of 0.1 meter to his neighbours.
 
-To satisfy the maximum density, we need $\pi 8^2 * \rho_{\max}$
+To satisfy the maximum density in our radius, we need $\pi 8^2 \rho_{\max}\approx 800$ people.
 \paragraph{Quantitative results}
 We show the scene after s
 \section{Future Research}

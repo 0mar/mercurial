@@ -9,7 +9,8 @@ import math
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
-
+from cython_modules.dynamic_planner import compute_density_and_velocity_field
+from cython_modules.dynamic_planner import compute_potential_cy
 
 class DynamicPlanner:
     """
@@ -27,7 +28,8 @@ class DynamicPlanner:
 
     For now, since the potential is a center field, we need an exit that covers cell centers.
     This means exits need a certain width.
-    As a consequence, obstacles should be introduced next to thick exits.
+    Ugly exits can be resolved by building obstacle walls.
+    However, obstacles are not yet supported by the planner.
     """
 
     def __init__(self, scene, show_plot=False):
@@ -39,20 +41,19 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = (20, 20)
+        self.grid_dimension = (40, 40)
         self.show_plot = show_plot
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.density_epsilon = ft.EPS
 
         self.max_speed = 2
-
-        self.path_length_weight = 6
+        self.path_length_weight = 8
         self.time_weight = 1
-        self.discomfort_field_weight = 1
+        self.discomfort_field_weight = 0.5
 
-        self.min_density = 0
-        # This is likely on another scale than in grid computer
-        self.max_density = 10
+        self.min_density = 2
+        # This is dependent on cell size, because of the discretization
+        self.max_density = self.dx * self.dy * 5
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -157,7 +158,6 @@ class DynamicPlanner:
         :return: (density, velocity_x, velocity_y) as 2D arrays
         """
         # Todo (after merge): Integrate with grid_computer
-        # Todo (after merge): Move to C++.
         density_field = np.zeros(self.grid_dimension) + self.density_epsilon
         # Initialize density with an epsilon to facilitate division
         v_x = np.zeros(self.grid_dimension)
@@ -219,7 +219,7 @@ class DynamicPlanner:
         else:
             raise ValueError("Direction %s not recognized" % direction)
 
-        speed_field = self.max_speed + measured_rel_dens * (avg_dir_speed - self.max_speed)
+        speed_field = self.max_speed + measured_rel_dens * (avg_dir_speed - self.max_speed) + 0.01
         self.speed_field_dict[direction].update(speed_field)
 
     def compute_discomfort_field(self):
@@ -233,7 +233,7 @@ class DynamicPlanner:
         :return: None
         """
         self.discomfort_field.update(
-            0.7 * self.obstacle_discomfort_field + 0.3 * self.density_field.normalized(self.min_density,
+            0 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
                                                                                        self.max_density))
 
     def compute_random_discomfort_field(self):
@@ -330,7 +330,7 @@ class DynamicPlanner:
             c = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
 
             D = b ** 2 - 4 * a * c
-            x_high = (-b + math.sqrt(D)) / (2 * a)  # Todo: Pick a numerical stable calculation
+            x_high = (2 * c) / (-b - math.sqrt(D))
             # Might not be obvious, but why we take the largest root is found in report.
             return x_high
 
@@ -350,7 +350,10 @@ class DynamicPlanner:
             min_potential = np.Inf
             best_cell = None
             for candidate_cell in candidate_cells:
-                potential = compute_potential(candidate_cell)
+                if False:
+                    potential = compute_potential(candidate_cell)
+                else:
+                    potential = compute_potential_cy(candidate_cell, potential_field, self.unit_field_dict, opposites)
                 if potential < min_potential:
                     min_potential = potential
                     best_cell = candidate_cell
@@ -398,24 +401,32 @@ class DynamicPlanner:
         If plotting is enables, updates the plot.
         :return: None
         """
-        self.compute_density_and_velocity_field()
+        if False:
+            self.compute_density_and_velocity_field()
+        else:
+            dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
+                                                                      self.scene.position_array,
+                                                                      self.scene.pedestrian_list)
+            self.density_field.update(dens_f)
+            self.v_x.update(v_x_f)
+            self.v_y.update(v_y_f)
         self.compute_discomfort_field()
+
         for direction in ft.DIRECTIONS:
             self.compute_speed_field(direction)
             self.compute_unit_cost_field(direction)
+            # assert np.all(self.unit_field_dict[direction].array>0)
 
         self.compute_potential_field()
+
         self.compute_potential_gradient()
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
         self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
-        for ped in self.scene.pedestrian_list:
-            assert self.scene.active_entries[ped.index]
-            ped.correct_for_geometry()
-            if ped.is_done():
-                self.scene.remove_pedestrian(ped)
+        self.scene.correct_for_geometry()
+        self.scene.find_finished_pedestrians()
 
     def plot_grid_values(self):
         """
