@@ -59,7 +59,7 @@ def mde2(cells, position_array, min_distance):
             differences = np.transpose(replica, axes=[1, 0, 2]) - replica
             distance = np.linalg.norm(differences, axis=2)
             distance[distance > min_distance] = np.nan
-            corrections = -differences / distance[:, :, None] * (min_distance - distance[:, :, None]) / 2
+            corrections = -differences / (distance[:, :, None] + ft.EPS) * (min_distance - distance[:, :, None]) / 2
             corrections = np.nan_to_num(corrections)
             total_corrections = np.sum(corrections, axis=0)
             all_corrections[index_list] += total_corrections

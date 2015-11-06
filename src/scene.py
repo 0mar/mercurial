@@ -3,7 +3,6 @@ __author__ = 'omar'
 import pickle
 import itertools
 import json
-import time
 
 import numpy as np
 import scipy.io as sio
@@ -21,7 +20,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, size: Size, initial_pedestrian_number, obstacle_file,
+    def __init__(self, initial_pedestrian_number, obstacle_file,
                  mde=True, cache='read', log_exits=False, use_exit_logs=False):
         """
         Initializes a Scene
@@ -31,7 +30,6 @@ class Scene:
         :param dt: update time step
         :return: scene instance.
         """
-        self.size = size
         self.time = 0
         self.total_pedestrians = initial_pedestrian_number
 
@@ -46,7 +44,7 @@ class Scene:
         self.use_exit_logs = use_exit_logs
 
         # Array initialization
-        self._read_json_file(file_name=obstacle_file)
+
         self.position_array = np.zeros([initial_pedestrian_number, 2])
         self.last_position_array = np.zeros([initial_pedestrian_number, 2])
         self.velocity_array = np.zeros([initial_pedestrian_number, 2])
@@ -55,10 +53,13 @@ class Scene:
         self.active_entries = np.ones(initial_pedestrian_number)
         self.cell_dict = {}
 
+
         # Parameter initialization (will be overwritten by _load_parameters)
         self.minimal_distance = self.dt = 0
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
+
         self._load_parameters()
+        self._read_json_file(file_name=obstacle_file)
 
         self.cell_size = Size(self.size.array / self.number_of_cells)
         if log_exits:
@@ -84,7 +85,7 @@ class Scene:
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, index, goals=self.exit_list, size=self.size, max_speed=self.max_speed_array[index])
+            Pedestrian(self, index, goals=self.exit_list, max_speed=self.max_speed_array[index])
             for index in range(init_number)]
         self._fill_cells()
 
@@ -109,7 +110,7 @@ class Scene:
                     ft.debug("Indices full. doubling array size to %d" % (2 * new_index))
                 new_max_speed = self.max_speed_interval.random()
                 self.max_speed_array[new_index] = new_max_speed  # todo: remove max speed
-                new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list, self.pedestrian_size,
+                new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list,
                                             new_max_speed, new_position, new_index)
                 self.total_pedestrians += 1
                 self.active_entries[new_index] = 1
@@ -128,6 +129,8 @@ class Scene:
         """
         import os
         default_dict = {"dt": 0.05,
+                        "width": 100,
+                        "height": 100,
                         "number_of_cells": [20, 20],
                         "minimal_distance": 0.7,
                         "pedestrian_size": [0.4, 0.4],
@@ -151,6 +154,7 @@ class Scene:
                 ft.warn("Invalid JSON in %s. Using default parameters" % filename)
 
         self.dt = data_dict['dt']
+        self.size = Size((data_dict['width'], data_dict['height']))
         self.number_of_cells = tuple(data_dict['number_of_cells'])
         self.minimal_distance = data_dict['minimal_distance']
         self.pedestrian_size = Size(data_dict['pedestrian_size'])
@@ -456,13 +460,11 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
-            time1 = time.time()
             if True:
                 self.position_array += mde2(self.cell_dict.values(), self.position_array,
                                                            self.minimal_distance)
             else:
                 self._minimum_distance_enforcement(self.minimal_distance)
-            print("time spent: %e" % (time1 - time.time()))
         self.update_cells()
         [function() for function in self.on_step_functions]
 

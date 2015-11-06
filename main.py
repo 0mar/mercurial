@@ -4,7 +4,6 @@ import argparse
 import sys
 
 sys.path.insert(1, 'src')
-from geometry import Size
 import scene as scene_module
 import functions
 from results import Result
@@ -16,8 +15,6 @@ from scene_cases import LoopScene, ImpulseScene, TwoImpulseScene, TopScene
 
 # Default parameters
 number_of_pedestrians = 100
-domain_width = 200  # Todo: Need not be here
-domain_height = 200
 obstacle_file = 'scenes/demo_obstacle_list.json'
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
@@ -29,8 +26,6 @@ parser.add_argument('-i', '--apply-interpolation', action='store_true',
                     help='Let simulation impose swarm behaviour to pedestrians')
 parser.add_argument('-p', '--apply-pressure', action='store_true',
                     help='Let simulation impose UIC (pressure term) to the pedestrians (-c implied)')
-parser.add_argument('-x', '--width', type=int, help='Width of simulation domain', default=domain_width)
-parser.add_argument('-y', '--height', type=int, help='Height of simulation domain', default=domain_height)
 parser.add_argument('-t', '--time-delay', type=int, help='Delay between time steps (in milliseconds)', default=1)
 parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containing obstacle descriptions',
                     default=obstacle_file)
@@ -53,20 +48,20 @@ args = parser.parse_args()
 functions.VERBOSE = args.verbose
 scene = None
 if args.configuration == 'uniform':
-    scene = scene_module.Scene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    scene = scene_module.Scene(obstacle_file=args.obstacle_file,
                                initial_pedestrian_number=args.number)
 elif args.configuration == 'top':
-    scene = TopScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file, barrier=0.8,
+    scene = TopScene(obstacle_file=args.obstacle_file, barrier=0.8,
                      initial_pedestrian_number=args.number)
 elif args.configuration == 'center':
-    scene = ImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    scene = ImpulseScene(obstacle_file=args.obstacle_file,
                          initial_pedestrian_number=args.number, impulse_location=(0.5, 0.6), impulse_size=8)
 elif args.configuration == 'bottom':
-    scene = TwoImpulseScene(size=Size([args.width, args.height]), obstacle_file=args.obstacle_file,
+    scene = TwoImpulseScene(obstacle_file=args.obstacle_file,
                             initial_pedestrian_number=args.number, impulse_locations=[(0.6, 0.4), (0.4, 0.2)],
                             impulse_size=8)
 if args.loop:
-    scene = LoopScene(size=Size([args.width, args.height]), obstacle_file='hall.json',
+    scene = LoopScene(obstacle_file='scenes/hall.json',
                       initial_pedestrian_number=args.number)
     # Todo: Integrate in scene
 

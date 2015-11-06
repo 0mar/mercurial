@@ -5,7 +5,6 @@ import numpy as np
 
 import functions as ft
 from geometry import Point, Size, LineSegment, Path
-from pedestrian import Pedestrian
 
 
 class VisualScene:
@@ -137,30 +136,6 @@ class VisualScene:
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
         return start_pos_array, end_pos_array
-
-    def draw_pedestrian(self, ped: Pedestrian):
-        """
-        Draws a single pedestrian on its relative location in the window as a circle.
-        :param ped: pedestrian which is represented on screen
-        :return: None
-        """
-        position = self.convert_relative_coordinate(ped.position / self.scene.size)
-        size = ped.size / self.scene.size * self.size
-        x_0 = position - size * 0.5
-        x_1 = position + size * 0.5
-        self.canvas.create_oval(x_0[0], x_0[1], x_1[0], x_1[1], fill=ped.color)
-
-    def draw_directed_pedestrian(self, ped: Pedestrian):
-        """
-        Draws a pedestrian on its relative location in the window as a triangle.
-        :param ped: pedestrian which is represented on the screen
-        :return: None
-        """
-        position = self.convert_relative_coordinate(ped.position / self.scene.size)
-        size = ped.size / self.scene.size * self.size
-        angle = ped.velocity.angle
-        coords = np.dot(VisualScene.directed_polygon * np.array(size), ft.rot_mat(angle)) + np.array(position)
-        self.canvas.create_polygon([tuple(array) for array in coords], fill=ped.color)
 
     def draw_cell(self, cell):
         """

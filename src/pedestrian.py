@@ -15,7 +15,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goals, size, max_speed, position=Point([0, 0]), index=-1):
+    def __init__(self, scene, counter, goals, max_speed, position=Point([0, 0]), index=-1):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -34,7 +34,6 @@ class Pedestrian(object):
             self.index = index
         self._velocity = Velocity([0, 0])
         self.position = position
-        self.size = size
         self.max_speed = max_speed
         self.color = self._convert_speed_to_color()
         self.goals = goals
