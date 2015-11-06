@@ -20,4 +20,5 @@ profile_image=${profile%pstats}'png'
 gprof2dot -f pstats $profile | profile_eye --file-colon-line-colon-label-format > $profile_page
 gprof2dot -f pstats $profile | dot -Tpng -o $profile_image
 echo "Created image $profile_image and page $profile_page"
-
+echo "Opening the image"
+xdg-open $profile_image

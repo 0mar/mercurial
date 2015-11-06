@@ -174,7 +174,7 @@ class Scene:
             array = getattr(self, attr)
             addition = np.zeros(array.shape)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
-        self.index_map.update({100 + i: None for i in range(len(self.index_map))})
+        self.index_map.update({len(self.index_map) + i: None for i in range(len(self.index_map))})
 
     def set_on_step_functions(self, *on_step):
         """
