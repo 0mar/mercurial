@@ -37,7 +37,6 @@ class Pedestrian(object):
         self.max_speed = max_speed
         self.color = self._convert_speed_to_color()
         self.goals = goals
-        self.cell = None
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
             if scene.is_accessible(new_position, at_start=True):

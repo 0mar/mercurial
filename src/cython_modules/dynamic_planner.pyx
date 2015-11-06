@@ -1,6 +1,6 @@
 __author__ = 'omar'
 import sys
-
+import numpy as np
 sys.path.insert(1, '..')
 import functions as ft
 cimport numpy as np

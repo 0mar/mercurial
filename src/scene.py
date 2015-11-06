@@ -3,16 +3,16 @@ __author__ = 'omar'
 import pickle
 import itertools
 import json
-
+import time
 import numpy as np
 import scipy.io as sio
-
+import os
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
 from cells import Cell
-from cython_modules.mde import mde2
+from cython_modules.mde import minimum_distance_enforcement
 
 
 class Scene:
@@ -49,9 +49,7 @@ class Scene:
         self.last_position_array = np.zeros([initial_pedestrian_number, 2])
         self.velocity_array = np.zeros([initial_pedestrian_number, 2])
         self.max_speed_array = np.empty(initial_pedestrian_number)
-        self.pedestrian_cells = np.zeros([initial_pedestrian_number, 2])
         self.active_entries = np.ones(initial_pedestrian_number)
-        self.cell_dict = {}
 
 
         # Parameter initialization (will be overwritten by _load_parameters)
@@ -61,15 +59,8 @@ class Scene:
         self._load_parameters()
         self._read_json_file(file_name=obstacle_file)
 
-        self.cell_size = Size(self.size.array / self.number_of_cells)
         if log_exits:
             self.set_on_finish_functions(self.store_exit_logs)
-        if cache == 'read':
-            self._load_cells()
-        else:
-            self._create_cells()
-        if cache == 'write':
-            self._store_cells()
         self.pedestrian_list = []
         self._init_pedestrians(initial_pedestrian_number)
         self.index_map = {i: self.pedestrian_list[i] for i in range(initial_pedestrian_number)}
@@ -87,7 +78,6 @@ class Scene:
         self.pedestrian_list = [
             Pedestrian(self, index, goals=self.exit_list, max_speed=self.max_speed_array[index])
             for index in range(init_number)]
-        self._fill_cells()
 
     def create_new_pedestrians(self):
         for entrance in self.entrance_list:
@@ -116,9 +106,6 @@ class Scene:
                 self.active_entries[new_index] = 1
                 self.pedestrian_list.append(new_pedestrian)
                 self.index_map[new_index] = new_pedestrian
-                cell_location = np.floor(new_position / self.cell_size)
-                cell_index = int(cell_location[0]), int(cell_location[1])
-                self.cell_dict[cell_index].add_pedestrian(new_pedestrian)
                 new_number -=1
 
     def _load_parameters(self, filename='params.json'):
@@ -131,7 +118,6 @@ class Scene:
         default_dict = {"dt": 0.05,
                         "width": 100,
                         "height": 100,
-                        "number_of_cells": [20, 20],
                         "minimal_distance": 0.7,
                         "pedestrian_size": [0.4, 0.4],
                         "max_speed_interval": [1, 2],
@@ -155,7 +141,6 @@ class Scene:
 
         self.dt = data_dict['dt']
         self.size = Size((data_dict['width'], data_dict['height']))
-        self.number_of_cells = tuple(data_dict['number_of_cells'])
         self.minimal_distance = data_dict['minimal_distance']
         self.pedestrian_size = Size(data_dict['pedestrian_size'])
         self.max_speed_interval = Interval(data_dict['max_speed_interval'])
@@ -173,7 +158,7 @@ class Scene:
         """
         # I don't like [gs]etattr, but this is pretty explicit
         attr_list = ["position_array", "last_position_array", "velocity_array",
-                     "max_speed_array", "pedestrian_cells", "active_entries"]
+                     "max_speed_array", "active_entries"]
         for attr in attr_list:
             array = getattr(self, attr)
             addition = np.zeros(array.shape)
@@ -244,102 +229,8 @@ class Scene:
             entrance_obs = Entrance(begin, Size(size), name, exit_data=self.load_exit_logs())
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
-
         if len(data['entrances']):
             self.set_on_step_functions(self.create_new_pedestrians)
-
-    def _create_cells(self):
-        """
-        Creates the cell objects into which the scene is partitioned.
-        The cell objects are stored in the scenes cell_dict as {(row, column): Cell}
-        This is a time intensive operation which can be avoided by using the cache function
-        :return: None
-        """
-        ft.log("Started preprocessing cells")
-        self.cell_dict = {}
-        for row, col in np.ndindex(self.number_of_cells):
-            start = Point(self.cell_size.array * [row, col])
-            cell = Cell(row, col, start, self.cell_size)
-            self.cell_dict[(row, col)] = cell
-            cell.obtain_relevant_obstacles(self.obstacle_list)
-        ft.log("Finished preprocessing cells")
-
-    def _fill_cells(self):
-        """
-        This method fills the cells in self.cell_dict with the pedestrians
-        :return: None
-        """
-        cell_locations = np.floor(self.position_array / self.cell_size)
-        self.pedestrian_cells = cell_locations
-        for pedestrian in self.pedestrian_list:
-            cell_location = (int(cell_locations[pedestrian.index, 0]), int(cell_locations[pedestrian.index, 1]))
-            self.cell_dict[cell_location].add_pedestrian(pedestrian)
-
-    def _store_cells(self, filename='cells.bin'):
-        """
-        This method pickles the cells dictionary (without pedestrians) into a file.
-        It can be loaded using _load_cells
-        :param filename: name of pickled scene file
-        :return: None
-        """
-        with open(filename, 'wb') as pickle_file:
-            pickle.dump(self.cell_dict, pickle_file)
-
-    def _load_cells(self, filename='cells.bin'):
-        """
-        Opens and unpickles the file containing the scene dictionary
-        If file does not exist, creates new cells.
-        If cells do not correspond to the scene + obstacles, creates new cells.
-        :param filename: name of pickled scene file
-        :return: None
-        """
-        # Todo: Depends on scene.json
-        ft.log("Loading cell objects from file")
-
-        def reject_cells():
-            ft.log("Cells cache does not correspond to this scene. Creating new cells and storing those.")
-            self._create_cells()
-            self._store_cells()
-
-        import os.path
-        if os.path.isfile(filename):
-            with open(filename, 'rb') as pickle_file:
-                self.cell_dict = pickle.load(pickle_file)
-        else:
-            reject_cells()
-        if not self._validate_cells():
-            reject_cells()
-
-    def _validate_cells(self):
-        """
-        Compares the cell dictionary to the scene information.
-        Polls a cells and checks its location and its size to see if it behaves as expected.
-        :return: False if the method detects an inconsistency, True otherwise
-        """
-        cell_location = set(self.cell_dict).pop()
-        correct_index = all([cell_location[dim] < self.number_of_cells[dim] for dim in range(2)])
-        correct_size = np.all(np.isclose(self.cell_dict[cell_location].size.array, self.cell_size.array))
-        correct_obstacle = {obs.name for obs in self.obstacle_list} \
-                           == {obs.name for cell in self.cell_dict.values() for obs in cell.obstacle_set}
-        return correct_index and correct_size and correct_obstacle
-
-    def get_cell_from_position(self, position):
-        """
-        Obtain the cell corresponding to a certain position
-        :param position: position
-        :return: corresponding cell
-        """
-        size = Size(self.size.array / self.number_of_cells)
-        cell_location = np.floor(np.array(position) / size)
-        return self.cell_dict[(int(cell_location[0]), int(cell_location[1]))]
-
-    def get_pedestrian_cells(self):
-        """
-        Obtain the pedestrian distribution over the cells.
-        :return:array with integer values per pedestrian corresponding to its cell.
-        """
-        raw_cell_locations = np.floor(self.position_array / self.cell_size)
-        return raw_cell_locations
 
     def get_stationary_pedestrians(self):
         """
@@ -350,62 +241,6 @@ class Scene:
         not_moved = np.logical_and(pos_difference == 0, self.active_entries == 1)
         return not_moved
 
-    def update_cells(self):
-        """
-        Update all the pedestrians, but by inspecting the new situation per cell.
-        :return: None
-        """
-        new_ped_cells = self.get_pedestrian_cells()
-        needs_update = self.pedestrian_cells != new_ped_cells
-        for pedestrian in self.pedestrian_list:
-            index = pedestrian.index
-            if any(needs_update[index]):
-                cell = pedestrian.cell
-                new_cell_orientation = (int(new_ped_cells[index, 0]), int(new_ped_cells[index, 1]))
-                if new_cell_orientation in self.cell_dict:
-                    cell.remove_pedestrian(pedestrian)
-                    new_cell = self.cell_dict[new_cell_orientation]
-                    new_cell.add_pedestrian(pedestrian)
-                else:
-                    pass
-        self.pedestrian_cells = new_ped_cells
-
-    def _minimum_distance_enforcement(self, min_distance):
-        """
-        Finds the pedestrian pairs that are closer than the specified distance.
-        Does so by comparing the distances of all pedestrians a,b in a cell.
-        Note that intercellullar pedestrian pairs are ignored,
-        we might fix this later.
-
-        :param min_distance: minimum distance between pedestrians, including their size.
-        :return: list of pedestrian index pairs with distances lower than min_distance.
-        """
-        list_a = []
-        list_b = []
-        index_list = []
-        for cell in self.cell_dict.values():
-            for ped_combination in itertools.combinations(cell.pedestrian_set, 2):
-                list_a.append(ped_combination[0].position.array)
-                list_b.append(ped_combination[1].position.array)
-                index_list.append([ped_combination[0].index, ped_combination[1].index])
-        array_a = np.array(list_a)
-        array_b = np.array(list_b)
-        array_index = np.array(index_list)
-        differences = array_a - array_b
-        if len(differences) == 0:
-            return
-        distances = np.linalg.norm(differences, axis=1)
-        indices = np.where(distances < min_distance)[0]
-
-        mde_index_pairs = array_index[indices]
-        mde_corrections = (min_distance / (distances[indices][:, None] + ft.EPS) - 1) * differences[indices] / 2
-        ordered_corrections = np.zeros(self.position_array.shape)
-        for it in range(len(mde_index_pairs)):
-            pair = mde_index_pairs[it]
-            ordered_corrections[pair[0]] += mde_corrections[it]
-            ordered_corrections[pair[1]] -= mde_corrections[it]
-        self.position_array += ordered_corrections
-
     def remove_pedestrian(self, pedestrian):
         """
         Removes a pedestrian from the scene.
@@ -413,7 +248,6 @@ class Scene:
         :return: None
         """
         # assert pedestrian.is_done()
-        pedestrian.cell.remove_pedestrian(pedestrian)
         index = pedestrian.index
         self.index_map[index] = None
         self.pedestrian_list.remove(pedestrian)
@@ -459,13 +293,12 @@ class Scene:
         self.time += self.dt
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
+        time1 = time.time()
         if self.mde:
-            if True:
-                self.position_array += mde2(self.cell_dict.values(), self.position_array,
-                                                           self.minimal_distance)
-            else:
-                self._minimum_distance_enforcement(self.minimal_distance)
-        self.update_cells()
+            self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
+                                                                self.active_entries,
+                                                                self.minimal_distance)
+        print("%.2e" % (time.time() - time1))
         [function() for function in self.on_step_functions]
 
     def correct_for_geometry(self):

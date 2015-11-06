@@ -18,7 +18,6 @@ class GraphPlanner:
     Lower level objects should be agnostic of the planner.
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
     """
-    # TODO: when time step is too large, bugs occur. This is likely caused by the cell check.
     def __init__(self, scene):
         """
         Constructs a Graph planner

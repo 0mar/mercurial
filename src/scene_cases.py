@@ -36,7 +36,6 @@ class ImpulseScene(Scene):
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
                                                    max_speed=self.max_speed_array[counter]))
 
-        self._fill_cells()
 
 
 class TwoImpulseScene(Scene):
@@ -72,7 +71,6 @@ class TwoImpulseScene(Scene):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
                                                    max_speed=self.max_speed_array[counter]))
-        self._fill_cells()
 
 
 class LoopScene(Scene):
@@ -119,4 +117,3 @@ class TopScene(Scene):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
                                                    max_speed=self.max_speed_array[counter]))
-        self._fill_cells()

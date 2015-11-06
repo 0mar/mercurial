@@ -58,7 +58,7 @@ elif args.configuration == 'center':
                          initial_pedestrian_number=args.number, impulse_location=(0.5, 0.6), impulse_size=8)
 elif args.configuration == 'bottom':
     scene = TwoImpulseScene(obstacle_file=args.obstacle_file,
-                            initial_pedestrian_number=args.number, impulse_locations=[(0.6, 0.4), (0.4, 0.2)],
+                            initial_pedestrian_number=args.number, impulse_locations=[(0.5, 0.4), (0.4, 0.2)],
                             impulse_size=8)
 if args.loop:
     scene = LoopScene(obstacle_file='scenes/hall.json',
