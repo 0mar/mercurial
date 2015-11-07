@@ -5,7 +5,6 @@ sys.path.insert(1, '..')
 import functions as ft
 cimport numpy as np
 import math
-
 float_type = np.float64
 
 def compute_density_and_velocity_field(cell_dim, cell_size, np.ndarray[np.float64_t, ndim=2] position_array,
@@ -39,7 +38,7 @@ def compute_density_and_velocity_field(cell_dim, cell_size, np.ndarray[np.float6
         for y in range(2):
             density_contributions[x][y] = np.minimum(
                 1 - rel_differences[:, 0] + (2 * rel_differences[:, 0] - 1) * x,
-                1 - rel_differences[:, 1] + (2 * rel_differences[:, 1] - 1) * y) ** eps
+                1 - rel_differences[:, 1] + (2 * rel_differences[:, 1] - 1) * y) ** 2  # density exponent
     # For each cell center surrounding the pedestrian, add (in both dimensions) 1-\delta . or \delta .
     for list_index in range(len(pedestrian_list)):
         ped = pedestrian_list[list_index]

@@ -3,9 +3,10 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from scene import Cell
+from cells import Cell
 import numpy as np
 import math
+import operator
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
@@ -234,7 +235,7 @@ class DynamicPlanner:
         """
         self.discomfort_field.update(
             0 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
-                                                                                       self.max_density))
+                                                                                     self.max_density))
 
     def compute_random_discomfort_field(self):
         """
@@ -274,12 +275,13 @@ class DynamicPlanner:
         known_cells = self.exit_cell_set.copy()
         unknown_cells = self.all_cells - known_cells  # - self.obstacle_cell_set
         # All the inaccessible cells are not required.
-        def get_new_candidate_cells(new_known_cells):
+
+        def get_new_candidate_cells(new_known_cells):  # Todo: Finalize list/set interfacing
             new_candidate_cells = set()
             for cell in new_known_cells:
                 for direction in ft.DIRECTIONS.values():
                     nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
-                    if self._exists(nb_cell) and nb_cell in unknown_cells:
+                    if self._exists(nb_cell) and nb_cell not in known_cells:
                         new_candidate_cells.add(nb_cell)
             return new_candidate_cells
 
@@ -345,24 +347,23 @@ class DynamicPlanner:
             for cell in self.part_obstacle_cell_dict:
                 pot_field[cell] = correction_value * self.part_obstacle_cell_dict[cell]
 
-        candidate_cells = get_new_candidate_cells(known_cells)
+        candidate_cells = {cell: compute_potential_cy(cell, potential_field, self.unit_field_dict, opposites)
+                           for cell in get_new_candidate_cells(known_cells)}
+        new_candidate_cells = get_new_candidate_cells(known_cells)
         while unknown_cells:
-            min_potential = np.Inf
-            best_cell = None
-            for candidate_cell in candidate_cells:
+            for candidate_cell in new_candidate_cells:
                 if False:
                     potential = compute_potential(candidate_cell)
                 else:
                     potential = compute_potential_cy(candidate_cell, potential_field, self.unit_field_dict, opposites)
-                if potential < min_potential:
-                    min_potential = potential
-                    best_cell = candidate_cell
+                candidate_cells[candidate_cell] = potential
+            sorted_candidates = sorted(candidate_cells.items(), key=operator.itemgetter(1))  # Todo: Can we reuse this?
+            best_cell = sorted_candidates[0][0]
+            min_potential = candidate_cells.pop(best_cell)
             potential_field[best_cell] = min_potential
-
             unknown_cells.remove(best_cell)
-            candidate_cells.remove(best_cell)
             known_cells.add(best_cell)
-            candidate_cells |= get_new_candidate_cells({best_cell})
+            new_candidate_cells = get_new_candidate_cells({best_cell})
         correct_for_obstacles(potential_field)
         self.potential_field.update(potential_field)
 

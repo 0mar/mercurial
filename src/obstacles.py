@@ -107,7 +107,6 @@ class Entrance(Obstacle):
         return np.array([x, y]) * correction
 
     def get_new_number_of_pedestrians(self, time):
-        debug_bool = False
         if self.depleted:
             return 0
         total_number = 0
@@ -128,8 +127,6 @@ class Entrance(Obstacle):
         self.spawned_pedestrian_number += total_number
 
         self.depleted = self.spawned_pedestrian_number >= self.max_pedestrians
-        if debug_bool:
-            assert self.depleted
         return total_number
 
     def get_spawn_location(self):

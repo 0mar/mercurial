@@ -1,17 +1,12 @@
 __author__ = 'omar'
 
-import pickle
-import itertools
 import json
-import time
 import numpy as np
 import scipy.io as sio
-import os
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
-from cells import Cell
 from cython_modules.mde import minimum_distance_enforcement
 
 
@@ -293,12 +288,10 @@ class Scene:
         self.time += self.dt
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
-        time1 = time.time()
         if self.mde:
             self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
                                                                 self.active_entries,
                                                                 self.minimal_distance)
-        print("%.2e" % (time.time() - time1))
         [function() for function in self.on_step_functions]
 
     def correct_for_geometry(self):
