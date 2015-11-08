@@ -234,14 +234,16 @@ class GridComputer:
             self.interpolate_pedestrians()
 
     @staticmethod
-    def weight_function(array):
+    def weight_function(array, smoothing_length=1):
         """
         Using the Wendland kernel to determine the interpolation weight
         Calculation is performed in two steps to take advantage of numpy's speed
         :param array: Array of distances to apply the kernel on.
+        :param smoothing_length: Steepness factor (standard deviation) of kernel
         :return: Weights of interpolation
         """
-        norm_constant = 7. / (4 * np.pi)
+        array /= smoothing_length
+        norm_constant = 7. / (4 * np.pi * smoothing_length * smoothing_length)
         first_factor = np.maximum(1 - array / 2, 0)
         weight = first_factor ** 4 * (1 + 2 * array)
         return weight * norm_constant

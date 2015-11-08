@@ -10,6 +10,7 @@ import operator
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
+from grid_computer import GridComputer
 from cython_modules.dynamic_planner import compute_density_and_velocity_field
 from cython_modules.dynamic_planner import compute_potential_cy
 
@@ -89,7 +90,10 @@ class DynamicPlanner:
                                                      'Unit field %s' % direction, (dx, dy))
 
         self._compute_initial_interface()
-        self.process_obstacles()
+        self.obstacle_potential_field = self.get_obstacle_potential_field()
+        debug_f = Field(self.grid_dimension, Field.Orientation.center, 'obstacle_potential_field')
+        debug_f.update(self.obstacle_potential_field)
+        ft.log(debug_f)
         if self.show_plot:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
@@ -118,27 +122,22 @@ class DynamicPlanner:
             ft.warn("%s not properly processed" % "/"
                     .join([repr(goal) for goal in self.scene.exit_list if not valid_exits[goal]]))
 
-    def process_obstacles(self):
+    def get_obstacle_potential_field(self):
         """
-        Checks the scene for obstacles. Cells fully covered by obstacles are labeled.
-        Their potential is known (a high value).
-        Cells partially covered by obstacles are labeled as well.
-        Their potential is also high, measured by the fraction of coverage.
-
-        :return: None
+        Compute the Gaussian-like potential field surrounding each obstacle
+        We transform our kernel to an ellipsis to service the rectangular obstacles.
+        :return:
         """
-        cell_dict = {}
-        cell_size = Size([self.dx, self.dy])
-        for row, col in np.ndindex(self.grid_dimension):
-            start = Point([row * self.dx, col * self.dy])
-            cell = Cell(row, col, start, cell_size)
-            cell_dict[(row, col)] = cell
-            cell.obtain_relevant_obstacles(self.scene.obstacle_list)
-            non_exit_obstacles = cell.obstacle_set - set(self.scene.exit_list)
-            if cell.is_inaccessible and non_exit_obstacles:
-                self.obstacle_discomfort_field[row, col] = 1
-            elif non_exit_obstacles:
-                self.obstacle_discomfort_field[row, col] = cell.get_covered_fraction()
+        h = 1.2  # Obstacle factor
+        cell_centers = self.potential_field.mesh_grid
+        potential_obstacles = np.zeros(self.grid_dimension)
+        for obstacle in self.scene.obstacle_list:
+            if not obstacle.permeable:
+                distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
+                                       np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
+                weights = GridComputer.weight_function(distances * h)
+                potential_obstacles += weights
+        return potential_obstacles
 
     def _exists(self, index, max_index=None):
         """
@@ -336,17 +335,6 @@ class DynamicPlanner:
             # Might not be obvious, but why we take the largest root is found in report.
             return x_high
 
-        def correct_for_obstacles(pot_field):
-            """
-            Computes (or in case of partially covered obstacles, correct) the potential for cells
-            with objects.
-            """
-            correction_value = np.max(pot_field[pot_field != np.Inf])
-            for cell in self.obstacle_cell_set:
-                pot_field[cell] = correction_value  # some value?
-            for cell in self.part_obstacle_cell_dict:
-                pot_field[cell] = correction_value * self.part_obstacle_cell_dict[cell]
-
         candidate_cells = {cell: compute_potential_cy(cell, potential_field, self.unit_field_dict, opposites)
                            for cell in get_new_candidate_cells(known_cells)}
         new_candidate_cells = get_new_candidate_cells(known_cells)
@@ -364,8 +352,8 @@ class DynamicPlanner:
             unknown_cells.remove(best_cell)
             known_cells.add(best_cell)
             new_candidate_cells = get_new_candidate_cells({best_cell})
-        correct_for_obstacles(potential_field)
-        self.potential_field.update(potential_field)
+        max_potential = np.max(self.potential_field.array)
+        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential)
 
     def compute_potential_gradient(self):
         """
@@ -419,7 +407,6 @@ class DynamicPlanner:
             # assert np.all(self.unit_field_dict[direction].array>0)
 
         self.compute_potential_field()
-
         self.compute_potential_gradient()
         self.assign_velocities()
         if self.show_plot:
@@ -442,6 +429,8 @@ class DynamicPlanner:
         self.graphs[1, 0].set_title('Discomfort')
         self.graphs[0, 1].imshow(np.rot90(self.potential_field.array))
         self.graphs[0, 1].set_title('Potential field')
+        self.graphs[1, 1].imshow(np.rot90(self.obstacle_potential_field))
+        self.graphs[1, 1].set_title('Obstacle Potentials')
         # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
         # self.graphs[1, 1].set_title('Velocity field')
         # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')

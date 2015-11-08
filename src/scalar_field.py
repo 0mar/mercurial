@@ -46,8 +46,8 @@ class ScalarField:
         else:
             # y-coordinates lie on cell faces
             self.y_range = np.linspace(self.dy, self.height - self.dy, shape[1])
-
-        self.mesh_grid = np.meshgrid(self.x_range, self.y_range)
+        x_grid, y_grid = np.meshgrid(self.x_range, self.y_range)
+        self.mesh_grid = x_grid.T, y_grid.T
 
     def update(self, new_field):
         """
