@@ -20,9 +20,9 @@ class SceneCreator:
     def __init__(self):
         self.window = tkinter.Tk()
         self.window.title("Scene creator")
-        self.size = (1000, 1000)
-        self.window.geometry("1000x1000")
+        self.size = (800, 800)
         self.window.bind('<Button-1>', self.start_drawing)
+        self.window.bind('<Button-2>', self.remove_last_obstacle)
 
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
@@ -36,7 +36,6 @@ class SceneCreator:
         self.menu.add_radiobutton(label='Exits', variable=self.object_status, value=1)
         self.menu.add_radiobutton(label='Entrances', variable=self.object_status, value=2)
 
-
         self.window.config(menu=self.menu)
 
         ft.debug("Started creating scenes.")
@@ -47,6 +46,13 @@ class SceneCreator:
         self.new_object_holder = 0
         self.draw_start = self.draw_end = None
 
+    @property
+    def size(self):
+        return [self.canvas.winfo_width(), self.canvas.winfo_height()]
+
+    @size.setter
+    def size(self, value):
+        self.window.geometry("%dx%d" % tuple(value))
     def start_drawing(self, event):
         ft.debug(self.object_status.get())
         self.draw_status = SceneCreator.DrawStatus.drawing
@@ -93,6 +99,13 @@ class SceneCreator:
         assert self.draw_status == SceneCreator.DrawStatus.drawing
         cur_pos = (event.x, event.y)
         self.redraw_new_obstacle(self.draw_start, cur_pos)
+
+    def remove_last_obstacle(self, event):
+        if len(self.obstacle_list):
+            self.obstacle_list.pop(-1)
+            self.canvas.delete('all')
+            for obstacle in self.obstacle_list:
+                self.draw_obstacle(obstacle)
 
     def create_new_obstacle(self):
         begin_x = min(self.draw_start[0], self.draw_end[0]) / self.size[0]

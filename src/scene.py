@@ -26,6 +26,7 @@ class Scene:
         :return: scene instance.
         """
         self.time = 0
+        self.counter = 0
         self.total_pedestrians = initial_pedestrian_number
 
         self.obstacle_list = []
@@ -53,6 +54,7 @@ class Scene:
 
         self._load_parameters()
         self._read_json_file(file_name=obstacle_file)
+        self.obstacle_file = obstacle_file  # todo: ugly
 
         if log_exits:
             self.set_on_finish_functions(self.store_exit_logs)
@@ -286,6 +288,7 @@ class Scene:
         :return: None
         """
         self.time += self.dt
+        self.counter += 1
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
@@ -328,6 +331,21 @@ class Scene:
         log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_list}
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
+    def store_results(self, file_name):
+        self.file_name = file_name
+        self.set_on_step_functions(self.store_positions_to_file)
+        self.set_on_finish_functions(self.store_position_usage)
+
+    def store_positions_to_file(self):
+        if self.counter % 10 == 0:
+            with open("%s-%d" % (self.file_name, int(self.counter / 10)), 'wb') as f:
+                np.save(f, self.position_array[self.active_entries.astype(bool)])
+
+    def store_position_usage(self):
+        store_data = {"number": self.counter, 'name': self.file_name,
+                      'obstacle_file': self.obstacle_file, 'size': self.size.array.tolist()}
+        with open('%s.json' % self.file_name, 'w') as f:
+            f.write(json.dumps(store_data))
     def load_exit_logs(self, file_name=None):
         """
         If flagged: Open logs, convert them to a list.

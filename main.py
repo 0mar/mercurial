@@ -78,8 +78,9 @@ else:
                         apply_pressure=args.apply_pressure)
     step_functions = [planner.collective_update, grid.step]
 
-if args.results or args.kernel:
-    result = Result(scene)
+if args.results or args.kernel:  # Changed this temporarily
+    filename = input('results in what file?')
+    scene.store_results('results/positions/%s' % filename)
 if not args.kernel:
     vis = VisualScene(scene, 1500, 1000, step_functions=step_functions,
                   loop=not args.step, delay=args.time_delay, draw_cells=args.draw_cells)

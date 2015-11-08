@@ -32,7 +32,6 @@ class Pedestrian(object):
             self.index = counter
         else:
             self.index = index
-        self._velocity = Velocity([0, 0])
         self.position = position
         self.max_speed = max_speed
         self.color = self._convert_speed_to_color()
@@ -98,7 +97,7 @@ class Pedestrian(object):
         Velocity getter
         :return:
         """
-        return self._velocity
+        return Velocity(self.scene.velocity_array[self.index])
 
     @velocity.setter
     def velocity(self, value):

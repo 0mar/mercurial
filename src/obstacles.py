@@ -59,7 +59,7 @@ class Entrance(Obstacle):
     Models an entrance.
     """
 
-    def __init__(self, begin, size, name, spawn_rate=10, max_pedestrians=500, exit_data=[]):
+    def __init__(self, begin, size, name, spawn_rate=2, max_pedestrians=10000, exit_data=[]):
         super().__init__(begin, size, name, permeable=False)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
@@ -119,7 +119,6 @@ class Entrance(Obstacle):
                         self.full_data.pop(0)
                         total_number += 1
                 else:
-                    debug_bool = True
                     poll_successful = False
         else:
             total_number = self.people_queue[self.queue_iterator]

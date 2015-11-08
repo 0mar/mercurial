@@ -43,7 +43,7 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = (100, 100)
+        self.grid_dimension = (70, 70)
         self.show_plot = show_plot
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.density_epsilon = ft.EPS
@@ -55,7 +55,7 @@ class DynamicPlanner:
 
         self.min_density = 2
         # This is dependent on cell size, because of the discretization
-        self.max_density = self.dx * self.dy * 5
+        self.max_density = 5
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -91,9 +91,6 @@ class DynamicPlanner:
 
         self._compute_initial_interface()
         self.obstacle_potential_field = self.get_obstacle_potential_field()
-        debug_f = Field(self.grid_dimension, Field.Orientation.center, 'obstacle_potential_field')
-        debug_f.update(self.obstacle_potential_field)
-        ft.log(debug_f)
         if self.show_plot:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
@@ -382,7 +379,7 @@ class DynamicPlanner:
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
         self.scene.velocity_array = - self.scene.max_speed_array[:, None] * solved_grad / \
-                                    np.linalg.norm(solved_grad, axis=1)[:, None]
+                                    np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
 
     def step(self):
         """
@@ -411,7 +408,6 @@ class DynamicPlanner:
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
-        self.scene.time += self.scene.dt
         self.scene.move_pedestrians()
         self.scene.correct_for_geometry()
         self.scene.find_finished_pedestrians()

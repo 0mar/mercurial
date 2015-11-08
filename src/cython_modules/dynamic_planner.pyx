@@ -63,7 +63,7 @@ def compute_potential_cy(cell, np.ndarray[np.float64_t, ndim=2] potential_field,
     """
     # Find the minimal directions along a grid cell.
     # Assume left and below are best, then overwrite with right and up if they are better
-    cdef float inf = float('inf')
+    cdef float inf = np.inf
     neighbour_pots = {direction: inf for direction in ft.DIRECTIONS}
 
     cdef float hor_potential, ver_potential, hor_cost, ver_cost, cost, pot
@@ -108,12 +108,25 @@ def compute_potential_cy(cell, np.ndarray[np.float64_t, ndim=2] potential_field,
                 # lowest in vertical direction
     # Coefficients of quadratic equation
     cdef float a, b, c, D, x_high
-    a = 1. / (hor_cost * hor_cost) + 1. / (ver_cost * ver_cost)
-    b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
-    c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (
+    assert not (hor_cost == np.inf and ver_cost == np.inf)
+    if hor_cost == inf:
+        a = 1. / (ver_cost * ver_cost)
+        b = -2. * ver_potential / (ver_cost * ver_cost)
+        c = (ver_potential / ver_cost) * (ver_potential / ver_cost) - 1
+    elif ver_cost == inf:
+        a = 1. / (hor_cost * hor_cost)
+        b = -2. * hor_potential / (hor_cost * hor_cost)
+        c = (hor_potential / hor_cost) * (hor_potential / hor_cost) - 1
+    else:
+        a = 1. / (hor_cost * hor_cost) + 1. / (ver_cost * ver_cost)
+        b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
+        c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (
     ver_potential / ver_cost) - 1
 
     D = b * b - 4. * a * c
+    if D < 0:
+        ft.warn("Negative D: %.2e" % D)
+        D = 0
     # x_high = (2.*c)/(-b - math.sqrt(D))
     x_high = (-b + math.sqrt(D)) / (2. * a)
     # Might not be obvious, but why we take the largest root is found in report.
