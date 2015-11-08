@@ -26,7 +26,6 @@ def compute_density_and_velocity_field(cell_dim, cell_size, np.ndarray[np.float6
     # These are the coordinates of those centers
     differences = position_array - cell_centers
     # These are the differences between the cell centers and the pedestrian positions.
-    assert np.all(differences <= cell_size) and np.all(differences >= 0)
     # They should all be positive and smaller than (dx,dy)
     rel_differences = differences / cell_size
     density_contributions = [[None, None], [None, None]]
