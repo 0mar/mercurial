@@ -11,9 +11,7 @@ from scene import Obstacle
 class GraphPlanner:
     """
     Upgraded path planner, based on A* algorithm.
-    Converts the scene to a graph, adds the pedestrians location and finds the shortest path to the goal.
-    In this implementation, only one exit is present.
-    This should not be hard to generalize, just keep an eye on the runtime.
+    Converts the scene to a graph, adds the pedestrians location and finds the shortest path to the nearest goal.
 
     Lower level objects should be agnostic of the planner.
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
@@ -112,15 +110,16 @@ class GraphPlanner:
         :raise: RunTimeError when no path can be computed.
         """
         ped_graph = nx.Graph(self.graph)
-        ped_graph.add_node(pedestrian.position)
+        ped_position = pedestrian.position
+        ped_graph.add_node(ped_position)
         best_path = None
         shortest_length = np.Inf
         closest_goal = None
-        self._fill_with_required_edges(pedestrian.position, ped_graph)
+        self._fill_with_required_edges(ped_position, ped_graph)
         for goal in self.scene.exit_list:
             try:
-                path = nx.astar_path(ped_graph, pedestrian.position, goal)
-                length = nx.astar_path_length(ped_graph, pedestrian.position, goal)
+                path = nx.astar_path(ped_graph, ped_position, goal)
+                length = nx.astar_path_length(ped_graph, ped_position, goal)
                 if length < shortest_length:
                     best_path = path
                     closest_goal = goal
@@ -158,8 +157,7 @@ class GraphPlanner:
         self.scene.move_pedestrians()
 
         # 2
-        for pedestrian in self.scene.pedestrian_list:
-            pedestrian.correct_for_geometry()
+        self.scene.correct_for_geometry()
 
         stationary_pedestrian_array = self.scene.get_stationary_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
@@ -169,10 +167,6 @@ class GraphPlanner:
                 remaining_path = pedestrian.line.end - pedestrian.position
                 allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
                 checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
-                done = pedestrian.is_done()
-                if done:
-                    self.scene.remove_pedestrian(pedestrian)
-                    continue
                 if checkpoint_reached:  # but not done
                     if pedestrian.path:
                         pedestrian.line = pedestrian.path.pop_next_segment()
@@ -184,6 +178,7 @@ class GraphPlanner:
                 pedestrian.path = self.create_path(pedestrian)
                 pedestrian.line = pedestrian.path.pop_next_segment()
                 pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+        self.scene.find_finished_pedestrians()
 
     @staticmethod
     def get_path_length(pedestrian):

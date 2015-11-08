@@ -43,7 +43,7 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = (40, 40)
+        self.grid_dimension = (100, 100)
         self.show_plot = show_plot
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.density_epsilon = ft.EPS

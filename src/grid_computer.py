@@ -31,8 +31,10 @@ class GridComputer:
         :return: Grid computer object.
         """
         self.scene = scene
-        self.cell_dimension = self.scene.number_of_cells
-        self.dx, self.dy = self.scene.cell_size
+        prop_x, prop_y = (5, 5)
+        self.cell_dimension = int(self.scene.size[0] / prop_x), int(self.scene.size[1] / prop_y)
+        self.dx = self.scene.size[0] * self.cell_dimension[0]
+        self.dy = self.scene.size[1] * self.cell_dimension[1]
         self.dt = self.scene.dt
         self.smoothing_length = self.scene.smoothing_length * ft.norm(self.dx, self.dy) / math.sqrt(2)
         self.packing_factor = self.scene.packing_factor
