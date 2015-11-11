@@ -49,7 +49,7 @@ class Pedestrian(object):
         :return: string representation
         """
         return "Pedestrian %d (index %d) \tPosition: %s\tAngle %.2f pi" % \
-               (self.counter, self.index, self.position, self._velocity.angle / np.pi)
+               (self.counter, self.index, self.position, self.velocity.angle / np.pi)
 
     def __repr__(self):
         """

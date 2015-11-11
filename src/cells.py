@@ -11,6 +11,7 @@ class Cell:
     Models a cell from the partitioned scene.
     This is to accommodate the UIC computations as well as to perform a more efficient scene evaluation.
     We assume equal sized grid cells.
+    This method is largely unused now
     """
 
     def __init__(self, row: int, column: int, begin: Point, size: Size):

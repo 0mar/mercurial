@@ -59,11 +59,12 @@ class Entrance(Obstacle):
     Models an entrance.
     """
 
-    def __init__(self, begin, size, name, spawn_rate=2, max_pedestrians=10000, exit_data=[]):
+    def __init__(self, begin, size, name, spawn_rate=0.5, max_pedestrians=8000, start_time=0, exit_data=[]):
         super().__init__(begin, size, name, permeable=False)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
         self.depleted = False
+        self.start_time = start_time
         self.exit_data = exit_data
         if self.exit_data:
             self.full_data = np.zeros([0, 2])
@@ -107,7 +108,7 @@ class Entrance(Obstacle):
         return np.array([x, y]) * correction
 
     def get_new_number_of_pedestrians(self, time):
-        if self.depleted:
+        if self.depleted or time < self.start_time:
             return 0
         total_number = 0
         if self.exit_data:
@@ -140,6 +141,8 @@ class Entrance(Obstacle):
         new_position = Point(boundary_vector + self.center)
         return new_position
 
+    def __str__(self):
+        return "Entrance %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)
 class Exit(Obstacle):
     """
     Model an exit obstacle. This is, unlike other obstacles, accessible and has no dodge margin.
@@ -165,3 +168,6 @@ class Exit(Obstacle):
         angle = math.atan2(distance_to_center[1], distance_to_center[0])
         # We could process more pedestrian properties, like max speed or 'class'. We omit this for now.
         self.log_list.append([angle, time])
+
+    def __str__(self):
+        return "Exit %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)

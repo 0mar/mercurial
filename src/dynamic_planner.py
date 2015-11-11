@@ -49,13 +49,13 @@ class DynamicPlanner:
         self.density_epsilon = ft.EPS
 
         self.max_speed = 2
-        self.path_length_weight = 8
+        self.path_length_weight = 2
         self.time_weight = 1
-        self.discomfort_field_weight = 0.5
+        self.discomfort_field_weight = 7
 
         self.min_density = 2
         # This is dependent on cell size, because of the discretization
-        self.max_density = 5
+        self.max_density = 20
 
         self.density_exponent = 2
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -350,7 +350,7 @@ class DynamicPlanner:
             known_cells.add(best_cell)
             new_candidate_cells = get_new_candidate_cells({best_cell})
         max_potential = np.max(self.potential_field.array)
-        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential)
+        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential * 1.1)
 
     def compute_potential_gradient(self):
         """

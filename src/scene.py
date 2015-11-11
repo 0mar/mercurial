@@ -14,15 +14,13 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-
-    def __init__(self, initial_pedestrian_number, obstacle_file,
-                 mde=True, cache='read', log_exits=False, use_exit_logs=False):
+    # Todo: Integrate params with obstacle object
+    # Todo: Integrate rates and pedestrians with obstacles object
+    def __init__(self, initial_pedestrian_number, obstacle_file, config):
         """
         Initializes a Scene
-        :param size: Size object holding the size values of the scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :param obstacle_file: name of the file containing the obstacles.
-        :param dt: update time step
         :return: scene instance.
         """
         self.time = 0
@@ -36,9 +34,6 @@ class Scene:
         self.on_pedestrian_exit_functions = []
         self.on_finish_functions = []
 
-        self.mde = mde  # Minimum Distance Enforcement
-        self.use_exit_logs = use_exit_logs
-
         # Array initialization
 
         self.position_array = np.zeros([initial_pedestrian_number, 2])
@@ -49,11 +44,14 @@ class Scene:
 
 
         # Parameter initialization (will be overwritten by _load_parameters)
+        self.mde = self.use_exit_logs = None
         self.minimal_distance = self.dt = 0
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
 
-        self._load_parameters()
-        self._read_json_file(file_name=obstacle_file)
+        self.config = config
+
+        self.load_config()
+        self.read_obstacle_file(file_name=obstacle_file)
         self.obstacle_file = obstacle_file  # todo: ugly
 
         if log_exits:
@@ -79,7 +77,7 @@ class Scene:
     def create_new_pedestrians(self):
         for entrance in self.entrance_list:
             new_number = entrance.get_new_number_of_pedestrians(self.time)
-            max_tries = 10 * new_number
+            max_tries = 100 * new_number
             tries = 0  # when this becomes large, chances are the entrance can produce no valid new position.
             while new_number > 0:
                 tries += 1
@@ -104,6 +102,15 @@ class Scene:
                 self.pedestrian_list.append(new_pedestrian)
                 self.index_map[new_index] = new_pedestrian
                 new_number -=1
+
+    def load_config(self):
+        """
+        Interpret the ConfigParser object to read the parameters from
+        :return: None
+        """
+        chapter = self.config['general']
+        self.dt = float(chapter['dt'])
+
 
     def _load_parameters(self, filename='params.json'):
         """
@@ -186,7 +193,7 @@ class Scene:
         """
         self.on_finish_functions += on_finish
 
-    def _read_json_file(self, file_name: str):
+    def read_obstacle_file(self, file_name: str):
         """
         Reads in a JSON file and stores the obstacle data in the scene.
         The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
@@ -197,6 +204,10 @@ class Scene:
         """
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
+        if 'param_file' in data:
+            self._load_parameters(data['param_file'])
+        else:
+            self._load_parameters()
         for obstacle_data in data["obstacles"]:
             begin = Point(self.size * obstacle_data['begin'])
             size = Size(self.size * obstacle_data['size'])
@@ -219,11 +230,20 @@ class Scene:
             begin = Point(self.size * entrance_data['begin'])
             size = self.size.array * np.array(entrance_data['size'])
             name = entrance_data["name"]
-
+            spawn_rate = 2 * self.dt
+            max_pedestrians = 8000
+            start_time = 0
+            if 'spawn_rate' in entrance_data:
+                spawn_rate = entrance_data['spawn_rate'] * self.dt
+            if max_pedestrians in entrance_data:
+                max_pedestrians = entrance_data['max_pedestrians']
+            if 'start_time' in entrance_data:
+                start_time = entrance_data['start_time']
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin, Size(size), name, exit_data=self.load_exit_logs())
+            entrance_obs = Entrance(begin, Size(size), name, spawn_rate, max_pedestrians, start_time,
+                                    exit_data=self.load_exit_logs())
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
         if len(data['entrances']):
@@ -291,7 +311,8 @@ class Scene:
         self.counter += 1
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
-        if self.mde:
+        if self.config['general'].getboolean('minimal_distance_enforcement'):
+            ft.log("mde is on :D")
             self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
                                                                 self.active_entries,
                                                                 self.minimal_distance)
