@@ -31,7 +31,7 @@ class VisualScene:
         self.window.bind("<Button-3>", self._provide_information)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.step_function = None  # set in manager
+        self.step_callback = None  # set in manager
 
 
     @property
@@ -62,9 +62,9 @@ class VisualScene:
             self.window.destroy()
             self.autoloop = False
         if self.autoloop:
-            self.window.after(self.delay, self.step_function)
+            self.window.after(self.delay, self.step_callback)
         else:
-            self.step_function()
+            self.step_callback()
 
     def _provide_information(self, event):
         """
@@ -183,5 +183,5 @@ class NoVisualScene(VisualScene):
 
     def start(self):
         while not self.scene.status == 'DONE':
-            self.step_function()
+            self.step_callback()
             ft.log("Time step %d" % self.scene.counter)

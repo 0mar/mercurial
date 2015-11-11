@@ -25,8 +25,8 @@ Additional command line arguments can be inspected by appending `-h`.
 
 * Configuration
 
-All free parameters not provided on the command line can be provided in a JSON file. 
-An example file with a set of regular parameters is provided in `params.json`.
+All free parameters not provided on the command line can be provided in a configuration file.
+An example file with a set of regular parameters is provided in `configs.ini`.
 
 * Dependencies
 
@@ -56,7 +56,7 @@ Since the indicative path planner computes intermediate locations for the pedest
 #### Pressure computation instability ####
 
  If the cell density heavily exceeds the max density, the quadratic problem becomes infeasible and the pressure cannot be computed.
-  This results in a termination of the calculation, and no pressure is applied.
+  This results in a termination of the calculation, and no pressure is applied. Usually, enforcing the minimum distance solves this problem over time.
   
 #### Pressure driving pedestrians up walls ####
 

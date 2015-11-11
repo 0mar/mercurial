@@ -8,7 +8,8 @@ from static_planner import GraphPlanner
 
 
 class Result:
-    def __init__(self, scene, result_directory='results/', subsequent=True):
+    def __init__(self, scene, config):
+        # DEPRECATED. Find a previous version to generate results.
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).
@@ -28,14 +29,13 @@ class Result:
         :param scene: Scene object under evaluation.
         :return: None
         """
-        self.result_dir = result_directory
+        self.result_dir = config['general']['result_dir']
         self.scene = scene
-        self.subsequent = subsequent
         self.scene.set_on_step_functions(self.on_step)
         self.scene.set_on_pedestrian_exit_functions(self.on_pedestrian_exit)
         self.scene.set_on_finish_functions(self.on_finish)
 
-        ft.log("Simulations results are processed and stored in folder '%s'" % result_directory)
+        ft.log("Simulations results are processed and stored in folder '%s'" % self.result_dir)
         if not scene.pedestrian_list[0].line:
             raise AttributeError("Pedestrians have no paths. Assert GraphPlanner module is used")
         self.planned_path_length = np.zeros(self.scene.pedestrian_number)

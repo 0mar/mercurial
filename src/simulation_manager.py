@@ -57,7 +57,7 @@ class SimulationManager:
             self.step_functions += [planner.step, grid.step]
 
         if args.store_positions:
-            filename = input('Specify storage file')
+            filename = input('Specify storage file\n')
             self.step_functions.append(lambda: self.store_positions_to_file(filename))
             self.finish_functions.append(lambda: self.store_position_usage(filename))
 
@@ -66,7 +66,6 @@ class SimulationManager:
 
         if not args.kernel:
             self.vis = VisualScene(self.scene, config)
-            self.vis.step_function = self.step
             if args.step:
                 self.vis.disable_loop()
             else:
@@ -75,15 +74,18 @@ class SimulationManager:
             if not args.store_positions or args.results:
                 functions.warn("No results are logged. Ensure you want a headless simulation.")
             self.vis = NoVisualScene(self.scene)
-            self.vis.step_function = self.step
+        self.vis.step_callback = self.step
+        self.vis.finish_callback = self.finish
 
     def start(self):
         self.vis.start()
+        self.finish()
 
     def step(self):
         [step() for step in self.step_functions]
 
     def finish(self):
+        functions.log("Finishing simulation")
         [finish() for finish in self.finish_functions]
 
     def store_config(self, file_name):
@@ -98,12 +100,14 @@ class SimulationManager:
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
     def store_positions_to_file(self, file_name):
+        log_dir = self.config['general']['result_dir']
         if self.scene.counter % 10 == 0:
-            with open("%s-%d" % (file_name, int(self.scene.counter / 10)), 'wb') as f:
+            with open("%s%s-%d" % (log_dir, file_name, int(self.scene.counter / 10)), 'wb') as f:
                 np.save(f, self.scene.position_array[self.scene.active_entries.astype(bool)])
 
     def store_position_usage(self, file_name):
+        log_dir = self.config['general']['result_dir']
         store_data = {"number": self.scene.counter, 'name': file_name,
                       'obstacle_file': self.config['general']['obstacle_file'], 'size': self.scene.size.array.tolist()}
-        with open('%s.json' % file_name, 'w') as f:
+        with open('%s%s.json' % (log_dir, file_name), 'w') as f:
             f.write(json.dumps(store_data))
