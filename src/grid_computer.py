@@ -20,7 +20,7 @@ class GridComputer:
     4. Adapting individual velocity by global velocity field.
     """
 
-    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure):
+    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure, config):
         """
         Constructs a grid computer, responsible for the continuum calculations.
         The grid computer takes several parameters in its constructor.
@@ -32,15 +32,15 @@ class GridComputer:
         :return: Grid computer object.
         """
         self.scene = scene
-        prop_x, prop_y = (5, 5)
-        self.cell_dimension = int(self.scene.size[0] / prop_x), int(self.scene.size[1] / prop_y)
-
-        self.dx = self.scene.size[0] / self.cell_dimension[0]
-        self.dy = self.scene.size[1] / self.cell_dimension[1]
+        prop_dx = config['general'].getfloat('cell_size_x')
+        prop_dy = config['general'].getfloat('cell_size_y')
+        self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
+        self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.dt = self.scene.dt
-        self.smoothing_length = self.scene.smoothing_length * ft.norm(self.dx, self.dy) / math.sqrt(2)
-        self.packing_factor = self.scene.packing_factor
-        self.min_distance = 0.1
+        self.smoothing_length = config['dynamic'].getfloat('smoothing_length') * ft.norm(self.dx, self.dy) / math.sqrt(
+            2)  # todo:investigate
+        self.packing_factor = config['dynamic'].getfloat('packing_factor')
+        self.min_distance = config['general'].getfloat('minimal_distance')
         self.max_density = 6 * self.packing_factor / \
                            (np.sqrt(3) * (self.scene.pedestrian_size[0] + self.min_distance) ** 2)
         cvxopt.solvers.options['show_progress'] = False
@@ -52,15 +52,15 @@ class GridComputer:
         self.apply_pressure = apply_pressure
 
         # If beneficial, we could employ a staggered grid
-        self.rho = np.zeros(self.cell_dimension)
-        self.v_x = np.zeros(self.cell_dimension)
-        self.v_y = np.zeros(self.cell_dimension)
-        self.p = np.zeros(self.cell_dimension)
-        self.grad_p_x = np.zeros(self.cell_dimension)
-        self.grad_p_y = np.zeros(self.cell_dimension)
+        self.rho = np.zeros(self.grid_dimension)
+        self.v_x = np.zeros(self.grid_dimension)
+        self.v_y = np.zeros(self.grid_dimension)
+        self.p = np.zeros(self.grid_dimension)
+        self.grad_p_x = np.zeros(self.grid_dimension)
+        self.grad_p_y = np.zeros(self.grid_dimension)
 
-        self.x_range = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.cell_dimension[0])
-        self.y_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.cell_dimension[1])
+        self.x_range = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.grid_dimension[0])
+        self.y_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.grid_dimension[1])
 
         if self.show_plot:
             # Plotting hooks
@@ -74,7 +74,7 @@ class GridComputer:
         The matrix returned is sparse and in cvxopt format.
         :return: \Delta t/\Delta x^2*'ones'. Matrices are ready apart from multiplication with density.
         """
-        nx, ny = self.cell_dimension
+        nx, ny = self.grid_dimension
         ex = np.ones(nx)
         ey = np.ones(ny)
         Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
@@ -96,9 +96,9 @@ class GridComputer:
         :return: None
         """
         cell_dict = self.scene.cell_dict
-        self.rho = np.zeros(self.cell_dimension)
-        self.v_x = np.zeros(self.cell_dimension)
-        self.v_y = np.zeros(self.cell_dimension)
+        self.rho = np.zeros(self.grid_dimension)
+        self.v_x = np.zeros(self.grid_dimension)
+        self.v_y = np.zeros(self.grid_dimension)
         for cell_location in cell_dict:
             ped_index_list = []
             cell = cell_dict[cell_location]
@@ -157,8 +157,8 @@ class GridComputer:
         We have to anticipate the case of a singular matrix
         :return:
         """
-        nx = self.cell_dimension[0]
-        ny = self.cell_dimension[1]
+        nx = self.grid_dimension[0]
+        ny = self.grid_dimension[1]
         flat_rho = self.rho.flatten(order='F') + 0.1
         diff_rho_x = GridComputer.get_dir_difference(self.rho, 'x')
         diff_rho_y = GridComputer.get_dir_difference(self.rho, 'y')
@@ -185,7 +185,7 @@ class GridComputer:
                 ft.warn("density exceeds max density sharply")
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
-        self.p = np.reshape(flat_p, self.cell_dimension, order='F')
+        self.p = np.reshape(flat_p, self.grid_dimension, order='F')
 
     def adjust_velocity(self):
         """
@@ -233,8 +233,6 @@ class GridComputer:
             self.rho, self.v_x, self.v_y = compute_density_and_velocity_field(self.scene.size.array,
                                                                               self.scene.position_array,
                                                                               self.scene.velocity_array)
-            # print(self.rho)
-            # print(self.max_density)
         if self.apply_interpolation:
             if self.apply_pressure:
                 self.solve_LCP()

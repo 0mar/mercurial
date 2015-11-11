@@ -7,35 +7,32 @@ import functions as ft
 from geometry import Point, Size, LineSegment, Path
 
 
+
 class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, width, height, step_functions, loop, delay, draw_cells=False):
+    def __init__(self, scene, config):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
         :param scene: Scene to be drawn. The size of the scene is independent of the size of the visualization
-        :param width: width of the window
-        :param height: height of the window
-        :param step_functions: Function that needs to be executed every time step
-        :param loop: boolean for determining whether to update automatically
         :return: None
         """
-        self.step_functions = step_functions
+        self.config = config
+        init_size = Size([config['visual'].getfloat('screen_size_x'), config['visual'].getfloat('screen_size_y')])
         self.scene = scene
-        self.autoloop = loop
-        self.delay = delay
+        self.autoloop = True
+        self.draws_cells = False
+        self.delay = config['visual'].getint('time_delay')
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
-        self.window.geometry("%dx%d" % (width, height))
+        self.window.geometry("%dx%d" % (init_size.width, init_size.height))
         self.window.bind("<Button-3>", self._provide_information)
-        if not self.autoloop:
-            self.window.bind("<Button-1>", self._advance_simulation)
-            self.window.bind("<space>", self._advance_simulation)
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.draws_cells = draw_cells
+        self.step_function = None  # set in manager
+
 
     @property
     def size(self):
@@ -49,29 +46,25 @@ class VisualScene:
         self.loop()
         self.window.mainloop()
 
-    def _advance_simulation(self, _):
-        """
-        Method required for moving the simulation forward one time unit
-        :param _: Event instance originating from the tkinter update function
-        :return: None
-        """
-        # All functions which should be called on every time step.
-        # Todo: all step functions should be moved to scene.py.
-        # Unfortunately, this causes problems in tkinter updating,
-        [step_function() for step_function in self.step_functions]
-        self.draw_scene()
-        if self.scene.status=='DONE':
-            self.window.destroy()
-            self.autoloop = False
+    def disable_loop(self):
+        self.autoloop = False
+        self.window.bind("<Button-1>", self.loop)
+        self.window.bind("<space>", self.loop)
 
-    def loop(self):
+    def loop(self, _=None):
         """
         Public interface for visual scene loop. If required, has a callback reference to itself to keep the simulation going.
+        :param _: Event object from tkinter
         :return: None
         """
-        self._advance_simulation(None)
+        self.draw_scene()
+        if self.scene.status == 'DONE':
+            self.window.destroy()
+            self.autoloop = False
         if self.autoloop:
-            self.window.after(self.delay, self.loop)
+            self.window.after(self.delay, self.step_function)
+        else:
+            self.step_function()
 
     def _provide_information(self, event):
         """
@@ -82,16 +75,11 @@ class VisualScene:
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
         ft.log("Mouse location: %s" % scene_point)
-        clicked_cell = self.scene.get_cell_from_position(scene_point)
-        ft.debug(str(clicked_cell))
-        # for ped in self.scene.pedestrian_list:p
-        # fyi(str(ped))
-        #     fyi("Origin: %s" % ped.origin)
 
     def draw_scene(self):
         """
         Method that orders the draw commands of all objects within the scene.
-        All objects are removed prior to the drawing step. Including a background bitmap will show little improvement
+        All objects are removed prior to the drawing step.
         :return: None
         """
         self.canvas.delete('all')
@@ -190,15 +178,10 @@ class VisualScene:
 
 
 class NoVisualScene(VisualScene):
-    def __init__(self, scene, step_functions):
+    def __init__(self, scene):
         self.scene = scene
-        self.step_functions = step_functions
-        self.autoloop = True
 
     def start(self):
         while not self.scene.status == 'DONE':
-            self._advance_simulation(None)
-            ft.log("Time step %d" % (self.scene.time / self.scene.dt))
-
-    def _advance_simulation(self, _):
-        [step_function() for step_function in self.step_functions]
+            self.step_function()
+            ft.log("Time step %d" % self.scene.counter)

@@ -7,8 +7,7 @@ from scene import Scene, Pedestrian
 
 
 class ImpulseScene(Scene):
-    def __init__(self, initial_pedestrian_number, obstacle_file,
-                 impulse_location, impulse_size, mde=True, cache='read'):
+    def __init__(self, impulse_location, impulse_size, *args, **kwargs):
         """
         Initializes an impulse scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
@@ -21,10 +20,10 @@ class ImpulseScene(Scene):
         """
         self.impulse_location = impulse_location
         self.impulse_size = impulse_size
-        super().__init__(initial_pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(*args, **kwargs)
 
     def _init_pedestrians(self, initial_pedestrian_number):
-        center = self.size * self.impulse_location
+        center = self.size.array * self.impulse_location
         self.pedestrian_list = []
         for counter in range(initial_pedestrian_number):
             ped_loc = None
@@ -39,8 +38,7 @@ class ImpulseScene(Scene):
 
 
 class TwoImpulseScene(Scene):
-    def __init__(self, initial_pedestrian_number, obstacle_file,
-                 impulse_locations, impulse_size, mde=True, cache='read'):
+    def __init__(self, impulse_size, impulse_locations, *args, **kwargs):
         """
         Initializes an impulse scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
@@ -53,16 +51,16 @@ class TwoImpulseScene(Scene):
         """
         self.impulse_size = impulse_size
         self.impulse_locations = impulse_locations
-        super().__init__(initial_pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(*args, **kwargs)
 
     def _init_pedestrians(self, initial_pedestrian_number):
 
         self.pedestrian_list = []
         for counter in range(initial_pedestrian_number):
             if counter < initial_pedestrian_number // 2:
-                center = np.array(self.impulse_locations[0]) * self.size
+                center = np.array(self.impulse_locations[0]) * self.size.array
             else:
-                center = np.array(self.impulse_locations[1]) * self.size
+                center = np.array(self.impulse_locations[1]) * self.size.array
             ped_loc = None
             while not ped_loc:
                 x, y = (np.random.rand(2) * 2 - 1) * self.impulse_size
@@ -74,7 +72,7 @@ class TwoImpulseScene(Scene):
 
 
 class LoopScene(Scene):
-    def __init__(self, initial_pedestrian_number, obstacle_file, mde=True, cache='read'):
+    def __init__(self, *args, **kwargs):
         """
         Initializes an impulse scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
@@ -84,7 +82,7 @@ class LoopScene(Scene):
         :return: scene instance.
         """
 
-        super().__init__(initial_pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(*args, **kwargs)
 
     def remove_pedestrian(self, pedestrian):
         new_point = Point([pedestrian.position.x, self.size.height - 1])
@@ -92,7 +90,7 @@ class LoopScene(Scene):
 
 
 class TopScene(Scene):
-    def __init__(self, initial_pedestrian_number, obstacle_file, barrier, mde=True, cache='read'):
+    def __init__(self, barrier, *args, **kwargs):
         """
         Initializes an impulse scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
@@ -105,7 +103,7 @@ class TopScene(Scene):
         if not 0 <= barrier < 1:
             raise ValueError("Barrier must be between 0 and 1")
         self.barrier = barrier
-        super().__init__(initial_pedestrian_number, obstacle_file, mde, cache)
+        super().__init__(*args, **kwargs)
 
     def _init_pedestrians(self, initial_pedestrian_number):
         self.pedestrian_list = []

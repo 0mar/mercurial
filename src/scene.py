@@ -16,11 +16,10 @@ class Scene:
     """
     # Todo: Integrate params with obstacle object
     # Todo: Integrate rates and pedestrians with obstacles object
-    def __init__(self, initial_pedestrian_number, obstacle_file, config):
+    def __init__(self, initial_pedestrian_number, config):
         """
         Initializes a Scene
         :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
-        :param obstacle_file: name of the file containing the obstacles.
         :return: scene instance.
         """
         self.time = 0
@@ -32,10 +31,8 @@ class Scene:
         self.entrance_list = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
-        self.on_finish_functions = []
 
         # Array initialization
-
         self.position_array = np.zeros([initial_pedestrian_number, 2])
         self.last_position_array = np.zeros([initial_pedestrian_number, 2])
         self.velocity_array = np.zeros([initial_pedestrian_number, 2])
@@ -44,25 +41,17 @@ class Scene:
 
 
         # Parameter initialization (will be overwritten by _load_parameters)
-        self.mde = self.use_exit_logs = None
-        self.minimal_distance = self.dt = 0
+        self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
 
         self.config = config
-
         self.load_config()
-        self.read_obstacle_file(file_name=obstacle_file)
-        self.obstacle_file = obstacle_file  # todo: ugly
-
-        if log_exits:
-            self.set_on_finish_functions(self.store_exit_logs)
+        self.max_speed_array = self.max_speed_interval.begin + \
+                               np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.pedestrian_list = []
         self._init_pedestrians(initial_pedestrian_number)
         self.index_map = {i: self.pedestrian_list[i] for i in range(initial_pedestrian_number)}
         self.status = 'RUNNING'
-        # Todo: Add handle for reuse_exits
-        # Todo: Almost time to move settings to a settingsmanager
-        # Todo: How about creating a scene manager?
 
     def _init_pedestrians(self, init_number):
         """
@@ -75,6 +64,12 @@ class Scene:
             for index in range(init_number)]
 
     def create_new_pedestrians(self):
+        """
+        Creates new pedestrians according to the entrance data.
+        New indices are computed for these pedestrians and if necessary,
+        the arrays are increased.
+        :return: None
+        """
         for entrance in self.entrance_list:
             new_number = entrance.get_new_number_of_pedestrians(self.time)
             max_tries = 100 * new_number
@@ -108,92 +103,17 @@ class Scene:
         Interpret the ConfigParser object to read the parameters from
         :return: None
         """
-        chapter = self.config['general']
-        self.dt = float(chapter['dt'])
+        section = self.config['general']
+        obstacle_file = section['obstacle_file']
+        self.dt = float(section['dt'])
+        self.minimal_distance = section.getfloat('minimal_distance')
+        self.mde = section.getboolean('minimal_distance_enforcement')
+        self.pedestrian_size = Size([section.getfloat('pedestrian_size'), section.getfloat('pedestrian_size')])
+        self.size = Size([section.getfloat('scene_size_x'), section.getfloat('scene_size_x')])
+        self.max_speed_interval = Interval([section.getfloat('max_speed_begin'), section.getfloat('max_speed_end')])
+        self.load_obstacle_file(obstacle_file)
 
-
-    def _load_parameters(self, filename='params.json'):
-        """
-        Load parameters from JSON file. If file not present or damaged, load default parameters.
-        :param filename: filename of file containing valid json
-        :return: None
-        """
-        import os
-        default_dict = {"dt": 0.05,
-                        "width": 100,
-                        "height": 100,
-                        "minimal_distance": 0.7,
-                        "pedestrian_size": [0.4, 0.4],
-                        "max_speed_interval": [1, 2],
-                        "smoothing_length": 0.75,  # times cell size
-                        "packing_factor": 0.9}
-        data_dict = {}
-        if not os.path.isfile(filename):
-            raise FileNotFoundError("Parameter file %s not found" % filename)
-        with open(filename, 'r') as file:
-            try:
-                data = json.loads(file.read())
-                for key in default_dict:
-                    if key not in data.keys():
-                        ft.warn("Not all keys found in %s. Using default parameters" % filename)
-                        data_dict.update(default_dict)
-                        break
-                else:
-                    data_dict.update(data)
-            except ValueError:
-                ft.warn("Invalid JSON in %s. Using default parameters" % filename)
-
-        self.dt = data_dict['dt']
-        self.size = Size((data_dict['width'], data_dict['height']))
-        self.minimal_distance = data_dict['minimal_distance']
-        self.pedestrian_size = Size(data_dict['pedestrian_size'])
-        self.max_speed_interval = Interval(data_dict['max_speed_interval'])
-        self.max_speed_array = self.max_speed_interval.begin + \
-                               np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
-        self.smoothing_length = data_dict['smoothing_length']
-        self.packing_factor = data_dict['packing_factor']
-
-    def _expand_arrays(self):
-        """
-        Increases the size (first dimension) of a numpy array with the given factor.
-        Missing entries are set to zero
-        :param factor: Multiplication factor for the size
-        :return: None
-        """
-        # I don't like [gs]etattr, but this is pretty explicit
-        attr_list = ["position_array", "last_position_array", "velocity_array",
-                     "max_speed_array", "active_entries"]
-        for attr in attr_list:
-            array = getattr(self, attr)
-            addition = np.zeros(array.shape)
-            setattr(self, attr, np.concatenate((array, addition), axis=0))
-        self.index_map.update({len(self.index_map) + i: None for i in range(len(self.index_map))})
-
-    def set_on_step_functions(self, *on_step):
-        """
-        Adds functions to list called on each time step.
-        :param on_step: functions (without arguments)
-        :return: None
-        """
-        self.on_step_functions += on_step
-
-    def set_on_pedestrian_exit_functions(self, *on_pedestrian_exit):
-        """
-        Adds functions to list called each time a pedestrian exits.
-        :param on_pedestrian_exit: functions which take Pedestrian as argument
-        :return: None
-        """
-        self.on_pedestrian_exit_functions += on_pedestrian_exit
-
-    def set_on_finish_functions(self, *on_finish):
-        """
-        Adds functions to list called on simulation finish.
-        :param on_finish: functions (without arguments)
-        :return: None
-        """
-        self.on_finish_functions += on_finish
-
-    def read_obstacle_file(self, file_name: str):
+    def load_obstacle_file(self, file_name: str):
         """
         Reads in a JSON file and stores the obstacle data in the scene.
         The file must consist of one JSON object with keys 'obstacles', 'exits', and 'entrances'
@@ -204,10 +124,6 @@ class Scene:
         """
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
-        if 'param_file' in data:
-            self._load_parameters(data['param_file'])
-        else:
-            self._load_parameters()
         for obstacle_data in data["obstacles"]:
             begin = Point(self.size * obstacle_data['begin'])
             size = Size(self.size * obstacle_data['size'])
@@ -226,7 +142,7 @@ class Scene:
             exit_obs = Exit(begin, Size(size), name)
             self.exit_list.append(exit_obs)
             self.obstacle_list.append(exit_obs)
-        for entrance_data in data['entrances']:  # Todo: Merge
+        for entrance_data in data['entrances']:
             begin = Point(self.size * entrance_data['begin'])
             size = self.size.array * np.array(entrance_data['size'])
             name = entrance_data["name"]
@@ -242,12 +158,26 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin, Size(size), name, spawn_rate, max_pedestrians, start_time,
-                                    exit_data=self.load_exit_logs())
+            entrance_obs = Entrance(begin, Size(size), name, spawn_rate, max_pedestrians, start_time)
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
         if len(data['entrances']):
-            self.set_on_step_functions(self.create_new_pedestrians)
+            self.on_step_functions.append(self.create_new_pedestrians)
+
+    def _expand_arrays(self):
+        """
+        Increases the size (first dimension) of a numpy array with the given factor.
+        Missing entries are set to zero
+        :return: None
+        """
+        # I don't like [gs]etattr, but this is pretty explicit
+        attr_list = ["position_array", "last_position_array", "velocity_array",
+                     "max_speed_array", "active_entries"]
+        for attr in attr_list:
+            array = getattr(self, attr)
+            addition = np.zeros(array.shape)
+            setattr(self, attr, np.concatenate((array, addition), axis=0))
+        self.index_map.update({len(self.index_map) + i: None for i in range(len(self.index_map))})
 
     def get_stationary_pedestrians(self):
         """
@@ -264,7 +194,6 @@ class Scene:
         :param pedestrian: The pedestrian instance to be removed.
         :return: None
         """
-        # assert pedestrian.is_done()
         index = pedestrian.index
         self.index_map[index] = None
         self.pedestrian_list.remove(pedestrian)
@@ -277,8 +206,7 @@ class Scene:
 
     def is_within_boundaries(self, coord: Point):
         """
-        Check whether a point lies within the scene.
-        If used often, this should be either vectorized or short-circuited.
+        Check whether a single point lies within the scene.
         :param coord: Point under consideration
         :return: True if within scene, false otherwise
         """
@@ -289,7 +217,6 @@ class Scene:
         """
         Checking whether the coordinate present is an accessible coordinate on the scene.
         When evaluated at the start, the exit is not an accessible object. That would be weird.
-        We can eliminate this later though.
         :param coord: Coordinates to be checked
         :param at_start: Whether to be evaluated at the start
         :return: True if accessible, False otherwise.
@@ -312,11 +239,9 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.config['general'].getboolean('minimal_distance_enforcement'):
-            ft.log("mde is on :D")
             self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
                                                                 self.active_entries,
                                                                 self.minimal_distance)
-        [function() for function in self.on_step_functions]
 
     def correct_for_geometry(self):
         """
@@ -335,6 +260,11 @@ class Scene:
         self.position_array += np.logical_not(still_correct)[:, None] * (self.last_position_array - self.position_array)
 
     def find_finished_pedestrians(self):
+        """
+        Finds all pedestrians that have reached the goal in this time step.
+        The pedestrians found are processed and removed from the scene
+        :return: None
+        """
         for goal in self.exit_list:
             in_goal = np.logical_and(self.position_array >= goal.begin, self.position_array <= goal.end)
             in_g = np.logical_and(in_goal[:, 0], in_goal[:, 1])
@@ -344,54 +274,10 @@ class Scene:
                 goal.log_pedestrian(finished_pedestrian, self.time)
                 self.remove_pedestrian(finished_pedestrian)
 
-
-    def store_exit_logs(self, file_name=None):
-        log_dir = 'results/'
-        if not file_name:
-            file_name = 'logs'
-        log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.exit_list}
-        sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
-
-    def store_results(self, file_name):
-        self.file_name = file_name
-        self.set_on_step_functions(self.store_positions_to_file)
-        self.set_on_finish_functions(self.store_position_usage)
-
-    def store_positions_to_file(self):
-        if self.counter % 10 == 0:
-            with open("%s-%d" % (self.file_name, int(self.counter / 10)), 'wb') as f:
-                np.save(f, self.position_array[self.active_entries.astype(bool)])
-
-    def store_position_usage(self):
-        store_data = {"number": self.counter, 'name': self.file_name,
-                      'obstacle_file': self.obstacle_file, 'size': self.size.array.tolist()}
-        with open('%s.json' % self.file_name, 'w') as f:
-            f.write(json.dumps(store_data))
-    def load_exit_logs(self, file_name=None):
-        """
-        If flagged: Open logs, convert them to a list.
-        :param file_name:
-        :return:
-        """
-        # Todo: No pretty call.
-        if self.use_exit_logs:
-            log_dir = 'results/'
-            if not file_name:
-                file_name = 'logs'
-            log_dict = sio.loadmat(file_name=log_dir + file_name)
-            log_lists = [log_list for log_list in log_dict.values() if isinstance(log_list, np.ndarray)]
-            return log_lists
-        else:
-            return []
-
     def is_done(self):
+        """
+        Checks whether all pedestrians are done by summing the active entries array and
+        checking if all entrances are depleted.
+        :return: True if all pedestrians are done, False otherwise
+        """
         return np.sum(self.active_entries) == 0 and all([entrance.depleted for entrance in self.entrance_list])
-
-    def finish(self):
-        """
-        Call all methods that need to be called upon finish.
-        :return: None
-        """
-        for finish_function in self.on_finish_functions:
-            finish_function()
-        ft.log('Simulation is finished. Exiting')

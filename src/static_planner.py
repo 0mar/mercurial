@@ -16,7 +16,8 @@ class GraphPlanner:
     Lower level objects should be agnostic of the planner.
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
     """
-    def __init__(self, scene):
+
+    def __init__(self, scene, config):
         """
         Constructs a Graph planner
         :param scene: Scene filled with obstacles, goals and pedestrians
@@ -25,6 +26,7 @@ class GraphPlanner:
         """
         self.scene = scene
         self.graph = None
+        self.config = config  # todo: Add the safety margin and checkpoint_range in this
         self._create_obstacle_graph()
         ft.log("Started pre-processing global paths")
         for pedestrian in scene.pedestrian_list:
@@ -141,9 +143,9 @@ class GraphPlanner:
         # print ("Path: %s\nPath obj %s"%(path,path_to_exit))
         return path_to_exit
 
-    def collective_update(self):
+    def step(self):
         """
-        The update step of the simulation
+        The update step of the static planner simulation
         # 1: Moves the pedestrians according to desired velocity, group velocity and UIC
                 * Account for MDE
         # 2: Corrects for obstacles and walls

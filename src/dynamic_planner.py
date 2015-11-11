@@ -3,7 +3,6 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from cells import Cell
 import numpy as np
 import math
 import operator
@@ -29,12 +28,11 @@ class DynamicPlanner:
     and that order of execution is important.
 
     For now, since the potential is a center field, we need an exit that covers cell centers.
-    This means exits need a certain width.
+    This means exits have a minimum size requirement
     Ugly exits can be resolved by building obstacle walls.
-    However, obstacles are not yet supported by the planner.
     """
 
-    def __init__(self, scene, show_plot=False):
+    def __init__(self, scene, config, show_plot=False):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
@@ -43,29 +41,35 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.grid_dimension = (70, 70)
-        self.show_plot = show_plot
+        self.config = config
+        prop_dx = config['general'].getfloat('cell_size_x')
+        prop_dy = config['general'].getfloat('cell_size_y')
+        self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
+        self.show_plot = show_plot
+
         self.density_epsilon = ft.EPS
 
         self.max_speed = 2
-        self.path_length_weight = 2
-        self.time_weight = 1
-        self.discomfort_field_weight = 7
+        self.smoothing_length = config['dynamic'].getfloat('smoothing_length')
+        self.path_length_weight = config['dynamic'].getfloat('path_length_weight')
+        self.time_weight = config['dynamic'].getfloat('time_weight')
+        self.discomfort_field_weight = config['dynamic'].getfloat('discomfort_weight')
 
-        self.min_density = 2
         # This is dependent on cell size, because of the discretization
-        self.max_density = 20
+        self.min_density = config['dynamic'].getfloat('min_density')
+        self.max_density = config['dynamic'].getfloat('max_density')
 
-        self.density_exponent = 2
-        self.density_threshold = (1 / 2) ** self.density_exponent
+        self.density_exponent = config['dynamic'].getfloat('density_exponent')
 
         self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
+        # Todo: If 'exists()' takes to long, we still have this.
         self.exit_cell_set = set()
         self.obstacle_cell_set = set()
         self.part_obstacle_cell_dict = dict()  # Immediately store the fractions
         dx, dy = self.dx, self.dy
         shape = self.grid_dimension
+
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'v_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'v_y', (dx, dy))
@@ -125,13 +129,21 @@ class DynamicPlanner:
         We transform our kernel to an ellipsis to service the rectangular obstacles.
         :return:
         """
-        h = 1.2  # Obstacle factor
+        h = self.smoothing_length  # Obstacle factor
         cell_centers = self.potential_field.mesh_grid
         potential_obstacles = np.zeros(self.grid_dimension)
         for obstacle in self.scene.obstacle_list:
             if not obstacle.permeable:
-                distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
+                obstacle_form = self.config['dynamic']['obstacle_form']
+                if obstacle_form == 'rectangle':
+                    distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
                                        np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
+                elif obstacle_form == 'ellips':
+                    h *= 5 / 4
+                    distances = np.sqrt(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)) ** 2 +
+                                        np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)) ** 2)
+                else:
+                    raise ValueError("Obstacle form %s not recognized" % obstacle_form)
                 weights = GridComputer.weight_function(distances * h)
                 potential_obstacles += weights
         return potential_obstacles

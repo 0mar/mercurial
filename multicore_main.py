@@ -53,7 +53,7 @@ for i in sim_list:
     planner = GraphPlanner(scene)
     grid = GridComputer(scene, show_plot=False, apply_interpolation=False,
                         apply_pressure=False)
-    step_functions = [planner.collective_update, grid.step]
+    step_functions = [planner.step, grid.step]
     result = Result(scene)
 
     vis = VisualScene(scene, 300, 200, step_functions=step_functions, loop=True, delay=1)

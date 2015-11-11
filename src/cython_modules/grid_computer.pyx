@@ -5,7 +5,6 @@ import numpy as np
 sys.path.insert(1, '..')
 import functions as ft
 cimport numpy as np
-import time
 
 float_type = np.float64
 
@@ -17,7 +16,6 @@ def compute_density_and_velocity_field(size_array, np.ndarray[np.float64_t, ndim
     This is a naive implementation, looping over all pedestrians
     :return: (density, velocity_x, velocity_y) as 2D arrays
     """
-    t1 = time.time()
     cdef Py_ssize_t cell_dim_x = 20
     cdef Py_ssize_t cell_dim_y = 20  # Semifixed
     cdef Py_ssize_t cell_x, cell_y
@@ -44,8 +42,6 @@ def compute_density_and_velocity_field(size_array, np.ndarray[np.float64_t, ndim
             density_field[cell_x, cell_y] = total_weight
             v_x[cell_x, cell_y] = np.sum(velocity_array[close_indices] * weights[:, None])
             v_y[cell_x, cell_y] = np.sum(velocity_array[close_indices] * weights[:, None])
-    t2 = time.time()
-    print("%.2e" % (t2 - t1))
     return (density_field - eps), v_x / density_field, v_y / density_field
 
 cdef inline np.ndarray[np.float64_t, ndim=1] weight_function(np.ndarray[np.float64_t, ndim=1] array,
