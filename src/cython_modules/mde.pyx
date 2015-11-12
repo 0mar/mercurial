@@ -3,7 +3,6 @@ import sys
 import numpy as np
 sys.path.insert(1, '..')
 cimport numpy as np
-import itertools
 import functions as ft
 
 float_type = np.float64

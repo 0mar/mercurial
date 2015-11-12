@@ -108,7 +108,6 @@ def compute_potential_cy(cell, np.ndarray[np.float64_t, ndim=2] potential_field,
                 # lowest in vertical direction
     # Coefficients of quadratic equation
     cdef float a, b, c, D, x_high
-    assert not (hor_cost == np.inf and ver_cost == np.inf)
     if hor_cost == inf:
         a = 1. / (ver_cost * ver_cost)
         b = -2. * ver_potential / (ver_cost * ver_cost)

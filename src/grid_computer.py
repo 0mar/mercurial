@@ -1,11 +1,12 @@
 __author__ = 'omar'
 import matplotlib
+
 matplotlib.use('TkAgg')
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from scipy.interpolate import RectBivariateSpline as Rbs
 from cython_modules.grid_computer import compute_density_and_velocity_field
+from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft
 
@@ -50,21 +51,16 @@ class GridComputer:
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation or apply_pressure
         self.apply_pressure = apply_pressure
-
+        dx, dy = self.dx, self.dy
+        shape = self.grid_dimension
+        self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
+        self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
+        self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
+        self.pressure_field = Field(shape, Field.Orientation.center, 'pressure', (dx, dy))
         # If beneficial, we could employ a staggered grid
-        self.rho = np.zeros(self.grid_dimension)
-        self.v_x = np.zeros(self.grid_dimension)
-        self.v_y = np.zeros(self.grid_dimension)
-        self.p = np.zeros(self.grid_dimension)
-        self.grad_p_x = np.zeros(self.grid_dimension)
-        self.grad_p_y = np.zeros(self.grid_dimension)
-
-        self.x_range = np.linspace(self.dx / 2, self.scene.size.width - self.dx / 2, self.grid_dimension[0])
-        self.y_range = np.linspace(self.dy / 2, self.scene.size.height - self.dy / 2, self.grid_dimension[1])
 
         if self.show_plot:
             # Plotting hooks
-            self.mesh_x, self.mesh_y = np.meshgrid(self.x_range, self.y_range, indexing='ij')
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
@@ -74,7 +70,8 @@ class GridComputer:
         The matrix returned is sparse and in cvxopt format.
         :return: \Delta t/\Delta x^2*'ones'. Matrices are ready apart from multiplication with density.
         """
-        nx, ny = self.grid_dimension
+        nx = self.grid_dimension[0] - 2
+        ny = self.grid_dimension[1] - 2
         ex = np.ones(nx)
         ey = np.ones(ny)
         Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
@@ -87,47 +84,6 @@ class GridComputer:
         self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(len(ey)))
         self.By = 1 / (self.dy ** 2) * np.kron(np.eye(len(ex)), Bdyy)
 
-    def get_grid_values(self):
-        """
-        Interpolates the grid values for the discrete density and velocity fields
-        Interpolation happens per grid cell, by indexing all surrounding grid cells and summing
-        over the density of each pedestrian.
-        Pedestrian density is computed by convolving the mass with a gaussian kernel approximation
-        :return: None
-        """
-        cell_dict = self.scene.cell_dict
-        self.rho = np.zeros(self.grid_dimension)
-        self.v_x = np.zeros(self.grid_dimension)
-        self.v_y = np.zeros(self.grid_dimension)
-        for cell_location in cell_dict:
-            ped_index_list = []
-            cell = cell_dict[cell_location]
-            cell_row, cell_col = cell_location
-            for i in range(-1, 2):
-                for j in range(-1, 2):
-                    neighbour_cell_location = (cell_row + i, cell_col + j)
-                    if neighbour_cell_location in cell_dict:
-                        # Valid neighbour cell
-                        ped_index_list += [ped.index for ped in cell_dict[neighbour_cell_location].pedestrian_set]
-            distance_array = np.linalg.norm(self.scene.position_array[ped_index_list] - cell.center,
-                                            axis=1)  # todo: 10 % of all time
-
-            if len(distance_array):
-                # ft.debug(distance_array)
-                weights = GridComputer.weight_function(distance_array / self.smoothing_length)
-                ft.debug(distance_array / self.smoothing_length)
-                total_weight = np.sum(weights) + ft.EPS
-                density = total_weight / (self.dx * self.dy)
-                # ft.debug(density)
-                self.rho[cell_location] = density
-                vel_array = self.scene.velocity_array[ped_index_list] * weights[:, None]
-                self.v_x[cell_location] = np.sum(vel_array[:, 0] / total_weight)
-                self.v_y[cell_location] = np.sum(vel_array[:, 1] / total_weight)
-        ft.debug(self.max_density)
-        ft.debug(self.orientation_correct_str(self.rho, True))
-        if self.show_plot:
-            self.plot_grid_values()
-
     def plot_grid_values(self):
         """
         Plot the density, velocity field, pressure, and pressure gradient.
@@ -136,20 +92,23 @@ class GridComputer:
         """
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.rho))
+        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
         self.graphs[0, 0].set_title('Density')
-        self.graphs[1, 0].imshow(np.rot90(self.p))
+        self.graphs[1, 0].imshow(np.rot90(self.pressure_field.array))
         self.graphs[1, 0].set_title('Pressure')
-        self.graphs[0, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
+        self.graphs[0, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=1,
+                                 scale_units='xy')
         self.graphs[0, 1].set_title('Velocity field')
-        self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
+        self.graphs[1, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.pressure_field.gradient('x'),
+                                 self.pressure_field.gradient('y'), scale=1, scale_units='xy')
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
     def solve_LCP(self):
         """
         We solve min {1/2x^TAx+x^Tq}.
-        First we convert the 2D fields to vectors.
+        First we cut off the boundary of the 2D fields.
+        Then we convert the 2D fields to vectors.
         Then we construct the matrices from the base matrices made on initialization.
         These matrices can be validated from the theory in the report
         Then we convert the matrix system to a quadratic program and throw it into cvxopt solver.
@@ -157,18 +116,21 @@ class GridComputer:
         We have to anticipate the case of a singular matrix
         :return:
         """
-        nx = self.grid_dimension[0]
-        ny = self.grid_dimension[1]
-        flat_rho = self.rho.flatten(order='F') + 0.1
-        diff_rho_x = GridComputer.get_dir_difference(self.rho, 'x')
-        diff_rho_y = GridComputer.get_dir_difference(self.rho, 'y')
+        nx = self.grid_dimension[0] - 2
+        ny = self.grid_dimension[1] - 2
+        flat_rho = self.density_field.without_boundary().flatten(order='F') + 0.1
+        diff_rho_x = (self.density_field.with_offset('right', 2) - self.density_field.with_offset('left', 2))[:, 1:-1]
+        diff_rho_y = (self.density_field.with_offset('up') - self.density_field.with_offset('down'))[1:-1, :]
         A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
         B = (self.Bx + self.By) * flat_rho
         C = A + B
         cvx_M = cvxopt.matrix(-C * self.dt)
 
-        diff_v_rho_x = GridComputer.get_dir_difference(self.rho * self.v_x, 'x')
-        diff_v_rho_y = GridComputer.get_dir_difference(self.rho * self.v_y, 'y')
+        diff_v_rho_x = (self.density_field.with_offset('right', 2) * self.v_x.with_offset('right', 2) \
+                        - self.density_field.with_offset('left', 2) * self.v_x.with_offset('left', 2))[:, 1:-1]
+
+        diff_v_rho_y = (self.density_field.with_offset('up', 2) * self.v_y.with_offset('up', 2) \
+                        - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
         cvx_b = cvxopt.matrix(b)
@@ -185,30 +147,30 @@ class GridComputer:
                 ft.warn("density exceeds max density sharply")
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
-        self.p = np.reshape(flat_p, self.grid_dimension, order='F')
+        dim_p = np.reshape(flat_p, (nx, ny), order='F')
+
+        self.pressure_field.update(np.pad(dim_p, (1, 1), 'constant', constant_values=0))
 
     def adjust_velocity(self):
         """
         Adjusts the velocity field for the pressure gradient
         :return: None
         """
-        self.grad_p_x = GridComputer.get_dir_difference(self.p, 'x') / (2 * self.dx)
-        self.grad_p_y = GridComputer.get_dir_difference(self.p, 'y') / (2 * self.dx)
-        self.v_x -= self.grad_p_x
-        self.v_y -= self.grad_p_y
+        self.v_x -= self.pressure_field.gradient('x')
+        self.v_y -= self.pressure_field.gradient('y')
 
     def interpolate_pedestrians(self):
         """
         Method that reconverts the velocity field to individual pedestrian positions.
         Input are the velocity x/y fields. We use a bivariate spline interpolation method
         to interpolate the velocities at the pedestrians position.
-        These velocities are then weighed to the densities
+        These velocities are then weighed to the densities, normalized
         and added to the velocity field.
         :return: None
         """
-        v_x_func = Rbs(self.x_range, self.y_range, self.v_x)
-        v_y_func = Rbs(self.x_range, self.y_range, self.v_y)
-        dens_func = Rbs(self.x_range, self.y_range, self.rho)
+        v_x_func = self.v_x.get_interpolation_function()
+        v_y_func = self.v_y.get_interpolation_function()
+        dens_func = self.density_field.get_interpolation_function()
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),
@@ -230,9 +192,15 @@ class GridComputer:
         :return: None
         """
         if self.apply_interpolation or self.show_plot:
-            self.rho, self.v_x, self.v_y = compute_density_and_velocity_field(self.scene.size.array,
-                                                                              self.scene.position_array,
-                                                                              self.scene.velocity_array)
+            density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
+                                                                         self.scene.size.array,
+                                                                         self.scene.position_array,
+                                                                         self.scene.velocity_array)
+            self.density_field.update(density_field)
+            self.v_x.update(v_x)
+            self.v_y.update(v_y)
+            if self.show_plot:
+                self.plot_grid_values()
         if self.apply_interpolation:
             if self.apply_pressure:
                 self.solve_LCP()
@@ -253,42 +221,3 @@ class GridComputer:
         first_factor = np.maximum(1 - array / 2, 0)
         weight = first_factor ** 4 * (1 + 2 * array)
         return weight * norm_constant
-
-    @staticmethod
-    def orientation_correct_str(field, full=False):
-        """
-        Prints the field, but places (1,1) in the lower left corner
-        and (m,n) in the upper right corner), column major indexing
-        :param field: 2d array to be printed
-        :return: string with correct field formatting
-        """
-        correct_repr = np.rot90(field)
-        if not full:
-            return str(correct_repr)
-        else:
-            field_repr = ""
-            for row in correct_repr:
-                field_repr += " [%s]\n" % "\t".join(["%4.2f" % val for val in row])
-            return "[%s]" % field_repr[1:-1]
-
-    @staticmethod
-    def get_dir_difference(field, axis):
-        """
-        Computes a gradient component of the discrete 2D vector field.
-        The vector field contains values of the cell centers
-        We use a simple 2-point second order central difference scheme.
-        :param field: vector field with a Carthesian indexing
-        :param axis: 'x' or 'y'
-        :return: vector field representing gradient component.
-        """
-        # Todo: Solve for boundary conditions and integrate with ScalarField
-        if axis == 'x':
-            grad_field_x = np.zeros(field.shape)
-            grad_field_x[1:-1, :] = field[2:, :] - field[:-2, :]
-            return grad_field_x
-        elif axis == 'y':
-            grad_field_y = np.zeros(field.shape)
-            grad_field_y[:, 1:-1] = field[:, 2:] - field[:, :-2]
-            return grad_field_y
-        else:
-            raise ValueError('Choose x or y for direction, not %s' % axis)

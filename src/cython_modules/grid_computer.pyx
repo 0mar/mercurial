@@ -8,16 +8,16 @@ cimport numpy as np
 
 float_type = np.float64
 
-def compute_density_and_velocity_field(size_array, np.ndarray[np.float64_t, ndim=2] position_array,
+def compute_density_and_velocity_field(cell_dim, size_array, np.ndarray[np.float64_t, ndim=2] position_array,
                                        np.ndarray[np.float64_t, ndim=2] velocity_array, eps = 0.01):
     """
     Compute the density and velocity field in cell centers as done in Treuille et al. (2004).
     Density and velocity are splatted to only surrounding cell centers.
-    This is a naive implementation, looping over all pedestrians
+    This implementation loops over all cells.  Suggestions for improvement are welcome.
     :return: (density, velocity_x, velocity_y) as 2D arrays
     """
-    cdef Py_ssize_t cell_dim_x = 20
-    cdef Py_ssize_t cell_dim_y = 20  # Semifixed
+    cdef Py_ssize_t cell_dim_x = cell_dim[0]
+    cdef Py_ssize_t cell_dim_y = cell_dim[1]
     cdef Py_ssize_t cell_x, cell_y
 
     cdef np.ndarray[np.float64_t, ndim=2] v_x = np.zeros([cell_dim_x, cell_dim_y])
@@ -44,6 +44,7 @@ def compute_density_and_velocity_field(size_array, np.ndarray[np.float64_t, ndim
             v_y[cell_x, cell_y] = np.sum(velocity_array[close_indices] * weights[:, None])
     return (density_field - eps), v_x / density_field, v_y / density_field
 
+#Todo: check if inlining really makes a diffrerence. Otherwise, obstacle field can also rely on this
 cdef inline np.ndarray[np.float64_t, ndim=1] weight_function(np.ndarray[np.float64_t, ndim=1] array,
                                                              float smoothing_length=1.):
     """

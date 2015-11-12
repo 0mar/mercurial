@@ -11,7 +11,6 @@ from visualization import VisualScene, NoVisualScene
 from dynamic_planner import DynamicPlanner
 from grid_computer import GridComputer
 from static_planner import GraphPlanner
-from results import Result
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
 
 
@@ -62,7 +61,7 @@ class SimulationManager:
             self.finish_functions.append(lambda: self.store_position_usage(filename))
 
         if args.results:
-            results = Result(self.scene)
+            raise AttributeError("Results module currently not implemented")
 
         if not args.kernel:
             self.vis = VisualScene(self.scene, config)

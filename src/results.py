@@ -10,6 +10,7 @@ from static_planner import GraphPlanner
 class Result:
     def __init__(self, scene, config):
         # DEPRECATED. Find a previous version to generate results.
+        raise DeprecationWarning("Current version does not work.")
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).

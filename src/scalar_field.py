@@ -10,6 +10,7 @@ import functions as ft
 class ScalarField:
     """
     Wrapper class around 2D numpy arrays.
+    Implements several convenience functions.
 
     Can be used for logging the values.
     """
@@ -56,7 +57,7 @@ class ScalarField:
         :return:
         """
         if not self.array.shape == new_field.shape:
-            ft.debug(str(self.name, self.array.shape, new_field.shape))
+            ft.debug((self.name, self.array.shape, new_field.shape))
             assert self.array.shape == new_field.shape
 
         self.array = new_field.copy()
@@ -71,7 +72,7 @@ class ScalarField:
             field_repr += " [%s]\n" % "\t".join(["%4.2f" % val for val in row])
         return repr(self) + "\n[%s]" % field_repr[1:-1]
 
-    def with_offset(self, direction):
+    def with_offset(self, direction, cutoff=1):
         """
         Returns a slice of the center field with all {direction} neighbour values of the cells.
         So, offset 'top' returns a center field slice omitting the bottom row.
@@ -81,13 +82,36 @@ class ScalarField:
         """
         if self.orientation != ScalarField.Orientation.center:
             raise NotImplementedError("We only take offset fields of center fields.")
-        return ScalarField.get_with_offset(self.array, direction)
+        return ScalarField.get_with_offset(self.array, direction, cutoff)
 
     @staticmethod
-    def get_with_offset(array, direction):
+    def get_with_offset(array, direction, cutoff=1):
         size = array.shape
         normal = ft.DIRECTIONS[direction]
-        return array[max(0, normal[0]):size[0] + normal[0], max(0, normal[1]):size[1] + normal[1]]
+        return array[max(0, normal[0] * cutoff):size[0] + normal[0] * cutoff,
+               max(0, normal[1] * cutoff):size[1] + normal[1] * cutoff]
+
+    def without_boundary(self, cutoff=1):
+        return self.array[cutoff:-cutoff, cutoff:-cutoff]
+
+    def gradient(self, axis):
+        """
+        Second order central difference approximation of center fields
+        :param axis: 'x' or 'y'
+        :return:gradient of same shape except -2 in the axis direction
+        """
+
+        if axis == 'x':
+            left_field = self.with_offset('left', 2)
+            right_field = self.with_offset('right', 2)
+            return (right_field - left_field) / (2 * self.dx)
+        elif axis == 'y':
+            up_field = self.with_offset('up', 2)
+            down_field = self.with_offset('down', 2)
+            return (up_field - down_field) / (2 * self.dy)
+        else:
+            raise AttributeError("Axis %s not known" % axis)
+
 
     def normalized(self, min_value=0, max_value=1):
         """

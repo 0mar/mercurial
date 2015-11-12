@@ -63,7 +63,6 @@ class DynamicPlanner:
         self.density_exponent = config['dynamic'].getfloat('density_exponent')
 
         self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
-        # Todo: If 'exists()' takes to long, we still have this.
         self.exit_cell_set = set()
         self.obstacle_cell_set = set()
         self.part_obstacle_cell_dict = dict()  # Immediately store the fractions
@@ -166,7 +165,6 @@ class DynamicPlanner:
         This is a naive implementation, looping over all pedestrians
         :return: (density, velocity_x, velocity_y) as 2D arrays
         """
-        # Todo (after merge): Integrate with grid_computer
         density_field = np.zeros(self.grid_dimension) + self.density_epsilon
         # Initialize density with an epsilon to facilitate division
         v_x = np.zeros(self.grid_dimension)
