@@ -56,7 +56,7 @@ class GridComputer:
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
-        self.pressure_field = Field(shape, Field.Orientation.center, 'pressure', (dx, dy))
+        self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
         # If beneficial, we could employ a staggered grid
 
         if self.show_plot:
@@ -99,8 +99,9 @@ class GridComputer:
         self.graphs[0, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=1,
                                  scale_units='xy')
         self.graphs[0, 1].set_title('Velocity field')
-        self.graphs[1, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.pressure_field.gradient('x'),
-                                 self.pressure_field.gradient('y'), scale=1, scale_units='xy')
+        self.graphs[1, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1],
+                                 self.pressure_field.gradient('x')[:, 1:-1],
+                                 self.pressure_field.gradient('y')[1:-1, :], scale=1, scale_units='xy')
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
@@ -118,9 +119,9 @@ class GridComputer:
         """
         nx = self.grid_dimension[0] - 2
         ny = self.grid_dimension[1] - 2
-        flat_rho = self.density_field.without_boundary().flatten(order='F') + 0.1
+        flat_rho = self.density_field.without_boundary().flatten(order='F') + 0.1  # Solve when analysed the effects
         diff_rho_x = (self.density_field.with_offset('right', 2) - self.density_field.with_offset('left', 2))[:, 1:-1]
-        diff_rho_y = (self.density_field.with_offset('up') - self.density_field.with_offset('down'))[1:-1, :]
+        diff_rho_y = (self.density_field.with_offset('up', 2) - self.density_field.with_offset('down', 2))[1:-1, :]
         A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
         B = (self.Bx + self.By) * flat_rho
         C = A + B
@@ -149,15 +150,19 @@ class GridComputer:
             ft.warn("CVXOPT Error: " + str(e))
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
-        self.pressure_field.update(np.pad(dim_p, (1, 1), 'constant', constant_values=0))
+        self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
 
     def adjust_velocity(self):
         """
-        Adjusts the velocity field for the pressure gradient
+        Adjusts the velocity field for the pressure gradient. We pad the pressure with an extra boundary
+        so that the gradient is defined everywhere.
         :return: None
         """
-        self.v_x -= self.pressure_field.gradient('x')
-        self.v_y -= self.pressure_field.gradient('y')
+        # Not using the update method.
+        well_shaped_x_grad = self.pressure_field.gradient('x')[:, 1:-1]
+        well_shaped_y_grad = self.pressure_field.gradient('y')[1:-1, :]
+        self.v_x.array -= well_shaped_x_grad
+        self.v_y.array -= well_shaped_y_grad
 
     def interpolate_pedestrians(self):
         """
@@ -195,10 +200,12 @@ class GridComputer:
             density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
                                                                          self.scene.size.array,
                                                                          self.scene.position_array,
-                                                                         self.scene.velocity_array)
+                                                                         self.scene.velocity_array,
+                                                                         self.scene.active_entries)
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
+            ft.debug(self.v_y)
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:
