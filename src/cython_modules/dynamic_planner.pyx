@@ -136,3 +136,14 @@ cdef inline int exists(int cell_x, int cell_y, int cell_max_x, int cell_max_y):
         return 0
     else:
         return 1
+
+def weight_function(np.ndarray array, float smoothing_length=1.):
+    """
+    Using the Wendland kernel to determine the interpolation weight
+    Calculation is performed in two steps to take advantage of numpy's speed
+    :param array: Array of distances to apply the kernel on.
+    :param smoothing_length: Steepness factor (standard deviation) of kernel
+    :return: Weights of interpolation
+    """
+    array /= smoothing_length
+    return 7. / (4 * np.pi * smoothing_length * smoothing_length) * np.maximum(1 - array / 2, 0) ** 4 * (1 + 2 * array)

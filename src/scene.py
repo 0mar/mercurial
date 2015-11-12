@@ -2,7 +2,6 @@ __author__ = 'omar'
 
 import json
 import numpy as np
-import scipy.io as sio
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
@@ -14,8 +13,6 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-    # Todo: Integrate params with obstacle object
-    # Todo: Integrate rates and pedestrians with obstacles object
     def __init__(self, initial_pedestrian_number, config):
         """
         Initializes a Scene

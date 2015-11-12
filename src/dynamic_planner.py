@@ -9,7 +9,7 @@ import operator
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
-from grid_computer import GridComputer
+from cython_modules.dynamic_planner import weight_function
 from cython_modules.dynamic_planner import compute_density_and_velocity_field
 from cython_modules.dynamic_planner import compute_potential_cy
 
@@ -29,7 +29,7 @@ class DynamicPlanner:
 
     For now, since the potential is a center field, we need an exit that covers cell centers.
     This means exits have a minimum size requirement
-    Ugly exits can be resolved by building obstacle walls.
+    Ugly exit placement can be resolved by building obstacle walls.
     """
 
     def __init__(self, scene, config, show_plot=False):
@@ -131,19 +131,19 @@ class DynamicPlanner:
         h = self.smoothing_length  # Obstacle factor
         cell_centers = self.potential_field.mesh_grid
         potential_obstacles = np.zeros(self.grid_dimension)
+        obstacle_form = self.config['dynamic']['obstacle_form']
         for obstacle in self.scene.obstacle_list:
             if not obstacle.permeable:
-                obstacle_form = self.config['dynamic']['obstacle_form']
+
                 if obstacle_form == 'rectangle':
                     distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
                                        np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
                 elif obstacle_form == 'ellips':
-                    h *= 5 / 4
                     distances = np.sqrt(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)) ** 2 +
                                         np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)) ** 2)
                 else:
                     raise ValueError("Obstacle form %s not recognized" % obstacle_form)
-                weights = GridComputer.weight_function(distances * h)
+                weights = weight_function(distances / h)
                 potential_obstacles += weights
         return potential_obstacles
 

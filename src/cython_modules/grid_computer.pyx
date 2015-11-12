@@ -56,4 +56,4 @@ def weight_function(np.ndarray[np.float64_t, ndim=1] array, float smoothing_leng
     :return: Weights of interpolation
     """
     array /= smoothing_length
-    return 7. / (4 * np.pi * smoothing_length * smoothing_length) * np.maximum(1 - array / 2, 0) ** 4 ** (1 + 2 * array)
+    return 7. / (4 * np.pi * smoothing_length * smoothing_length) * np.maximum(1 - array / 2, 0) ** 4 * (1 + 2 * array)
