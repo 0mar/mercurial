@@ -46,6 +46,7 @@ class SimulationManager:
         if not self.scene:
             raise ValueError("No scene has been initialized")
         # Initialization planner
+        self.step_functions.append(self.scene.step)
         if args.dynamic:
             dynamic_planner = DynamicPlanner(self.scene, config=config, show_plot=args.graph)
             self.step_functions += [dynamic_planner.step]

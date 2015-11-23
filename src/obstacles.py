@@ -93,7 +93,7 @@ class Entrance(Obstacle):
     def convert_angle_to_vector(self, angle):
         """
         Converts an angle into a vector on the boundary of the cube.
-        Uses some basic linear algebra
+        Uses some basic linear algebra; extended on in report.
         """
         # Todo: Vectorize for exit_log implementation
         object_radius = ft.norm(self.size[0], self.size[1]) / 2

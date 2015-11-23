@@ -148,6 +148,7 @@ class Scene:
             start_time = 0
             if 'spawn_rate' in entrance_data:
                 spawn_rate = entrance_data['spawn_rate'] * self.dt
+                ft.debug(spawn_rate)
             if max_pedestrians in entrance_data:
                 max_pedestrians = entrance_data['max_pedestrians']
             if 'start_time' in entrance_data:
@@ -224,6 +225,13 @@ class Scene:
             return all([coord not in obstacle for obstacle in self.obstacle_list])
         else:
             return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_list])
+
+    def step(self):
+        """
+        Compute all step functions in scene not related to planner functions.
+        :return: None
+        """
+        [step() for step in self.on_step_functions]
 
     def move_pedestrians(self):
         """
