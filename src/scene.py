@@ -106,7 +106,7 @@ class Scene:
         self.minimal_distance = section.getfloat('minimal_distance')
         self.mde = section.getboolean('minimal_distance_enforcement')
         self.pedestrian_size = Size([section.getfloat('pedestrian_size'), section.getfloat('pedestrian_size')])
-        self.size = Size([section.getfloat('scene_size_x'), section.getfloat('scene_size_x')])
+        self.size = Size([section.getfloat('scene_size_x'), section.getfloat('scene_size_y')])
         self.max_speed_interval = Interval([section.getfloat('max_speed_begin'), section.getfloat('max_speed_end')])
         self.load_obstacle_file(obstacle_file)
 

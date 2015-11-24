@@ -97,9 +97,9 @@ class Entrance(Obstacle):
         """
         # Todo: Vectorize for exit_log implementation
         object_radius = ft.norm(self.size[0], self.size[1]) / 2
-        x = math.cos(angle) * object_radius
+        x = math.cos(angle) * object_radius + ft.EPS
         abs_x = math.fabs(x)
-        y = math.sin(angle) * object_radius
+        y = math.sin(angle) * object_radius + ft.EPS
         abs_y = math.fabs(y)
         if abs_x > self.size[0] / 2:
             correction = self.size[0] / (2 * abs_x) + 1e-2
@@ -131,7 +131,6 @@ class Entrance(Obstacle):
 
     def get_spawn_location(self):
         """
-        :param time: Time on which we poll
         :return Position if time for new pedestrian, zero otherwise
         """
 
