@@ -95,9 +95,25 @@ class DynamicPlanner:
         self._compute_initial_interface()
         self.obstacle_potential_field = self.get_obstacle_potential_field()
         if self.show_plot:
-            # Plotting hooks
-            f, self.graphs = plt.subplots(2, 2)
-            plt.show(block=False)
+            plt.subplot(2, 2, 1)
+            plt.imshow(np.rot90(self.density_field.array), cmap='RdBu')
+            plt.title('Density')
+            plt.colorbar()
+
+            plt.subplot(2, 2, 2)
+            plt.imshow(np.rot90(self.discomfort_field.array), cmap='RdBu')
+            plt.title('Density')
+            plt.colorbar()
+
+            plt.subplot(2, 2, 3)
+            plt.imshow(np.rot90(self.potential_field.array), cmap='RdBu')
+            plt.title('Density')
+            plt.colorbar()
+
+            plt.subplot(2, 2, 4)
+            plt.imshow(np.rot90(self.obstacle_potential_field), cmap='RdBu')
+            plt.title('Density')
+            plt.colorbar()
 
     def _compute_initial_interface(self):
         """
@@ -132,8 +148,9 @@ class DynamicPlanner:
         cell_centers = self.potential_field.mesh_grid
         potential_obstacles = np.zeros(self.grid_dimension)
         obstacle_form = self.config['dynamic']['obstacle_form']
+        from obstacles import Entrance
         for obstacle in self.scene.obstacle_list:
-            if not obstacle.permeable:
+            if not obstacle.permeable and not isinstance(obstacle, Entrance):
 
                 if obstacle_form == 'rectangle':
                     distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
@@ -427,16 +444,34 @@ class DynamicPlanner:
         Plots the grid values density, discomfort and potential
         :return: None
         """
-        for graph in self.graphs.flatten():
-            graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
-        self.graphs[0, 0].set_title('Density')
-        self.graphs[1, 0].imshow(np.rot90(self.discomfort_field.array))
-        self.graphs[1, 0].set_title('Discomfort')
-        self.graphs[0, 1].imshow(np.rot90(self.potential_field.array))
-        self.graphs[0, 1].set_title('Potential field')
-        self.graphs[1, 1].imshow(np.rot90(self.obstacle_potential_field))
-        self.graphs[1, 1].set_title('Obstacle Potentials')
+        plt.subplot(2, 2, 1)
+        plt.cla()
+        plt.imshow(np.rot90(self.density_field.array))
+
+        plt.subplot(2, 2, 2)
+        plt.cla()
+        plt.imshow(np.rot90(self.discomfort_field.array))
+
+        plt.subplot(2, 2, 3)
+        plt.cla()
+        plt.imshow(np.rot90(self.potential_field.array))
+
+        plt.subplot(2, 2, 4)
+        plt.cla()
+        plt.imshow(np.rot90(self.obstacle_potential_field))
+
+        #
+        # self.graphs[0, 0].imshow(np.rot90(self.density_field.array),cmap='RdBu')
+        # self.graphs[0, 0].set_title('Density')
+        # self.graphs[1, 0].imshow(np.rot90(self.discomfort_field.array),cmap='RdBu')
+        # self.graphs[1, 0].set_title('Discomfort')
+        # self.graphs[0, 1].imshow(np.rot90(self.potential_field.array),cmap='RdBu')
+        # self.graphs[0, 1].set_title('Potential field')
+        # self.graphs[1, 1].imshow(np.rot90(self.obstacle_potential_field),cmap='RdBu')
+        # self.graphs[1, 1].set_title('Obstacle Potentials')
+        # for i in range(1,5):
+        #         plt.subplot(2,2,i)
+        #         plt.colorbar()
         # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
         # self.graphs[1, 1].set_title('Velocity field')
         # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
