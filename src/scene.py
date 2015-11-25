@@ -1,6 +1,7 @@
 __author__ = 'omar'
 
 import json
+import random
 import numpy as np
 import functions as ft
 from pedestrian import Pedestrian
@@ -132,11 +133,15 @@ class Scene:
             begin = Point(self.size * exit_data['begin'])
             size = self.size.array * np.array(exit_data['size'])
             name = exit_data["name"]
-
+            cap = 0
+            if 'cap' in exit_data:
+                cap = exit_data['cap'] * self.dt
+                if cap < 1:
+                    ft.warn("Exit cap of %.2f per time step is too low low; must exceed 1.0")
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            exit_obs = Exit(begin, Size(size), name)
+            exit_obs = Exit(begin, Size(size), name, cap)
             self.exit_list.append(exit_obs)
             self.obstacle_list.append(exit_obs)
         for entrance_data in data['entrances']:
@@ -148,7 +153,6 @@ class Scene:
             start_time = 0
             if 'spawn_rate' in entrance_data:
                 spawn_rate = entrance_data['spawn_rate'] * self.dt
-                ft.debug(spawn_rate)
             if max_pedestrians in entrance_data:
                 max_pedestrians = entrance_data['max_pedestrians']
             if 'start_time' in entrance_data:
@@ -267,14 +271,27 @@ class Scene:
     def find_finished_pedestrians(self):
         """
         Finds all pedestrians that have reached the goal in this time step.
-        The pedestrians found are processed and removed from the scene
+        If there is a cap on the number of pedestrians allowed to exit,
+        we randomly sample that number of pedestrians and leave the rest in the exit.
+        If any pedestrians are unable to exit, we set the exit to inaccessible.
+        The pedestrians that leave are processed and removed from the scene
         :return: None
         """
         for goal in self.exit_list:
             in_goal = np.logical_and(self.position_array >= goal.begin, self.position_array <= goal.end)
             in_g = np.logical_and(in_goal[:, 0], in_goal[:, 1])
             done = np.logical_and(in_g, self.active_entries)
-            for index in np.where(done)[0]:
+            index_list = np.where(done)[0]
+            if goal.cap:
+                surplus = max(0, len(index_list) - goal.cap)
+                ft.debug("Surplus %d" % surplus)
+                if surplus:
+
+                    index_list = np.random.choice(index_list, goal.cap, replace=False)
+                    goal.permeable = False
+                else:
+                    goal.permeable = True
+            for index in index_list:
                 finished_pedestrian = self.index_map[index]
                 goal.log_pedestrian(finished_pedestrian, self.time)
                 self.remove_pedestrian(finished_pedestrian)

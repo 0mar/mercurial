@@ -147,12 +147,13 @@ class Exit(Obstacle):
     Model an exit obstacle. This is, unlike other obstacles, accessible and has no dodge margin.
     """
 
-    def __init__(self, begin, size, name):
+    def __init__(self, begin, size, name, cap=0):
         super(Exit, self).__init__(begin, size, name, permeable=True)
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]
         self.log_list = []
+        self.cap = round(cap)
 
     def log_pedestrian(self, pedestrian, time):
         """
