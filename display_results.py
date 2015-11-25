@@ -10,20 +10,21 @@ sys.path.insert(1, 'src')
 class Displayer:
     def __init__(self, filename):
 
-        self.delay = 500  # is nice
+        self.delay = 100  # is nice
         self.obstacle_file = 'scenes/alpha.json'
         self.results_name = 'alphas'
         self.results_folder = 'results/positions'
+        self.config_file = ''
         self.counter = 1
 
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
-        self.size = [800, 800]
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.time_step = 0.8
+        self.time_step = 0.1
         self.read_json_file(filename)
         self.window.bind("<Button-1>", self.info)
+        self.window.bind("<Button-3>", self.picture)
         self.iterator = 0
         self.ped_length = 0
         self.window.after(self.delay, self.step)
@@ -34,6 +35,13 @@ class Displayer:
             data = json.loads(f.read())
         self.results_name = data['name']
         self.obstacle_file = data['obstacle_file']
+        # Hack :)
+        self.config_file = "%s.ini" % self.obstacle_file.split('.')[0]
+        import configparser
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+        self.size = [config['visual'].getfloat('screen_size_x'), config['visual'].getfloat('screen_size_y')]
+        self.results_folder = config['general']['result_dir']
         self.scene_size = data['size']
         self.counter = int(data['number'] / 10)
         if 'time_step' in data:
@@ -54,9 +62,16 @@ class Displayer:
               (self.iterator, (self.iterator * 10 * self.time_step), self.counter * 10 * self.time_step,
                self.ped_length))
 
+    def picture(self, event, name=None):
+        filename = "images/%s-%d" % (self.results_name, self.iterator)
+        print("Taking picture %s" % filename)
+        self.canvas.postscript(file=filename)
+
+
+
     def open_arrays(self):
         file_name = "%s-%d" % (self.results_name, self.iterator)
-        with open(file_name, 'rb') as f:
+        with open(self.results_folder + file_name, 'rb') as f:
             array = np.load(f)
             self.ped_length = array.shape[0]
         return array

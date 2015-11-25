@@ -61,8 +61,8 @@ class SimulationManager:
         if args.store_positions:
             # filename = input('Specify storage file\n')
             import re
-            filename = re.search('/(.+)\.json', config['general']['obstacle_file']).group(1)
-            functions.log("Storing positions results in %s'%s'" % (config['general']['result_dir'], filename))
+            filename = re.search('/([^/]+)\.json', config['general']['obstacle_file']).group(1)
+            functions.log("Storing positions results in '%s%s'" % (config['general']['result_dir'], filename))
             self.step_functions.append(lambda: self.store_positions_to_file(filename))
             self.finish_functions.append(lambda: self.store_position_usage(filename))
             self.finish_functions.append(self.store_exit_logs)
