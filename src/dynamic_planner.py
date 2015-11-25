@@ -360,7 +360,7 @@ class DynamicPlanner:
             known_cells.add(best_cell)
             new_candidate_cells = get_new_candidate_cells({best_cell})
         max_potential = np.max(self.potential_field.array)
-        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential * 1.1)
+        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential * 0.7)
 
     def compute_potential_gradient(self):
         """
@@ -404,6 +404,7 @@ class DynamicPlanner:
                                                                       self.scene.position_array,
                                                                       self.scene.pedestrian_list)
             self.density_field.update(dens_f)
+            ft.debug("Min: %.3f\tmax: %.3f\n" % (np.min(dens_f), np.max(dens_f)))
             self.v_x.update(v_x_f)
             self.v_y.update(v_y_f)
         self.compute_discomfort_field()

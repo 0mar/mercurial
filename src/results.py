@@ -9,8 +9,6 @@ from static_planner import GraphPlanner
 
 class Result:
     def __init__(self, scene, config):
-        # DEPRECATED. Find a previous version to generate results.
-        raise DeprecationWarning("Current version does not work.")
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).
@@ -25,31 +23,33 @@ class Result:
         - Average path length ratio: Average of all path length ratio's.
         - Mean speed: Path length over time spend in simulation.
 
-        This Result class depends on a GraphPlanner to capture the length of the paths.
-
         :param scene: Scene object under evaluation.
         :return: None
         """
         self.result_dir = config['general']['result_dir']
         self.scene = scene
-        self.scene.set_on_step_functions(self.on_step)
-        self.scene.set_on_pedestrian_exit_functions(self.on_pedestrian_exit)
-        self.scene.set_on_finish_functions(self.on_finish)
 
         ft.log("Simulations results are processed and stored in folder '%s'" % self.result_dir)
-        if not scene.pedestrian_list[0].line:
-            raise AttributeError("Pedestrians have no paths. Assert GraphPlanner module is used")
+        if not hasattr(scene.pedestrian_list[0], "line"):
+            self.no_paths = True
+            ft.log("Storing results for Dynamic planner")
+        else:
+            self.no_paths = False
+            ft.log("Storing results for Graph Planner")
         self.planned_path_length = np.zeros(self.scene.pedestrian_number)
+        self.path_length_ratio = np.zeros(self.scene.pedestrian_number)
+        self.avg_path_length_ratio = 0
+        self.paths_list = [[] for _ in range(self.scene.pedestrian_number)]
         self.path_length = np.zeros(self.scene.pedestrian_number)
         self.time_spent = np.zeros(self.scene.pedestrian_number)
         self.mean_speed = np.zeros(self.scene.pedestrian_number)
-        self.path_length_ratio = np.zeros(self.scene.pedestrian_number)
+
         self.max_speed = np.zeros(self.scene.pedestrian_number)
-        self.avg_path_length_ratio = 0
+
         self.avg_mean_speed = 0
         self.density = self.scene.pedestrian_number / (self.scene.size.width * self.scene.size.height)
         self.origins = np.zeros([self.scene.pedestrian_number, 2])
-        self.paths_list = [[] for _ in range(self.scene.pedestrian_number)]
+
 
         self.on_init()
 
@@ -59,7 +59,8 @@ class Result:
         :return: None
         """
         for pedestrian in self.scene.pedestrian_list:
-            self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
+            if not self.no_paths:
+                self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
             self.origins[pedestrian.counter] = pedestrian.origin.array
         self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)
         self.max_speed = self.scene.max_speed_array
@@ -93,9 +94,10 @@ class Result:
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.active_entries[pedestrian.counter] == 1:
                 self.time_spent[pedestrian.counter] = self.scene.time
-        self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries.astype(bool))] / \
-                                 self.path_length[np.invert(self.scene.active_entries.astype(bool))]
-        self.avg_path_length_ratio = np.mean(self.path_length_ratio)
+        if not self.no_paths:
+            self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries.astype(bool))] / \
+                                     self.path_length[np.invert(self.scene.active_entries.astype(bool))]
+            self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
@@ -108,9 +110,10 @@ class Result:
         """
         filename = "hoi.txt"
         with open(filename, 'w') as file:
-            file.write("Planned path length:\n%s\n\n" % self.planned_path_length)
-            file.write("Path ratio:\n%s\n\n" % self.path_length_ratio)
-            file.write("Average path length ratio\n%s\n\n" % self.avg_path_length_ratio)
+            if not self.no_paths:
+                file.write("Planned path length:\n%s\n\n" % self.planned_path_length)
+                file.write("Path ratio:\n%s\n\n" % self.path_length_ratio)
+                file.write("Average path length ratio\n%s\n\n" % self.avg_path_length_ratio)
             file.write("Mean speed\n%s\n\n" % self.mean_speed)
             file.write("Density:\n%s\n\n" % self.density)
 

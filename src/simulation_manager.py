@@ -10,6 +10,7 @@ import functions
 from visualization import VisualScene, NoVisualScene
 from dynamic_planner import DynamicPlanner
 from grid_computer import GridComputer
+from results import Result
 from static_planner import GraphPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
 
@@ -19,6 +20,7 @@ class SimulationManager:
         functions.VERBOSE = args.verbose
         self.scene = None
         self.step_functions = []
+        self.on_pedestrian_exit_functions = []
         self.finish_functions = []
         config = configparser.ConfigParser()
         has_config = config.read(args.config_file)
@@ -60,10 +62,13 @@ class SimulationManager:
             filename = input('Specify storage file\n')
             self.step_functions.append(lambda: self.store_positions_to_file(filename))
             self.finish_functions.append(lambda: self.store_position_usage(filename))
+            self.finish_functions.append(self.store_exit_logs)
 
         if args.results:
-            raise AttributeError("Results module currently not implemented")
-
+            results = Result(self.scene, config)
+            self.step_functions.append(results.on_step)
+            self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
+            self.finish_functions.append(results.on_finish)
         if not args.kernel:
             self.vis = VisualScene(self.scene, config)
             if args.step:
@@ -87,6 +92,9 @@ class SimulationManager:
     def finish(self):
         functions.log("Finishing simulation")
         [finish() for finish in self.finish_functions]
+
+    def on_pedestrian_exit(self, pedestrian):
+        [ped_exit(pedestrian) for ped_exit in self.on_pedestrian_exit_functions]
 
     def store_config(self, file_name):
         with open(file_name, 'w') as config_file:

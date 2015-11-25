@@ -23,8 +23,10 @@ class VisualScene:
         init_size = Size([config['visual'].getfloat('screen_size_x'), config['visual'].getfloat('screen_size_y')])
         self.scene = scene
         self.autoloop = True
-        self.draws_cells = False
+        self.draws_cells = True
         self.delay = config['visual'].getint('time_delay')
+        self.nx = int(config['general'].getint('scene_size_x') / config['general'].getint('cell_size_x'))
+        self.ny = int(config['general'].getint('scene_size_y') / config['general'].getint('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (init_size.width, init_size.height))
@@ -84,8 +86,7 @@ class VisualScene:
         """
         self.canvas.delete('all')
         if self.draws_cells:
-            for cell in self.scene.cell_dict.values():
-                self.draw_cell(cell)
+            self.draw_grid(self.nx, self.ny)
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
         self.draw_pedestrians()
@@ -124,6 +125,23 @@ class VisualScene:
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
         return start_pos_array, end_pos_array
+
+    def draw_grid(self, nx, ny):
+        """
+        Draws a grid
+        :param nx: number of cells in x direction
+        :param ny: number of cells in y direction
+        :return: None
+        """
+
+        screen_dx = self.size[0] / nx
+        screen_dy = self.size[1] / ny
+        for i in range(nx - 1):
+            x_coord = (i + 1) * screen_dx
+            self.canvas.create_line(x_coord, 0, x_coord, self.size[1])
+        for j in range(ny - 1):
+            y_coord = (j + 1) * screen_dy
+            self.canvas.create_line(0, y_coord, self.size[0], y_coord)
 
     def draw_cell(self, cell):
         """
