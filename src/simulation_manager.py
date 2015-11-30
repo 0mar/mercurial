@@ -122,3 +122,10 @@ class SimulationManager:
                       'obstacle_file': self.config['general']['obstacle_file'], 'size': self.scene.size.array.tolist()}
         with open('%s%s.json' % (log_dir, file_name), 'w') as f:
             f.write(json.dumps(store_data))
+
+    @staticmethod
+    def get_default_config():
+        config_file_name = 'config.ini'
+        config = configparser.ConfigParser()
+        config.read(config_file_name)
+        return config

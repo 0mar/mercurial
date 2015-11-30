@@ -13,7 +13,7 @@ import functions as ft
 
 class GridComputer:
     """
-    Class responsible for the fluid-dynamic calculations of the crowd.
+    Class responsible for the fluid-dynamic ca  lculations of the crowd.
     Main tasks:
     1. Interpolating velocity on grid points
     2. Computing pressure
@@ -106,8 +106,7 @@ class GridComputer:
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
-    def solve_LCP(self):
-        # Todo: Make testable.
+    def compute_pressure(self):
         """
         We solve min {1/2x^TAx+x^Tq}.
         First we cut off the boundary of the 2D fields.
@@ -127,7 +126,6 @@ class GridComputer:
         A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
         B = (self.Bx + self.By) * flat_rho
         C = A + B
-        cvx_M = cvxopt.matrix(-2 * C * self.dt)
 
         diff_v_rho_x = (self.density_field.with_offset('right', 2) * self.v_x.with_offset('right', 2) \
                         - self.density_field.with_offset('left', 2) * self.v_x.with_offset('left', 2))[:, 1:-1]
@@ -136,23 +134,40 @@ class GridComputer:
                         - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
-        cvx_b = cvxopt.matrix(b)
-        I = np.eye(nx * ny)
-        cvx_G = cvxopt.matrix(np.vstack((C * self.dt, -I)))
-        zeros = np.zeros([nx * ny, 1])
-        cvx_h = cvxopt.matrix(np.vstack((b[:, None], zeros)))
-        flat_p = np.zeros([nx * ny, 1])
-        try:
-            result = cvxopt.solvers.qp(P=cvx_M, q=cvx_b, G=cvx_G, h=cvx_h)
-            if result['status'] == 'optimal':
-                flat_p = result['x']
-            else:
-                ft.warn("density exceeds max density sharply")
-        except ValueError as e:
-            ft.warn("CVXOPT Error: " + str(e))
+        flat_p = GridComputer.solve_lCP_with_quad(-C * self.dt, b)
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
+
+    @staticmethod
+    def solve_lCP_with_quad(M, q):
+        """
+        Solves the linear complementarity problem w = Mz + q using a quadratic solver.
+        Possible improvements:
+            -Sparse matrix use
+            -PGS solver.
+        :param M: nxn non-singular positive definite matrix
+        :param q: length n vector
+        :return: length n vector z such that z>=0, w>=0, (w,z)=0 if optimum is found, else zeros vector.
+        """
+        n = M.shape[0]
+        cvx_P = cvxopt.matrix(2 * M, tc='d')
+        cvx_q = cvxopt.matrix(q, tc='d')
+        I = np.eye(n)
+        O = np.zeros([n, 1])
+        cvx_G = cvxopt.matrix(np.vstack([-M, -I]), tc='d')
+        cvx_h = cvxopt.matrix(np.vstack([q[:, None], O]), tc='d')
+
+        try:
+            result = cvxopt.solvers.qp(P=cvx_P, q=cvx_q, G=cvx_G, h=cvx_h)
+            if result['status'] == 'optimal':
+                z = result['x']
+                return z
+            else:
+                ft.warn("No optimal result found in LCP solver")
+        except ValueError as e:
+            ft.warn("CVXOPT Error: " + str(e))
+        return O
 
     def adjust_velocity(self):
         """
@@ -213,7 +228,7 @@ class GridComputer:
                 self.plot_grid_values()
         if self.apply_interpolation:
             if self.apply_pressure:
-                self.solve_LCP()
+                self.compute_pressure()
                 self.adjust_velocity()
             self.interpolate_pedestrians()
 
