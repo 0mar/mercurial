@@ -44,6 +44,7 @@ class GridComputer:
         self.min_distance = config['general'].getfloat('minimal_distance')
         self.max_density = 6 * self.packing_factor / \
                            (np.sqrt(3) * (self.scene.pedestrian_size[0] + self.min_distance) ** 2)
+        ft.debug(self.max_density)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._create_base_matrices()
@@ -206,7 +207,8 @@ class GridComputer:
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
-            ft.debug(self.v_y)
+            ft.debug(self.density_field)
+            ft.debug(np.mean(self.density_field.array))
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:

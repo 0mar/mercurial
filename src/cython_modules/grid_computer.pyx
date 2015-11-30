@@ -26,8 +26,8 @@ def compute_density_and_velocity_field(cell_dim, size_array,
     cdef np.ndarray[np.float64_t, ndim=2] v_y = np.zeros([cell_dim_x, cell_dim_y])
     cdef np.ndarray[np.float64_t, ndim=2] density_field = np.zeros([cell_dim_x, cell_dim_y]) + eps
     cdef np.ndarray[np.float64_t, ndim=1] cell_size = size_array / [cell_dim_x, cell_dim_y]
-    cdef float cutoff = ft.norm(cell_size[0], cell_size[1]) / math.sqrt(2)
-    cdef float smoothing_length = 1
+    cdef float cutoff = 10
+    cdef float smoothing_length = cutoff/2
     # cell_locations = np.floor(position_array / cell_size)
 
     cdef np.ndarray[np.float64_t, ndim=2] differences
@@ -40,7 +40,7 @@ def compute_density_and_velocity_field(cell_dim, size_array,
         close_indices = np.where(np.logical_and(distances < cutoff, active_entries))[0]
         if len(close_indices):
             close_distances = distances[close_indices]
-            weights = weight_function(close_distances / cutoff)
+            weights = weight_function(close_distances,smoothing_length)
             total_weight = np.sum(weights)
             density_field[cell_x, cell_y] += total_weight
             v_x[cell_x, cell_y] = np.sum(velocity_array[:, 0][close_indices] * weights)
