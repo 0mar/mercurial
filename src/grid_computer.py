@@ -46,7 +46,7 @@ class GridComputer:
                            (np.sqrt(3) * (self.scene.pedestrian_size[0] + self.min_distance) ** 2)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
-        self._create_matrices()
+        self._create_base_matrices()
 
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation or apply_pressure
@@ -64,7 +64,7 @@ class GridComputer:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    def _create_matrices(self):
+    def _create_base_matrices(self):
         """
         Creates the matrix for solving the LCP using kronecker sums and the finite difference scheme
         The matrix returned is sparse and in cvxopt format.
@@ -76,13 +76,13 @@ class GridComputer:
         ey = np.ones(ny)
         Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
         Adyy = np.diag(ey[:-1], 1) + np.diag(-ey[:-1], -1)
-        self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(len(ey)))
-        self.Ay = 1 / (4 * self.dy ** 2) * np.kron(np.eye(len(ex)), Adyy)
+        self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(ny))
+        self.Ay = 1 / (4 * self.dy ** 2) * np.kron(np.eye(nx), Adyy)
 
         Bdxx = np.diag(ex[:-1], 1) + np.diag(-2 * ex) + np.diag(ex[:-1], -1)
         Bdyy = np.diag(ey[:-1], 1) + np.diag(-2 * ey) + np.diag(ey[:-1], -1)
-        self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(len(ey)))
-        self.By = 1 / (self.dy ** 2) * np.kron(np.eye(len(ex)), Bdyy)
+        self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(ny))
+        self.By = 1 / (self.dy ** 2) * np.kron(np.eye(nx), Bdyy)
 
     def plot_grid_values(self):
         """
@@ -106,6 +106,7 @@ class GridComputer:
         plt.show(block=False)
 
     def solve_LCP(self):
+        # Todo: Make testable.
         """
         We solve min {1/2x^TAx+x^Tq}.
         First we cut off the boundary of the 2D fields.
@@ -125,7 +126,7 @@ class GridComputer:
         A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
         B = (self.Bx + self.By) * flat_rho
         C = A + B
-        cvx_M = cvxopt.matrix(-C * self.dt)
+        cvx_M = cvxopt.matrix(-2 * C * self.dt)
 
         diff_v_rho_x = (self.density_field.with_offset('right', 2) * self.v_x.with_offset('right', 2) \
                         - self.density_field.with_offset('left', 2) * self.v_x.with_offset('left', 2))[:, 1:-1]
