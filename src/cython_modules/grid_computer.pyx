@@ -26,7 +26,7 @@ def compute_density_and_velocity_field(cell_dim, size_array,
     cdef np.ndarray[np.float64_t, ndim=2] v_y = np.zeros([cell_dim_x, cell_dim_y])
     cdef np.ndarray[np.float64_t, ndim=2] density_field = np.zeros([cell_dim_x, cell_dim_y]) + eps
     cdef np.ndarray[np.float64_t, ndim=1] cell_size = size_array / [cell_dim_x, cell_dim_y]
-    cdef float cutoff = 10
+    cdef float cutoff = math.sqrt(cell_size[0] ** 2 + cell_size[1] ** 2)
     cdef float smoothing_length = cutoff/2
     # cell_locations = np.floor(position_array / cell_size)
 

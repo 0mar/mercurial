@@ -38,8 +38,6 @@ class GridComputer:
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.dt = self.scene.dt
-        self.smoothing_length = config['dynamic'].getfloat('smoothing_length') * ft.norm(self.dx, self.dy) / math.sqrt(
-            2)  # todo:investigate
         self.packing_factor = config['dynamic'].getfloat('packing_factor')
         self.min_distance = config['general'].getfloat('minimal_distance')
         self.max_density = 6 * self.packing_factor / \
