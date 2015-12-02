@@ -57,3 +57,39 @@ def weight_function(np.ndarray[np.float64_t, ndim=1] array, float smoothing_leng
     """
     array /= smoothing_length
     return 7. / (4 * np.pi * smoothing_length * smoothing_length) * np.maximum(1 - array / 2, 0) ** 4 * (1 + 2 * array)
+
+def solve_LCP_with_pgs(np.ndarray[np.float64_t, ndim=2] M, np.ndarray[np.float64_t, ndim=1] q_vec, init_guess = None):
+    """
+    Solves the linear complementarity problem w = Mz + q using a Projected Gauss Seidel solver.
+    Possible improvements:
+        -Sparse matrix use
+    :param M: nxn non-singular positive definite matrix
+    :param q: length n vector
+    :return: length n vector z such that z>=0, w>=0, (w,z)\approx 0 if optimum is found, else zeros vector.
+    """
+    cdef float eps = 1e-02
+    cdef int max_it = 10000
+    n = len(q_vec)
+    cdef np.ndarray[np.float64_t, ndim=2] q = q_vec[:, None]
+    O = np.zeros([n, 1])
+    cdef np.ndarray[np.float64_t, ndim=2] z
+    if init_guess is not None:
+        z = init_guess
+    else:
+        z = np.ones([n, 1])
+    cdef np.ndarray[np.float64_t, ndim=2] w = np.dot(M, z) + q
+    cdef int it = 0
+    cdef Py_ssize_t i
+    cdef float r
+    while (np.any(w < -eps) or np.abs(np.dot(w.T, z)) > eps or np.any(z < -eps)) and it < max_it:
+        it += 1
+        for i in range(n):
+            r = -q[i] - np.dot(M[i, :], z) + M[i, i] * z[i]
+            z[i] = max(0, r / M[i, i])
+        w = np.dot(M, z) + q
+    ft.debug("Iterations: %d" % it)
+    if it == max_it:
+        ft.warn("Max iterations reached, no optimal result found")
+        return O
+    else:
+        return z

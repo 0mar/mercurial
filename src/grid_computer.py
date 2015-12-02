@@ -2,10 +2,12 @@ __author__ = 'omar'
 import matplotlib
 
 matplotlib.use('TkAgg')
+import time
 import numpy as np
-import math
+import scipy.io as sio
+import scipy.sparse as ss
 import matplotlib.pyplot as plt
-from cython_modules.grid_computer import compute_density_and_velocity_field
+from cython_modules.grid_computer import compute_density_and_velocity_field, solve_LCP_with_pgs
 from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft
@@ -40,11 +42,11 @@ class GridComputer:
         self.dt = self.scene.dt
         self.packing_factor = config['dynamic'].getfloat('packing_factor')
         self.min_distance = config['general'].getfloat('minimal_distance')
-        self.max_density = 6 * self.packing_factor / \
-                           (np.sqrt(3) * (self.scene.pedestrian_size[0] + self.min_distance) ** 2)
-        ft.debug(self.max_density)
+        self.max_density = 2 * self.packing_factor / \
+                           (np.sqrt(3) * self.min_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
+        self._last_solution = None
         self._create_base_matrices()
 
         self.show_plot = show_plot
@@ -132,21 +134,22 @@ class GridComputer:
                         - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
-        flat_p = GridComputer.solve_lCP_with_quad(-C * self.dt, b)
+        time1 = time.time()
+        flat_p = solve_LCP_with_pgs(-C * self.dt, b, self._last_solution)
+        self._last_solution = np.reshape(flat_p, (nx * ny, 1))
+        print("Took %.3f time" % (time.time() - time1))
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
 
     @staticmethod
-    def solve_lCP_with_quad(M, q):
+    def solve_LCP_with_quad(M, q):
         """
         Solves the linear complementarity problem w = Mz + q using a quadratic solver.
-        Possible improvements:
-            -Sparse matrix use
-            -PGS solver.
+        This method is unused as we employ a Cython-PGS-solver.
         :param M: nxn non-singular positive definite matrix
         :param q: length n vector
-        :return: length n vector z such that z>=0, w>=0, (w,z)=0 if optimum is found, else zeros vector.
+        :return: length n vector z such that z>=0, w>=0, (w,z) < eps if optimum is found, else zeros vector.
         """
         n = M.shape[0]
         cvx_P = cvxopt.matrix(2 * M, tc='d')
@@ -166,6 +169,7 @@ class GridComputer:
         except ValueError as e:
             ft.warn("CVXOPT Error: " + str(e))
         return O
+
 
     def adjust_velocity(self):
         """
@@ -220,8 +224,8 @@ class GridComputer:
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
+            ft.debug(self.max_density)
             ft.debug(self.density_field)
-            ft.debug(np.mean(self.density_field.array))
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:
