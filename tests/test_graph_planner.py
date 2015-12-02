@@ -7,7 +7,7 @@ sys.path.insert(1, '../src')
 
 from scene import Scene
 from geometry import Size
-
+from simulation_manager import SimulationManager
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'
 
@@ -16,10 +16,14 @@ from static_planner import GraphPlanner
 
 class TestGraphPlanner:
     def __init__(self):
-        self.filled_scene = Scene(size=Size([250, 150]), initial_pedestrian_number=10, obstacle_file=demo_file_name)
-        self.empty_scene = Scene(size=Size([250, 150]), initial_pedestrian_number=10, obstacle_file=empty_file_name)
-        self.gt1 = GraphPlanner(self.filled_scene)
-        self.gt2 = GraphPlanner(self.empty_scene)
+        config_1 = SimulationManager.get_default_config()
+        config_2 = SimulationManager.get_default_config()
+        config_1['general']['obstacle_file']=demo_file_name
+        config_2['general']['obstacle_file']=empty_file_name
+        self.filled_scene = Scene(config=config_1,initial_pedestrian_number=10)
+        self.empty_scene = Scene(config=config_2,initial_pedestrian_number=10)
+        self.gt1 = GraphPlanner(self.filled_scene, config_1)
+        self.gt2 = GraphPlanner(self.empty_scene,config_2)
 
     def test_path_cross_no_obstacles(self):
         ped = self.filled_scene.pedestrian_list[0]

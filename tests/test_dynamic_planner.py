@@ -3,24 +3,27 @@ import sys
 
 import numpy as np
 
-sys.path.insert(1, '..')
+sys.path.insert(1, '../src')
 from scene import Scene
+from simulation_manager import SimulationManager
 from geometry import Size, Point, Velocity
 from dynamic_planner import DynamicPlanner
 from scalar_field import ScalarField as Field
 import functions as ft
 
-empty_file_name = '../scenes/large_exit.json'
-
+empty_scene_file = '../scenes/large_exit.json'
+test_fractions_file = '../scenes/test_fractions.json'
 
 class TestDynamicPlanner:
     def __init__(self):
-        self.scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=1)
-        self.dyn_plan = DynamicPlanner(self.scene)
+        self.config=SimulationManager.get_default_config()
+        self.config['general']['obstacle_file']=empty_scene_file
+        self.scene = Scene(config=self.config, initial_pedestrian_number=1)
+        self.dyn_plan = DynamicPlanner(self.scene,self.config)
         self.pedestrian = self.scene.pedestrian_list[0]
         self.ped_x = np.random.randint(3, self.scene.size.width - 2)
         self.ped_y = np.random.randint(3, self.scene.size.height - 2)
-        self.pedestrian.manual_move(Point([self.ped_x, self.ped_y]))
+        self.pedestrian.position = Point([self.ped_x, self.ped_y])
         self.pedestrian.velocity = Velocity([1, -1])
 
     def test_cell_size(self):
@@ -28,16 +31,16 @@ class TestDynamicPlanner:
 
     def test_density_never_negative(self):
         n = 5
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
-        dyn_plan = DynamicPlanner(scene, False)
+        scene = Scene(config=self.config, initial_pedestrian_number=n)
+        dyn_plan = DynamicPlanner(scene, self.config)
         dyn_plan.compute_density_and_velocity_field()
         density = dyn_plan.density_field.array
         assert np.all(density >= 0)
 
     def test_velocity_never_negative(self):
         n = 5
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
-        dyn_plan = DynamicPlanner(scene)
+        scene = Scene(config=self.config, initial_pedestrian_number=n)
+        dyn_plan = DynamicPlanner(scene,self.config)
         dyn_plan.compute_density_and_velocity_field()
         v_x, v_y = dyn_plan.v_x.array, dyn_plan.v_y.array
         assert np.all(v_x >= 0)
@@ -85,7 +88,7 @@ class TestDynamicPlanner:
 
     def test_boundary_processed_correctly(self):
         upper_left_corner = Point([self.dyn_plan.dx / 2, self.scene.size[1] - self.dyn_plan.dy / 2])
-        self.pedestrian.manual_move(upper_left_corner)
+        self.pedestrian.position = upper_left_corner
         self.dyn_plan.compute_density_and_velocity_field()
         assert self.dyn_plan.density_field is not None
 
@@ -126,8 +129,8 @@ class TestDynamicPlanner:
 
     def test_speed_no_larger_than_max_speed(self):
         n = 10
-        scene = Scene(size=Size([100, 100]), obstacle_file=empty_file_name, initial_pedestrian_number=n)
-        dyn_plan = DynamicPlanner(scene)
+        scene = Scene(config=self.config, initial_pedestrian_number=n)
+        dyn_plan = DynamicPlanner(scene,self.config)
         dyn_plan.compute_density_and_velocity_field()
         for dir in ft.DIRECTIONS:
             dyn_plan.compute_speed_field(dir)
@@ -166,14 +169,18 @@ class TestDynamicPlanner:
             assert (interface_val == 0) == is_in_exit
 
     def test_no_obstacle_means_no_fraction(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
-        dyn_plan = DynamicPlanner(scene)
+        config = SimulationManager.get_default_config()
+        config['general']['obstacle_file']=test_fractions_file
+        scene = Scene(1,config)
+        dyn_plan = DynamicPlanner(scene,config)
         # Cell (7,10) is a free cell.
         assert (7, 10) not in dyn_plan.obstacle_cell_set and (7, 10) not in dyn_plan.part_obstacle_cell_dict
 
     def test_fully_covered_means_high_potential(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
-        dyn_plan = DynamicPlanner(scene)
+        config = SimulationManager.get_default_config()
+        config['general']['obstacle_file']=test_fractions_file
+        scene = Scene(1,config)
+        dyn_plan = DynamicPlanner(scene,config)
         # Cell (9,9) is a fully covered cell.
         assert (9, 9) in dyn_plan.obstacle_cell_set
         dyn_plan.compute_density_and_velocity_field()
@@ -187,8 +194,10 @@ class TestDynamicPlanner:
         assert dyn_plan.potential_field.array[9, 9] == np.max(dyn_plan.potential_field.array)
 
     def test_fraction_method(self):
-        scene = Scene(size=Size([100, 100]), obstacle_file='../scenes/test_fractions.json', initial_pedestrian_number=1)
-        dyn_plan = DynamicPlanner(scene)
+        config = SimulationManager.get_default_config()
+        config['general']['obstacle_file']=test_fractions_file
+        scene = Scene(1,config)
+        dyn_plan = DynamicPlanner(scene,config)
         # Cell (8,10) is a partly covered cell.
         assert (8, 10) in dyn_plan.part_obstacle_cell_dict
         frac_val = dyn_plan.part_obstacle_cell_dict[(8, 10)]

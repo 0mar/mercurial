@@ -144,7 +144,7 @@ class GridComputer:
     def solve_LCP_with_quad(M, q):
         """
         Solves the linear complementarity problem w = Mz + q using a quadratic solver.
-        This method is unused as we employ a Cython-PGS-solver.
+        This method is unused as we employ a Cython PGS-solver.
         :param M: nxn non-singular positive definite matrix
         :param q: length n vector
         :return: length n vector z such that z>=0, w>=0, (w,z) < eps if optimum is found, else zeros vector.
