@@ -134,10 +134,8 @@ class GridComputer:
                         - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
-        time1 = time.time()
         flat_p = solve_LCP_with_pgs(-C * self.dt, b, self._last_solution)
         self._last_solution = np.reshape(flat_p, (nx * ny, 1))
-        print("Took %.3f time" % (time.time() - time1))
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
@@ -170,6 +168,39 @@ class GridComputer:
             ft.warn("CVXOPT Error: " + str(e))
         return O
 
+    @staticmethod
+    def solve_LCP_with_pgs(M, q, init_guess=None):
+        """
+        Solves the linear complementarity problem w = Mz + q using a Projected Gauss Seidel solver.
+        Possible improvements:
+            -Sparse matrix use
+        :param M: nxn non-singular positive definite matrix
+        :param q: length n vector
+        :return: length n vector z such that z>=0, w>=0, (w,z)\approx 0 if optimum is found, else zeros vector.
+        """
+        eps = 1e-02
+        max_it = 10000
+        n = len(q)
+        q = q[:, None]
+        O = np.zeros([n, 1])
+        if init_guess is not None:
+            z = init_guess
+        else:
+            z = np.ones([n, 1])
+        w = np.dot(M, z) + q
+        it = 0
+        while (np.abs(np.dot(w.T, z)) > eps or np.any(z < -eps) or np.any(w < -eps)) and it < max_it:
+            it += 1
+            for i in range(n):
+                r = -q[i] - np.dot(M[i, :], z) + M[i, i] * z[i]
+                z[i] = max(0, r / M[i, i])
+            w = np.dot(M, z) + q
+        ft.debug("Iterations: %d" % it)
+        if it == max_it:
+            ft.warn("Max iterations reached, no optimal result found")
+            return O
+        else:
+            return z
 
     def adjust_velocity(self):
         """
