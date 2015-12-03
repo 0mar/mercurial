@@ -49,7 +49,6 @@ class DynamicPlanner:
         self.show_plot = show_plot
 
         self.density_epsilon = ft.EPS
-
         self.max_speed = 2
         self.smoothing_length = config['dynamic'].getfloat('smoothing_length')
         self.path_length_weight = config['dynamic'].getfloat('path_length_weight')
@@ -61,7 +60,7 @@ class DynamicPlanner:
         self.max_density = config['dynamic'].getfloat('max_density')
 
         self.density_exponent = config['dynamic'].getfloat('density_exponent')
-
+        self.density_threshold = (1/2)**self.density_exponent
         self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
         self.exit_cell_set = set()
         self.obstacle_cell_set = set()
