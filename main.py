@@ -25,8 +25,7 @@ parser.add_argument('-o', '--obstacle-file', type=str, help='JSON file containin
 parser.add_argument('-c', '--configuration', type=str, choices=['uniform', 'top', 'center', 'bottom'],
                     default='uniform',
                     help='Specify configuration of pedestrian initialization')
-parser.add_argument('--draw-cells', action='store_true', help='Draw the boundaries and cell centers of the cells. '
-                                                              'Slows the visualization significantly, only use for debugging')
+parser.add_argument('--draw-cells', action='store_true', help='Draw the boundaries and cell centers of the cells')
 parser.add_argument('-f', '--config-file', type=str, default='config.ini', help='Specify configuration file to be used')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('--store-positions', action='store_true', help='Store positions at some time steps')
