@@ -9,6 +9,7 @@ from skimage.morphology import medial_axis
 import functions
 from visualization import VisualScene
 
+
 class Skeletonizer:
     file_postfix = '.eps'
     skeleton_folder = 'skeletons'
@@ -59,16 +60,3 @@ class EmptyVisualization(VisualScene):
         else:
             self.store_scene(None, self.filename)
             self.window.destroy()
-
-
-# output_image = 1-medial.astype(float)
-# print(output_image)
-# with warnings.catch_warnings():
-#     warnings.simplefilter('ignore')
-#     io.imsave('output_image.png',output_image)
-
-from scene import Scene
-from simulation_manager import SimulationManager
-
-scene = Scene(4, SimulationManager.get_default_config())
-Skeletonizer.get_skeleton(scene)

@@ -13,6 +13,7 @@ from grid_computer import GridComputer
 from results import Result
 from static_planner import GraphPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
+from skeletonize import Skeletonizer
 
 
 class SimulationManager:
@@ -48,6 +49,7 @@ class SimulationManager:
         if not self.scene:
             raise ValueError("No scene has been initialized")
         # Initialization planner
+        self.skeleton = Skeletonizer.get_skeleton(self.scene)
         self.step_functions.append(self.scene.step)
         if args.dynamic:
             dynamic_planner = DynamicPlanner(self.scene, config=config, show_plot=args.graph)
