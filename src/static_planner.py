@@ -44,7 +44,7 @@ class GraphPlanner:
         for goal in self.scene.exit_list:
             self.graph.add_node(goal)
         for obstacle in self.scene.obstacle_list:
-            if obstacle.in_interior and not obstacle.permeable:
+            if obstacle.in_interior and not obstacle.accessible:
                 ordered_list = [corner + margin for corner, margin in zip(obstacle.corner_list, obstacle.margin_list)]
                 for point in ordered_list:
                     self.graph.add_node(point)

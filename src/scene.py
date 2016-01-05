@@ -228,7 +228,7 @@ class Scene:
         if at_start:
             return all([coord not in obstacle for obstacle in self.obstacle_list])
         else:
-            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_list])
+            return all([coord not in obstacle or obstacle.accessible for obstacle in self.obstacle_list])
 
     def step(self):
         """
@@ -261,7 +261,7 @@ class Scene:
         leq_size = np.logical_and(self.position_array[:, 0] < self.size[0], self.position_array[:, 1] < self.size[1])
         still_correct = np.logical_and(geq_zero, leq_size)
         for obstacle in self.obstacle_list:
-            if not obstacle.permeable:
+            if not obstacle.accessible:
                 in_obstacle = np.logical_and(self.position_array > obstacle.begin, self.position_array < obstacle.end)
                 in_obs = np.logical_and(in_obstacle[:, 0], in_obstacle[:, 1])  # Faster than np.all(..,axis=1)
                 still_correct = np.logical_and(still_correct, np.logical_not(in_obs))
@@ -288,9 +288,9 @@ class Scene:
                 if surplus:
 
                     index_list = np.random.choice(index_list, goal.cap, replace=False)
-                    goal.permeable = False
+                    goal.accessible = False
                 else:
-                    goal.permeable = True
+                    goal.accessible = True
             for index in index_list:
                 finished_pedestrian = self.index_map[index]
                 goal.log_pedestrian(finished_pedestrian, self.time)

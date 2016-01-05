@@ -132,7 +132,7 @@ class DynamicPlanner:
         potential_obstacles = np.zeros(self.grid_dimension)
         obstacle_form = self.config['dynamic']['obstacle_form']
         for obstacle in self.scene.obstacle_list:
-            if not obstacle.permeable:
+            if not obstacle.accessible:
 
                 if obstacle_form == 'rectangle':
                     distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),

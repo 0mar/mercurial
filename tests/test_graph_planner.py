@@ -29,7 +29,7 @@ class TestGraphPlanner:
         ped = self.filled_scene.pedestrian_list[0]
         for obstacle in self.filled_scene.obstacle_list:
             for line_segment in ped.path:
-                assert (not line_segment.crosses_obstacle(obstacle)) or obstacle.permeable
+                assert (not line_segment.crosses_obstacle(obstacle)) or obstacle.accessible
 
     def test_path_from_pedestrian_to_finish(self):
         ped = self.filled_scene.pedestrian_list[0]

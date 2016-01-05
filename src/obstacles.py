@@ -14,20 +14,20 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin: Point, size: Size, name: str, permeable=False):
+    def __init__(self, begin: Point, size: Size, name: str, accessible=False):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object
         :param size: Size object with size values of object
         :param name: name (id) for object
-        :param permeable: whether pedestrians are able to go through this object
+        :param accessible: whether pedestrians are able to go through this object
         :return: object instance.
         """
         self.begin = begin
         self.size = size
         self.end = self.begin + self.size
         self.name = name
-        self.permeable = permeable
+        self.accessible = accessible
         self.color = 'black'
         self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
         # Safety margin for around the obstacle corners.
@@ -60,7 +60,7 @@ class Entrance(Obstacle):
     """
 
     def __init__(self, begin, size, name, spawn_rate=0.5, max_pedestrians=8000, start_time=0, exit_data=[]):
-        super().__init__(begin, size, name, permeable=False)
+        super().__init__(begin, size, name, accessible=False)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
         self.depleted = False
@@ -148,7 +148,7 @@ class Exit(Obstacle):
     """
 
     def __init__(self, begin, size, name, cap=0):
-        super(Exit, self).__init__(begin, size, name, permeable=True)
+        super(Exit, self).__init__(begin, size, name, accessible=True)
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]

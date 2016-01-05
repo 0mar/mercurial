@@ -105,7 +105,7 @@ class Cell:
         if at_start:
             return all([coord not in obstacle for obstacle in self.obstacle_set])
         else:
-            return all([coord not in obstacle or obstacle.permeable for obstacle in self.obstacle_set])
+            return all([coord not in obstacle or obstacle.accessible for obstacle in self.obstacle_set])
 
     def __contains__(self, coord):
         """
