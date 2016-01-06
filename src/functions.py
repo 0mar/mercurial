@@ -56,6 +56,9 @@ def norm(a, b):
     return math.sqrt(a ** 2 + b ** 2)
 
 
+def normalize(array):  # Watch for zeros?
+    return array / np.linalg.norm(array, axis=1)[:, None]
+
 def is_close(a, b):
     return math.fabs(a - b) < EPS
 
