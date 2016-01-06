@@ -84,13 +84,14 @@ class ImageProcessor:
         obstacle_file = scene.config['general']['obstacle_file']
         feature_file = ImageProcessor.feature_transform_folder \
                        + re.search('/[^/\.]+', obstacle_file).group(0) + ImageProcessor.file_postfix
-        feature_matrix_file = feature_file.replace(ImageProcessor.file_postfix, '')
+        feature_matrix_file = feature_file.replace(ImageProcessor.file_postfix, '.mat')  # Remove for clear restart
         if not os.path.exists(feature_matrix_file):
             functions.log("No corresponding feature transform found, creating from obstacle file")
             dummy_vis = EmptyVisualization(scene, scene.config, filename=feature_file)
             dummy_vis.step_callback = dummy_vis.loop
             dummy_vis.start()
             data = io.imread(feature_file)
+            print("Read in data before feature transform", data.shape)
             gray_data = rgb2gray(data)
             gray_data[0, :] = gray_data[-1, :] = gray_data[:, 0] = gray_data[:, -1] = 0
             distance_transform, feature_transform = distance_transform_edt(gray_data, return_indices=True)
@@ -101,8 +102,12 @@ class ImageProcessor:
                     io.imsave(feature_file, (distance_transform / np.max(distance_transform)).astype(float))
         else:
             functions.log("Feature transform found, loading from file")
-            data = io.imread(feature_file)
-            feature_transform = rgb2gray(data)
+            # # This is the distance transform
+            # data = io.imread(feature_file)
+            # feature_transform = rgb2gray(data)
+            # This is the feature transform
+            data = sio.loadmat(feature_matrix_file)
+            feature_transform = data['feature_transform']
         return feature_transform
 
 
@@ -124,4 +129,5 @@ class EmptyVisualization(VisualScene):
                     self.draw_obstacle(obstacle)
         else:
             self.store_scene(None, self.filename)
+            print("Scene size", self.size)
             self.window.destroy()

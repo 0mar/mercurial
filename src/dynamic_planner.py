@@ -396,7 +396,7 @@ class DynamicPlanner:
         If plotting is enables, updates the plot.
         :return: None
         """
-        if False:
+        if False:  # Pure python implementation. Leave False for Cython implementation
             self.compute_density_and_velocity_field()
         else:
             dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
@@ -418,7 +418,7 @@ class DynamicPlanner:
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
-        self.scene.move_pedestrians()
+        self.scene.move_pedestrians()  # Todo: Decide to put this here or in simulation manager
         self.scene.correct_for_geometry()
         self.scene.find_finished_pedestrians()
 

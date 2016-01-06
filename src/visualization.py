@@ -101,7 +101,7 @@ class VisualScene:
 
             name = "scene#%d" % time.time()
             filename = "%s/%s-%.2f.eps" % (directory, name, self.scene.time)
-        self.canvas.postscript(file=filename)
+        self.canvas.postscript(file=filename, pageheight=self.size.height, pagewidth=self.size.width)
 
     def draw_pedestrians(self):
         """

@@ -13,7 +13,7 @@ from grid_computer import GridComputer
 from results import Result
 from static_planner import GraphPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
-from skeletonize import ImageProcessor
+from skeleton_planner import SkeletonPlanner
 
 
 class SimulationManager:
@@ -49,16 +49,18 @@ class SimulationManager:
         if not self.scene:
             raise ValueError("No scene has been initialized")
         # Initialization planner
-        self.extraction = ImageProcessor.get_feature_transform(self.scene)
         self.step_functions.append(self.scene.step)
         if args.dynamic:
-            dynamic_planner = DynamicPlanner(self.scene, config=config, show_plot=args.graph)
-            self.step_functions += [dynamic_planner.step]
-        else:
+            planner = DynamicPlanner(self.scene, config=config, show_plot=args.graph)
+            self.step_functions += [planner.step]
+        elif False:  # Todo: Fix with argparser
             planner = GraphPlanner(self.scene, config)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure, config=config)
             self.step_functions += [planner.step, grid.step]
+        else:
+            planner = SkeletonPlanner(self.scene, config)
+            self.step_functions += [planner.step]
 
         if args.store_positions:
             # filename = input('Specify storage file\n')
