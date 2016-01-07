@@ -34,7 +34,6 @@ class VisualScene:
         self.canvas = tkinter.Canvas(self.window,width=init_size.width, height=init_size.height)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
         self.canvas.delete('all')
-        print(self.size)
         self.step_callback = None  # set in manager
 
 

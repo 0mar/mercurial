@@ -64,7 +64,9 @@ class ImageProcessor:
             # If I start using it, read the exit from the JSON file.
             # In that case, fix the corners
             width = gray_data.shape[1]
+            height = gray_data.shape[0]
             gray_data[-1, exit_dims[0] * width:exit_dims[1] * width] = 1
+            gray_data[exit_dims[0] * height:exit_dims[1] * height, 0] = 1
             medial = 1 - medial_axis(gray_data)
 
             if store:
@@ -78,7 +80,7 @@ class ImageProcessor:
         return medial
 
     @staticmethod
-    def get_feature_transform(scene, store=True):
+    def get_feature_transform(scene, get_distance_transform=False, store=True):
         if not os.path.isdir(ImageProcessor.feature_transform_folder):
             os.makedirs(ImageProcessor.feature_transform_folder)
         obstacle_file = scene.config['general']['obstacle_file']
@@ -98,17 +100,18 @@ class ImageProcessor:
             if store:
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
-                    sio.savemat(feature_matrix_file, {'feature_transform': feature_transform})
+                    sio.savemat(feature_matrix_file, {'feature_transform': feature_transform,
+                                                      'distance_transform': distance_transform})
                     io.imsave(feature_file, (distance_transform / np.max(distance_transform)).astype(float))
         else:
             functions.log("Feature transform found, loading from file")
-            # # This is the distance transform
-            # data = io.imread(feature_file)
-            # feature_transform = rgb2gray(data)
-            # This is the feature transform
             data = sio.loadmat(feature_matrix_file)
             feature_transform = data['feature_transform']
-        return feature_transform
+            distance_transform = data['distance_transform']
+        if get_distance_transform:
+            return feature_transform, distance_transform
+        else:
+            return feature_transform
 
 
 class EmptyVisualization(VisualScene):
