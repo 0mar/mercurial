@@ -14,6 +14,10 @@ from visualization import VisualScene
 
 
 class ImageProcessor:
+    """
+    Reads in a scene file and outputs a skeleton, the feature transform,
+    distance transform or the medial axis. Stores the images to file if requested.
+    """
     file_postfix = '.eps'
 
     skeleton_folder = 'skeletons'
@@ -22,6 +26,12 @@ class ImageProcessor:
 
     @staticmethod
     def get_skeleton(scene, store=True):
+        """
+        Computes the skeleton of the scene. Returns an image with black values on skeleton points.
+        :param scene: scene with obstacles.
+        :param store: Write skeleton to file
+        :return: 2D numpy array of pixels. Orientation is different from matplotlib/tkinter indexing!
+        """
         if not os.path.isdir(ImageProcessor.skeleton_folder):
             os.makedirs(ImageProcessor.skeleton_folder)
         obstacle_file = scene.config['general']['obstacle_file']
@@ -47,6 +57,12 @@ class ImageProcessor:
 
     @staticmethod
     def get_medial_axis(scene, store=True):
+        """
+        Extracts the medial axis of the scene. Returns an image with black values on medial axis points.
+        :param scene: scene with obstacles.
+        :param store: Write medial axis to file
+        :return: 2D numpy array of pixels. Orientation is different from matplotlib/tkinter indexing!
+        """
         if not os.path.isdir(ImageProcessor.medial_axis_folder):
             os.makedirs(ImageProcessor.medial_axis_folder)
         obstacle_file = scene.config['general']['obstacle_file']
@@ -81,6 +97,16 @@ class ImageProcessor:
 
     @staticmethod
     def get_feature_transform(scene, get_distance_transform=False, store=True):
+        """
+        Computes the feature and distance transform of the scene.
+        For the feature transform, an 2D numpy array of pixels is returned with of each pixel the nearest boundary
+        For the distance transform, an 2D numpy array of pixels is returned
+        with of each pixel the distance to the boundary
+        :param scene: scene with obstacles.
+        :param get_distance_transform If true, return a tuple with second argument the distance transform
+        :param store: Write skeleton to file
+        :return: 2D numpy array of pixels. Orientation is different from matplotlib/tkinter indexing!
+        """
         if not os.path.isdir(ImageProcessor.feature_transform_folder):
             os.makedirs(ImageProcessor.feature_transform_folder)
         obstacle_file = scene.config['general']['obstacle_file']
@@ -115,6 +141,9 @@ class ImageProcessor:
 
 
 class EmptyVisualization(VisualScene):
+    """
+    Adaption of screen visualizer to extract eps image from scene
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args)
         self.filename = kwargs['filename']

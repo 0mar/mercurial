@@ -49,18 +49,42 @@ def debug(msg):
 
 
 def empty_method():
+    """
+    Placeholder for some function insert methods.
+    :return: None
+    """
     pass
 
 
 def norm(a, b):
-    return math.sqrt(a ** 2 + b ** 2)
+    """
+    Computes a norm of two numbers. For single numbers, faster than np.linalg.norm
+    :param a: float a
+    :param b: float b
+    :return: norm of (a,b)
+    """
+    return math.sqrt(a * a + b * b)
 
 
-def normalize(array):  # Watch for zeros?
+def normalize(array):
+    """
+    Normalized the array, i.e. Makes sure all rows have norm 1.
+    Does not check for zero rows, in that case numpy returns NaNs.
+    :param array: Array to be normalized
+    :return: new array with rows normalized one.
+    """
     return array / np.linalg.norm(array, axis=1)[:, None]
 
+
 def is_close(a, b):
+    """
+    Checks if two numbers are sufficiently close together. Absolute tolerance only
+    :param a: first number
+    :param b: second number
+    :return: True if difference is smaller than general epsilon
+    """
     return math.fabs(a - b) < EPS
+
 
 def rot_mat(angle):
     """
@@ -73,13 +97,14 @@ def rot_mat(angle):
 
 def rectangles_intersect(start_1, end_1, start_2, end_2, open_sets=False):
     """
-    Expexct ordered coordinates
-    :param start_1:
-    :param end_1:
-    :param start_2:
-    :param end_2:
-    :param open_sets:
-    :return:
+    Expect ordered coordinates.
+    Checks whether two rectangles have a nonempty intersection.
+    :param start_1: Tuple with bottom coordinates of first rectangle
+    :param end_1: Tuple with top coordinates of first rectangle
+    :param start_2: Tuple with bottom coordinates of second rectangle
+    :param end_2: Tuple with top coordinates of second rectangle
+    :param open_sets: Whether we check for strict inequality or equality also suffices
+    :return: True if rectangles intersect, false otherwise
     """
     cmp = np.greater_equal
     if not open_sets:
