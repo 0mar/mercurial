@@ -9,7 +9,7 @@ class SkeletonPlanner:
     def __init__(self, scene, config):
         self.scene = scene
         self.config = config
-        feature_transform = ImageProcessor.get_medial_axis(self.scene)
+        feature_transform = ImageProcessor.get_feature_transform(self.scene)
 
         self.ft_x = feature_transform[0, :, :]
         self.ft_y = feature_transform[1, :, :]
