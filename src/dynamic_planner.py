@@ -125,7 +125,7 @@ class DynamicPlanner:
         """
         Compute the Gaussian-like potential field surrounding each obstacle
         We transform our kernel to an ellipsis to service the rectangular obstacles.
-        :return:
+        :return: An 2D array with potential contributions
         """
         h = self.smoothing_length  # Obstacle factor
         cell_centers = self.potential_field.mesh_grid

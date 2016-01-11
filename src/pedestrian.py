@@ -13,7 +13,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goals, max_speed, position=Point([0, 0]), index=-1):
+    def __init__(self, scene, counter, goals, position=Point([0, 0]), index=-1):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -31,7 +31,6 @@ class Pedestrian(object):
         else:
             self.index = index
         self.position = position
-        self.max_speed = max_speed
         self.color = self._convert_speed_to_color()
         self.goals = goals
         while self.position.is_zero() and type(self) == Pedestrian:
@@ -66,7 +65,7 @@ class Pedestrian(object):
         if start == end:
             return 'blue'
         max_val = 255
-        speed = self.max_speed
+        speed = self.scene.max_speed_array[self.index]
         red = max_val * (speed - start) / (end - start)
         green = 0
         blue = max_val * (speed - end) / (start - end)
@@ -83,7 +82,7 @@ class Pedestrian(object):
         :return: True when position is attained, false otherwise
         """
         distance = position - self.position
-        if ft.norm(distance.array[0], distance.array[1]) < self.max_speed * dt:
+        if ft.norm(distance.array[0], distance.array[1]) < self.scene.max_speed_array[self.index] * dt:
             # should be enough to avoid small numerical error
             if self.scene.is_accessible(position):
                 self.position = position
@@ -107,7 +106,7 @@ class Pedestrian(object):
         """
         self._velocity = value
         if value:
-            self._velocity.rescale(self.max_speed)
+            self._velocity.rescale(self.scene.max_speed_array[self.index])
             self.scene.velocity_array[self.index] = self._velocity.array
 
     @property

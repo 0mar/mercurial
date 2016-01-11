@@ -17,7 +17,8 @@ class Scene:
 
     def __init__(self, config):
         """
-        Initializes a Scene
+        Initializes a Scene using the settings in the configuration file augmented with command line parameters
+        :param config: ConfigParser instance containing all settings required for a pedestrian simulation
         :return: scene instance.
         """
         self.time = 0
@@ -53,11 +54,11 @@ class Scene:
         """
         Protected method that determines how the pedestrians are initially distributed,
         as well as with what properties they come. Overridable.
+        :param: Initial number of pedestrians
         :return: None
         """
         self.pedestrian_list = [
-            Pedestrian(self, index, goals=self.exit_list, max_speed=self.max_speed_array[index])
-            for index in range(init_number)]
+            Pedestrian(self, index, goals=self.exit_list) for index in range(init_number)]
 
     def create_new_pedestrians(self):
         """
@@ -85,9 +86,8 @@ class Scene:
                     self._expand_arrays()
                     ft.debug("Indices full. doubling array size to %d" % (2 * new_index))
                 new_max_speed = self.max_speed_interval.random()
-                self.max_speed_array[new_index] = new_max_speed  # todo: remove max speed
-                new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list,
-                                            new_max_speed, new_position, new_index)
+                self.max_speed_array[new_index] = new_max_speed
+                new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list, new_position, new_index)
                 self.total_pedestrians += 1
                 self.active_entries[new_index] = True
                 self.pedestrian_list.append(new_pedestrian)

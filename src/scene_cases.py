@@ -32,8 +32,7 @@ class ImpulseScene(Scene):
                 ped_loc = Point(center + np.array([x, y]))
                 if x ** 2 + y ** 2 > self.impulse_size ** 2 or not self.is_accessible(ped_loc):
                     ped_loc = None
-            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
-                                                   max_speed=self.max_speed_array[counter]))
+            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc))
 
 
 
@@ -67,8 +66,7 @@ class TwoImpulseScene(Scene):
                 ped_loc = Point(center + np.array([x, y]))
                 if x ** 2 + y ** 2 > self.impulse_size or not self.is_accessible(ped_loc):
                     ped_loc = None
-            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
-                                                   max_speed=self.max_speed_array[counter]))
+            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc))
 
 
 class LoopScene(Scene):
@@ -113,5 +111,4 @@ class TopScene(Scene):
                 ped_loc = Point(self.size.array * [np.random.rand(), 1 - np.random.rand() * (1 - self.barrier)])
                 if not self.is_accessible(ped_loc, True):
                     ped_loc = None
-            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc,
-                                                   max_speed=self.max_speed_array[counter]))
+            self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc))
