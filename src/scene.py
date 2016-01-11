@@ -35,7 +35,7 @@ class Scene:
         self.last_position_array = np.zeros([initial_pedestrian_number, 2])
         self.velocity_array = np.zeros([initial_pedestrian_number, 2])
         self.max_speed_array = np.empty(initial_pedestrian_number)
-        self.active_entries = np.ones(initial_pedestrian_number)
+        self.active_entries = np.ones(initial_pedestrian_number, dtype=bool)
 
 
         # Parameter initialization (will be overwritten by _load_parameters)
@@ -79,7 +79,7 @@ class Scene:
                     if tries > max_tries:
                         raise RuntimeError("Can't find new spawn locations for %s. Check the scene" % entrance)
                     continue
-                free_indices = np.where(self.active_entries == 0)[0]
+                free_indices = np.where(self.active_entries == False)[0]  # Not faster with np.not
                 if len(free_indices):
                     new_index = free_indices[0]
                 else:
@@ -91,7 +91,7 @@ class Scene:
                 new_pedestrian = Pedestrian(self, self.total_pedestrians, self.exit_list,
                                             new_max_speed, new_position, new_index)
                 self.total_pedestrians += 1
-                self.active_entries[new_index] = 1
+                self.active_entries[new_index] = True
                 self.pedestrian_list.append(new_pedestrian)
                 self.index_map[new_index] = new_pedestrian
                 new_number -=1
@@ -187,7 +187,7 @@ class Scene:
         :return: nx1 boolean np.array, True if (existing) pedestrian is stationary, False otherwise
         """
         pos_difference = np.linalg.norm(self.position_array - self.last_position_array, axis=1)
-        not_moved = np.logical_and(pos_difference == 0, self.active_entries == 1)
+        not_moved = np.logical_and(pos_difference == 0, self.active_entries)
         return not_moved
 
     def remove_pedestrian(self, pedestrian):
@@ -200,7 +200,7 @@ class Scene:
         self.index_map[index] = None
         self.pedestrian_list.remove(pedestrian)
 
-        self.active_entries[index] = 0
+        self.active_entries[index] = False
         for function in self.on_pedestrian_exit_functions:
             function(pedestrian)
         if self.is_done():
@@ -302,4 +302,4 @@ class Scene:
         checking if all entrances are depleted.
         :return: True if all pedestrians are done, False otherwise
         """
-        return np.sum(self.active_entries) == 0 and all([entrance.depleted for entrance in self.entrance_list])
+        return not np.any(self.active_entries) and all([entrance.depleted for entrance in self.entrance_list])

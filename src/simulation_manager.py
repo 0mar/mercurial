@@ -118,7 +118,7 @@ class SimulationManager:
         log_dir = self.config['general']['result_dir']
         if self.scene.counter % 10 == 0:
             with open("%s%s-%d" % (log_dir, file_name, int(self.scene.counter / 10)), 'wb') as f:
-                np.save(f, self.scene.position_array[self.scene.active_entries.astype(bool)])
+                np.save(f, self.scene.position_array[self.scene.active_entries])
 
     def store_position_usage(self, file_name):
         log_dir = self.config['general']['result_dir']
