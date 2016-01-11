@@ -8,12 +8,9 @@ import argparse
 
 from simulation_manager import SimulationManager
 
-# Default parameters
-number_of_pedestrians = 100
 # Command line parameters
 parser = argparse.ArgumentParser(description="Prototype Crowd Dynamics Simulation")
-parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation',
-                    default=number_of_pedestrians)
+parser.add_argument('-n', '--number', type=int, help='Number of pedestrians in simulation', default=-1)
 parser.add_argument('-s', '--step', action='store_true', help='Let simulation progress on mouse click only')
 parser.add_argument('-g', '--graph', action='store_true', help='Let simulation graph grid values on each time step')
 parser.add_argument('-i', '--apply-interpolation', action='store_true',

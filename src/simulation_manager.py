@@ -33,19 +33,16 @@ class SimulationManager:
         if args.obstacle_file:
             config['general']['obstacle_file'] = args.obstacle_file
 
+        if args.number >= 0:
+            config['general']['number_of_pedestrians'] = str(args.number)
         if args.configuration == 'uniform':
-            self.scene = scene_module.Scene(
-                initial_pedestrian_number=args.number, config=config)
+            self.scene = scene_module.Scene(config=config)
         elif args.configuration == 'top':
-            self.scene = TopScene(barrier=0.8,
-                                  initial_pedestrian_number=args.number, config=config)
+            self.scene = TopScene(barrier=0.8, config=config)
         elif args.configuration == 'center':
-            self.scene = ImpulseScene(initial_pedestrian_number=args.number, impulse_location=(0.5, 0.6),
-                                      impulse_size=8, config=config)
+            self.scene = ImpulseScene(impulse_location=(0.5, 0.6), impulse_size=8, config=config)
         elif args.configuration == 'bottom':
-            self.scene = TwoImpulseScene(
-                initial_pedestrian_number=args.number, impulse_locations=[(0.5, 0.4), (0.4, 0.2)], impulse_size=8,
-                config=config)
+            self.scene = TwoImpulseScene(impulse_locations=[(0.5, 0.4), (0.4, 0.2)], impulse_size=8, config=config)
         if not self.scene:
             raise ValueError("No scene has been initialized")
         # Initialization planner

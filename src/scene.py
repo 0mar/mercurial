@@ -14,15 +14,15 @@ class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
-    def __init__(self, initial_pedestrian_number, config):
+
+    def __init__(self, config):
         """
         Initializes a Scene
-        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
         :return: scene instance.
         """
         self.time = 0
         self.counter = 0
-        self.total_pedestrians = initial_pedestrian_number
+        self.total_pedestrians = 0
 
         self.obstacle_list = []
         self.exit_list = []
@@ -30,25 +30,23 @@ class Scene:
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
 
-        # Array initialization
-        self.position_array = np.zeros([initial_pedestrian_number, 2])
-        self.last_position_array = np.zeros([initial_pedestrian_number, 2])
-        self.velocity_array = np.zeros([initial_pedestrian_number, 2])
-        self.max_speed_array = np.empty(initial_pedestrian_number)
-        self.active_entries = np.ones(initial_pedestrian_number, dtype=bool)
-
-
         # Parameter initialization (will be overwritten by _load_parameters)
         self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
 
         self.config = config
         self.load_config()
+        # Array initialization
+        self.position_array = np.zeros([self.total_pedestrians, 2])
+        self.last_position_array = np.zeros([self.total_pedestrians, 2])
+        self.velocity_array = np.zeros([self.total_pedestrians, 2])
+        self.max_speed_array = np.empty(self.total_pedestrians)
+        self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
         self.max_speed_array = self.max_speed_interval.begin + \
                                np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.pedestrian_list = []
-        self._init_pedestrians(initial_pedestrian_number)
-        self.index_map = {i: self.pedestrian_list[i] for i in range(initial_pedestrian_number)}
+        self._init_pedestrians(self.total_pedestrians)
+        self.index_map = {i: self.pedestrian_list[i] for i in range(self.total_pedestrians)}
         self.status = 'RUNNING'
 
     def _init_pedestrians(self, init_number):
@@ -103,6 +101,7 @@ class Scene:
         """
         section = self.config['general']
         obstacle_file = section['obstacle_file']
+        self.total_pedestrians = section.getint('number_of_pedestrians')
         self.dt = float(section['dt'])
         self.minimal_distance = section.getfloat('minimal_distance')
         self.mde = section.getboolean('minimal_distance_enforcement')
