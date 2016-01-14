@@ -17,7 +17,7 @@ class GraphPlanner:
     Therefore, this method creates and modifies Scene and Pedestrian attributes on the fly.
     """
 
-    def __init__(self, scene, config):
+    def __init__(self, scene):
         """
         Constructs a Graph planner
         :param scene: Scene filled with obstacles, goals and pedestrians
@@ -26,7 +26,7 @@ class GraphPlanner:
         """
         self.scene = scene
         self.graph = None
-        self.config = config  # todo: Add the safety margin and checkpoint_range in this
+        self.config = scene.config  # todo: Add the safety margin and checkpoint_range in this
         self._create_obstacle_graph()
         ft.log("Started pre-processing global paths")
         for pedestrian in scene.pedestrian_list:

@@ -6,9 +6,9 @@ __author__ = 'omar'
 
 
 class SkeletonPlanner:
-    def __init__(self, scene, config):
+    def __init__(self, scene):
         self.scene = scene
-        self.config = config
+        self.config = scene.config
         feature_transform = ImageProcessor.get_feature_transform(self.scene)
 
         self.ft_x = feature_transform[0, :, :]

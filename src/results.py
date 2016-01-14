@@ -8,7 +8,7 @@ from static_planner import GraphPlanner
 
 
 class Result:
-    def __init__(self, scene, config):
+    def __init__(self, scene):
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).
@@ -26,7 +26,7 @@ class Result:
         :param scene: Scene object under evaluation.
         :return: None
         """
-        self.result_dir = config['general']['result_dir']
+        self.result_dir = scene.config['general']['result_dir']
         self.scene = scene
 
         ft.log("Simulations results are processed and stored in folder '%s'" % self.result_dir)

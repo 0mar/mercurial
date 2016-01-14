@@ -23,7 +23,7 @@ class GridComputer:
     4. Adapting individual velocity by global velocity field.
     """
 
-    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure, config):
+    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure):
         """
         Constructs a grid computer, responsible for the continuum calculations.
         The grid computer takes several parameters in its constructor.
@@ -35,13 +35,13 @@ class GridComputer:
         :return: Grid computer object.
         """
         self.scene = scene
-        prop_dx = config['general'].getfloat('cell_size_x')
-        prop_dy = config['general'].getfloat('cell_size_y')
+        prop_dx = scene.config['general'].getfloat('cell_size_x')
+        prop_dy = scene.config['general'].getfloat('cell_size_y')
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.dt = self.scene.dt
-        self.packing_factor = config['dynamic'].getfloat('packing_factor')
-        self.min_distance = config['general'].getfloat('minimal_distance')
+        self.packing_factor = scene.config['dynamic'].getfloat('packing_factor')
+        self.min_distance = scene.config['general'].getfloat('minimal_distance')
         self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.min_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False

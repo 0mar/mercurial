@@ -12,21 +12,22 @@ class VisualScene:
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
-    def __init__(self, scene, config):
+    def __init__(self, scene):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
         Represents the scene on a canvas
         :param scene: Scene to be drawn. The size of the scene is independent of the size of the visualization
         :return: None
         """
-        self.config = config
-        init_size = Size([config['visual'].getfloat('screen_size_x'), config['visual'].getfloat('screen_size_y')])
+        self.config = scene.config
+        init_size = Size(
+            [self.config['visual'].getfloat('screen_size_x'), self.config['visual'].getfloat('screen_size_y')])
         self.scene = scene
         self.autoloop = True
         self.draws_cells = True
-        self.delay = config['visual'].getint('time_delay')
-        self.nx = int(config['general'].getint('scene_size_x') / config['general'].getint('cell_size_x'))
-        self.ny = int(config['general'].getint('scene_size_y') / config['general'].getint('cell_size_y'))
+        self.delay = self.config['visual'].getint('time_delay')
+        self.nx = int(self.config['general'].getint('scene_size_x') / self.config['general'].getint('cell_size_x'))
+        self.ny = int(self.config['general'].getint('scene_size_y') / self.config['general'].getint('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (init_size.width, init_size.height))

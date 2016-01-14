@@ -32,7 +32,7 @@ class DynamicPlanner:
     Ugly exit placement can be resolved by building obstacle walls.
     """
 
-    def __init__(self, scene, config, show_plot=False):
+    def __init__(self, scene, show_plot=False):
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
@@ -41,25 +41,25 @@ class DynamicPlanner:
         """
         # Initialize depending on scene or on grid_computer?
         self.scene = scene
-        self.config = config
-        prop_dx = config['general'].getfloat('cell_size_x')
-        prop_dy = config['general'].getfloat('cell_size_y')
+        self.config = scene.config
+        prop_dx = self.config['general'].getfloat('cell_size_x')
+        prop_dy = self.config['general'].getfloat('cell_size_y')
         self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.show_plot = show_plot
 
         self.density_epsilon = ft.EPS
         self.max_speed = 2
-        self.smoothing_length = config['dynamic'].getfloat('smoothing_length')
-        self.path_length_weight = config['dynamic'].getfloat('path_length_weight')
-        self.time_weight = config['dynamic'].getfloat('time_weight')
-        self.discomfort_field_weight = config['dynamic'].getfloat('discomfort_weight')
+        self.smoothing_length = self.config['dynamic'].getfloat('smoothing_length')
+        self.path_length_weight = self.config['dynamic'].getfloat('path_length_weight')
+        self.time_weight = self.config['dynamic'].getfloat('time_weight')
+        self.discomfort_field_weight = self.config['dynamic'].getfloat('discomfort_weight')
 
         # This is dependent on cell size, because of the discretization
-        self.min_density = config['dynamic'].getfloat('min_density')
-        self.max_density = config['dynamic'].getfloat('max_density')
+        self.min_density = self.config['dynamic'].getfloat('min_density')
+        self.max_density = self.config['dynamic'].getfloat('max_density')
 
-        self.density_exponent = config['dynamic'].getfloat('density_exponent')
+        self.density_exponent = self.config['dynamic'].getfloat('density_exponent')
         self.density_threshold = (1/2)**self.density_exponent
         self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
         self.exit_cell_set = set()

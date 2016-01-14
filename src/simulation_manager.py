@@ -48,15 +48,15 @@ class SimulationManager:
         # Initialization planner
         self.step_functions.append(self.scene.step)
         if args.dynamic:
-            planner = DynamicPlanner(self.scene, config=config, show_plot=args.graph)
+            planner = DynamicPlanner(self.scene, show_plot=args.graph)
             self.step_functions += [planner.step]
-        elif False:  # Todo: Fix with argparser
-            planner = GraphPlanner(self.scene, config)
+        elif True:  # Todo: Fix with argparser
+            planner = GraphPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
-                                apply_pressure=args.apply_pressure, config=config)
+                                apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
         else:
-            planner = SkeletonPlanner(self.scene, config)
+            planner = SkeletonPlanner(self.scene)
             self.step_functions += [planner.step]
 
         if args.store_positions:
@@ -69,12 +69,12 @@ class SimulationManager:
             self.finish_functions.append(self.store_exit_logs)
 
         if args.results:
-            results = Result(self.scene, config)
+            results = Result(self.scene)
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
             self.finish_functions.append(results.on_finish)
         if not args.kernel:
-            self.vis = VisualScene(self.scene, config)
+            self.vis = VisualScene(self.scene)
             if args.step:
                 self.vis.disable_loop()
             else:
