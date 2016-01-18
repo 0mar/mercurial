@@ -249,7 +249,7 @@ class Scene:
         self.counter += 1
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
-        if self.config['general'].getboolean('minimal_distance_enforcement'):
+        if self.mde:
             self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
                                                                 self.active_entries,
                                                                 self.minimal_distance)

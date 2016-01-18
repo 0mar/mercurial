@@ -21,13 +21,12 @@ class ExponentialPlanner(GraphPlanner):
         self.path_weights = np.array([0.6, 0.3, 0.05, 0.05])
         self.way_point_num = len(self.path_weights)
         self.path_points = np.zeros([self.scene.position_array.shape[0], self.way_point_num, 2])
-        self.compute_init_path_points()
+        [self.compute_init_path_points(pedestrian) for pedestrian in self.scene.pedestrian_list]
 
-    def compute_init_path_points(self):
-        for pedestrian in self.scene.pedestrian_list:
-            for i in range(self.way_point_num):
-                self.path_points[pedestrian.index, i] = pedestrian.path.get_sample_point(i)
-            pedestrian.path_param = self.way_point_num - 1
+    def compute_init_path_points(self, pedestrian):
+        for i in range(self.way_point_num):
+            self.path_points[pedestrian.index, i] = pedestrian.path.get_sample_point(i)
+        pedestrian.path_param = self.way_point_num - 1
 
     def compute_new_path_points(self):
         new_point_array = np.zeros((self.scene.position_array.shape[0], 2))
@@ -103,6 +102,5 @@ class ExponentialPlanner(GraphPlanner):
             else:
                 # Stationary pedestrian or new. Creating new path.
                 pedestrian.path = self.create_path(pedestrian)
-                pedestrian.line = pedestrian.path.pop_next_segment()
-                pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+                self.compute_init_path_points(pedestrian)
         self.scene.find_finished_pedestrians()

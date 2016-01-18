@@ -91,9 +91,9 @@ class VisualScene:
             self.draw_grid(self.nx, self.ny)
         for obstacle in self.scene.obstacle_list:
             self.draw_obstacle(obstacle)
-        for pedestrian in self.scene.pedestrian_list:
-            self.draw_line_segment(pedestrian.line)
-            self.draw_path(pedestrian.path)
+        # for pedestrian in self.scene.pedestrian_list:
+        #     self.draw_line_segment(pedestrian.line)
+        #     self.draw_path(pedestrian.path)
         self.draw_pedestrians()
 
     def store_scene(self, _, filename=None):

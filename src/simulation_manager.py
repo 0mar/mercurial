@@ -51,15 +51,16 @@ class SimulationManager:
         if args.dynamic:
             planner = DynamicPlanner(self.scene, show_plot=args.graph)
             self.step_functions += [planner.step]
-        elif False:  # Todo: Fix with argparser
+        elif True:  # Todo: Fix with argparser
             planner = GraphPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
         else:
             planner = ExponentialPlanner(self.scene)
-            self.step_functions += [planner.step]
-
+            grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
+                                apply_pressure=args.apply_pressure)
+            self.step_functions += [planner.step, grid.step]
         if args.store_positions:
             # filename = input('Specify storage file\n')
             import re

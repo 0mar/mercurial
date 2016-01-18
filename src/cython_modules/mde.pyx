@@ -8,7 +8,7 @@ import functions as ft
 float_type = np.float64
 
 def minimum_distance_enforcement(size_array, np.ndarray[np.float64_t, ndim=2] position_array,
-                                 np.ndarray[np.uint8_t, ndim=1] active_entries, float min_distance):
+                                 np.ndarray[np.uint8_t, cast=True, ndim=1] active_entries, float min_distance):
     cdef int cell_dim_x = 12
     cdef int cell_dim_y = 12
     cdef Py_ssize_t cell_x, cell_y

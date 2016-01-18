@@ -11,7 +11,7 @@ float_type = np.float64
 def compute_density_and_velocity_field(cell_dim, size_array,
                                        np.ndarray[np.float64_t, ndim=2] position_array,
                                        np.ndarray[np.float64_t, ndim=2] velocity_array,
-                                       np.ndarray[np.float64_t, ndim=1] active_entries, eps = 0.01):
+                                       np.ndarray[np.uint8_t, cast=True, ndim=1] active_entries, eps = 0.01):
     """
     Compute the density and velocity field in cell centers as done in Treuille et al. (2004).
     Density and velocity are splatted to only surrounding cell centers.
