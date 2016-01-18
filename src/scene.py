@@ -1,8 +1,9 @@
 __author__ = 'omar'
 
 import json
-import random
+
 import numpy as np
+
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
@@ -92,7 +93,7 @@ class Scene:
                 self.active_entries[new_index] = True
                 self.pedestrian_list.append(new_pedestrian)
                 self.index_map[new_index] = new_pedestrian
-                new_number -=1
+                new_number -= 1
 
     def load_config(self):
         """
@@ -121,11 +122,12 @@ class Scene:
         """
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
+        margin = self.config['general'].getfloat('margin')
         for obstacle_data in data["obstacles"]:
             begin = Point(self.size * obstacle_data['begin'])
             size = Size(self.size * obstacle_data['size'])
             name = obstacle_data["name"]
-            self.obstacle_list.append(Obstacle(begin, size, name))
+            self.obstacle_list.append(Obstacle(begin, size, name, margin))
         if len(data['exits']) == 0:
             raise AttributeError('No exits specified in %s' % file_name)
         for exit_data in data['exits']:
@@ -140,7 +142,7 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            exit_obs = Exit(begin, Size(size), name, cap)
+            exit_obs = Exit(cap=cap, begin=begin, size=Size(size), name=name, margin=margin)
             self.exit_list.append(exit_obs)
             self.obstacle_list.append(exit_obs)
         for entrance_data in data['entrances']:
@@ -159,7 +161,8 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin, Size(size), name, spawn_rate, max_pedestrians, start_time)
+            entrance_obs = Entrance(begin=begin, size=Size(size), name=name, spawn_rate=spawn_rate,
+                                    max_pedestrians=max_pedestrians, start_time=start_time)
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
         if len(data['entrances']):

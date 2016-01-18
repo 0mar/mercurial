@@ -14,12 +14,13 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin: Point, size: Size, name: str, accessible=False):
+    def __init__(self, begin, size, name, margin, accessible=False):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object
         :param size: Size object with size values of object
         :param name: name (id) for object
+        :param margin: Safety margin around obstacle
         :param accessible: whether pedestrians are able to go through this object
         :return: object instance.
         """
@@ -31,7 +32,7 @@ class Obstacle:
         self.color = 'black'
         self.corner_list = [Point(self.begin + Size([x, y]) * self.size) for x in range(2) for y in range(2)]
         # Safety margin for around the obstacle corners.
-        self.margin_list = [Point(np.sign([x - 0.5, y - 0.5])) for x in range(2) for y in range(2)]
+        self.margin_list = [Point(margin * np.sign([x - 0.5, y - 0.5])) for x in range(2) for y in range(2)]
         self.in_interior = True
         self.center = self.begin + self.size * 0.5
 
@@ -59,8 +60,8 @@ class Entrance(Obstacle):
     Models an entrance.
     """
 
-    def __init__(self, begin, size, name, spawn_rate=0.5, max_pedestrians=8000, start_time=0, exit_data=[]):
-        super().__init__(begin, size, name, accessible=False)
+    def __init__(self, spawn_rate=0.5, max_pedestrians=8000, start_time=0, exit_data=[], *args, **kwargs):
+        super().__init__(accessible=False, *args, **kwargs)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
         self.depleted = False
@@ -147,8 +148,8 @@ class Exit(Obstacle):
     Model an exit obstacle. This is, unlike other obstacles, accessible and has no dodge margin.
     """
 
-    def __init__(self, begin, size, name, cap=0):
-        super(Exit, self).__init__(begin, size, name, accessible=True)
+    def __init__(self, cap=0, *args, **kwargs):
+        super(Exit, self).__init__(accessible=True, *args, **kwargs)
         self.color = 'red'
         self.in_interior = False
         self.margin_list = [Point(np.zeros(2)) for _ in range(4)]

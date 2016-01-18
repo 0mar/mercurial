@@ -12,6 +12,7 @@ from dynamic_planner import DynamicPlanner
 from grid_computer import GridComputer
 from results import Result
 from static_planner import GraphPlanner
+from exp_planner import ExponentialPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
 from skeleton_planner import SkeletonPlanner
 
@@ -50,13 +51,13 @@ class SimulationManager:
         if args.dynamic:
             planner = DynamicPlanner(self.scene, show_plot=args.graph)
             self.step_functions += [planner.step]
-        elif True:  # Todo: Fix with argparser
+        elif False:  # Todo: Fix with argparser
             planner = GraphPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
         else:
-            planner = SkeletonPlanner(self.scene)
+            planner = ExponentialPlanner(self.scene)
             self.step_functions += [planner.step]
 
         if args.store_positions:

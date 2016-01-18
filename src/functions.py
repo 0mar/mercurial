@@ -66,14 +66,19 @@ def norm(a, b):
     return math.sqrt(a * a + b * b)
 
 
-def normalize(array):
+def normalize(array, safe=False):
     """
     Normalized the array, i.e. Makes sure all rows have norm 1.
     Does not check for zero rows, in that case numpy returns NaNs.
     :param array: Array to be normalized
+    :param safe: account for zeros in array
     :return: new array with rows normalized one.
     """
-    return array / np.linalg.norm(array, axis=1)[:, None]
+    if not safe:
+        return array / np.linalg.norm(array, axis=1)[:, None]
+    else:
+        return array / (np.linalg.norm(array, axis=1)[:, None] + EPS)
+
 
 
 def is_close(a, b):

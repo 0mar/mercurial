@@ -272,7 +272,7 @@ class Path(object):
         return self.list.pop(0)
 
     def get_sample_point(self, i):
-        return self.sample_points[max(i, self.sample_points.shape[0] - 1)]
+        return self.sample_points[min(i, self.sample_points.shape[0] - 1)]
 
     def __bool__(self):
         """

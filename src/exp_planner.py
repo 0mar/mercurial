@@ -1,12 +1,11 @@
 __author__ = 'omar'
 
-import networkx as nx
 import numpy as np
 
 import functions as ft
-from geometry import LineSegment, Path, Point, Interval, Velocity, Coordinate
-from scene import Obstacle
+from geometry import Point, Velocity
 from static_planner import GraphPlanner
+
 
 class ExponentialPlanner(GraphPlanner):
     """
@@ -19,21 +18,25 @@ class ExponentialPlanner(GraphPlanner):
 
     def __init__(self, scene):
         super().__init__(scene)
-        self.path_weights = np.array([0.4,0.3,0.2,0.1])
+        self.path_weights = np.array([0.6, 0.3, 0.05, 0.05])
         self.way_point_num = len(self.path_weights)
-        self.path_points = np.zeros([self.scene.position_array.shape[0], self.path_weights.shape[1], 2])
-        for pedestrian in self.scene.pedestrian_list:
-            pedestrian.path_param = 0
+        self.path_points = np.zeros([self.scene.position_array.shape[0], self.way_point_num, 2])
+        self.compute_init_path_points()
 
+    def compute_init_path_points(self):
+        for pedestrian in self.scene.pedestrian_list:
+            for i in range(self.way_point_num):
+                self.path_points[pedestrian.index, i] = pedestrian.path.get_sample_point(i)
+            pedestrian.path_param = self.way_point_num - 1
 
     def compute_new_path_points(self):
-        new_point_array = np.zeros((self.scene.position_array.shape[0],2))
+        new_point_array = np.zeros((self.scene.position_array.shape[0], 2))
         index_array = []
         for pedestrian in self.scene.pedestrian_list:
             if self.needs_new_points(pedestrian):
-                pedestrian.param += 1
-                point = pedestrian.path.get_sample_point(pedestrian.param)
-                new_point_array[pedestrian.index] = point.array
+                pedestrian.path_param += 1
+                point = pedestrian.path.get_sample_point(pedestrian.path_param)
+                new_point_array[pedestrian.index] = point
                 index_array.append(pedestrian.index)
         new_path_points = np.roll(self.path_points, -1, 1)
         new_path_points[:, -1, :] = new_point_array
@@ -45,9 +48,9 @@ class ExponentialPlanner(GraphPlanner):
         Speedups: Splitting the x and y and using dot products.
         :return:
         """
-        weighted_points = np.sum(self.path_weights[None, :, None] * self.path_points, axis=1)
+        weighted_points = np.sum(self.path_points * self.path_weights[None, :, None], axis=1)
         distances = self.scene.position_array - weighted_points
-        self.scene.velocity_array[:] = distances / np.linalg.norm(distances)[:, None] * self.scene.max_speed_array
+        self.scene.velocity_array[:] = -ft.normalize(distances, safe=True) * self.scene.max_speed_array[:, None]
 
     def needs_new_points(self, pedestrian):
         """
@@ -61,7 +64,6 @@ class ExponentialPlanner(GraphPlanner):
         dist_to_path_points = self.path_points[pedestrian.index] - pedestrian.position.array
         inner_product = np.dot(dist_to_path_points[0], dist_to_path_points[self.way_point_num - 1])
         return inner_product <= 0
-
 
     def step(self):
         """
@@ -89,7 +91,8 @@ class ExponentialPlanner(GraphPlanner):
                 # assert self.scene.is_accessible(pedestrian.position)
                 pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 remaining_path = pedestrian.line.end - pedestrian.position
-                allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
+                allowed_range = 0.5 * self.scene.config['general'].getfloat(
+                    'margin')  # some experimental threshold based on safety margin of obstacles
                 checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
                 if checkpoint_reached:  # but not done
                     if pedestrian.path:
@@ -103,4 +106,3 @@ class ExponentialPlanner(GraphPlanner):
                 pedestrian.line = pedestrian.path.pop_next_segment()
                 pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
         self.scene.find_finished_pedestrians()
-

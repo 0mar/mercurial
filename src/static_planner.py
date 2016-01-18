@@ -167,7 +167,8 @@ class GraphPlanner:
                 # assert self.scene.is_accessible(pedestrian.position)
                 pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
                 remaining_path = pedestrian.line.end - pedestrian.position
-                allowed_range = 0.5  # some experimental threshold based on safety margin of obstacles
+                allowed_range = 0.5 * self.scene.config['general'].getfloat('margin')
+                # experimental range
                 checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
                 if checkpoint_reached:  # but not done
                     if pedestrian.path:
