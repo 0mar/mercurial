@@ -206,14 +206,37 @@ class LineSegment(object):
 class Path(object):
     """
     Wrapper around a sequence of line segments.
+    Paths are immutable
     """
-
+    sample_length = 4
     def __init__(self, line_segment_list):
-        if not isinstance(line_segment_list, list):
-            raise TypeError("Line segment list must be list")
+        """
+        Check if all the lines in the line segment list are connected.
+        Also samples the points on the lines with a resolution of @sample_length
+        :param line_segment_list: list of lines
+        :return: new Path object
+        """
+        if not line_segment_list:
+            raise ValueError("No line segments in initialization")
         self.list = line_segment_list
         for i in range(len(line_segment_list) - 1):
             self.check_lines_connected(line_segment_list[i], line_segment_list[i + 1])
+
+        num_samples = math.ceil(self.length / Path.sample_length) + 1
+        self.sample_points = np.zeros([num_samples, 2])
+        sampled_line_index = 0
+        sampled_line = self.list[sampled_line_index]
+        sample = 0
+        sampled_line_length = sampled_line.length
+        for i in range(num_samples - 1):
+            if sample > sampled_line_length:
+                sample -= sampled_line_length
+                sampled_line_index += 1
+                sampled_line = self.list[sampled_line_index]
+                sampled_line_length = sampled_line.length
+            self.sample_points[i] = self.list[sampled_line_index].get_point(sample / sampled_line_length)
+            sample += Path.sample_length
+        self.sample_points[num_samples - 1] = self.list[-1].end
 
     @property
     def length(self):
@@ -238,39 +261,8 @@ class Path(object):
         if not connected:
             raise AssertionError("%s & %s do not connect" % (ls1, ls2))
 
-    def __iadd__(self, other):
-        """
-        Appends 2 paths to each other.
-        :param other: path object (which start should connect to this end)
-        :return: None
-        :raise: AssertionError if paths do not connect
-        """
-        if self.list:
-            Path.check_lines_connected(self.list[-1], other[0])
-            self.list += other
-
     def __getitem__(self, item):
         return self.list[item]
-
-    def append(self, other):
-        """
-        Append line segment to this path. Path has to have at least one line segment.
-        :param other: Line segment which should connect to the last line segment in this path, or Point
-        :return: None
-        :raise: AssertionError if path is empty, AttributeError if 'other' has wrong type.
-        """
-        if isinstance(other, LineSegment):
-            if self.list:
-                Path.check_lines_connected(self.list[-1], other)
-            self.list.append(other)
-        elif isinstance(other, Point):
-            if not self.list:
-                raise AssertionError("List must have elements before adding Points")
-            ft.debug("Last element: %s\n Last point of last element: %s\n" % (self.list[-1], self.list[-1][-1]))
-            new_line_segment = LineSegment([Point(self.list[-1][-1]), other])
-            self.list.append(new_line_segment)
-        else:
-            raise AttributeError("Object appended to Path must be LineSegment or Point, not %s" % other)
 
     def pop_next_segment(self):
         """

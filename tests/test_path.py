@@ -1,6 +1,6 @@
 __author__ = 'omar'
 import sys
-
+import numpy as np
 from nose.tools import raises
 
 sys.path.insert(1, '../src')
@@ -31,13 +31,30 @@ class TestPath:
         path = Path([self.l1, self.l21, self.l3])
 
     def test_segment_getter(self):
-        path = Path([])
-        path.append(self.l2)
+        path = Path([self.l2])
         assert path.pop_next_segment() == self.l2
 
+    @raises(ValueError)
     def test_bool_operator(self):
         path = Path([])
-        assert not bool(path)
-        path.append(self.l1)
+
+    def test_exhausted_list(self):
+        path = Path([self.l1])
         path.pop_next_segment()
         assert not bool(path)
+
+    def test_path_sample_length(self):
+        path = Path([self.l1, self.l21, self.l3])
+        assert path.sample_points.shape[0] == 5
+
+    def test_path_sample_distance(self):
+        path = Path([self.l1, self.l21, self.l3])
+        sample1 = path.sample_points[2]
+        sample2 = path.sample_points[3]
+        print("Distance between sample points 2 and 3: %s" % np.linalg.norm(sample1 - sample2))
+        assert np.linalg.norm(sample1 - sample2) < Path.sample_length
+
+    def test_samples_from_start_to_finish(self):
+        path = Path([self.l1, self.l21, self.l3])
+        assert np.allclose(path[0].begin, path.sample_points[0])
+        assert np.allclose(path[-1].end, path.sample_points[-1])

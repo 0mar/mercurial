@@ -130,18 +130,18 @@ class GraphPlanner:
                 continue
         if not best_path:
             raise RuntimeError("No path from %s to exit. Check your obstacles" % pedestrian)
-        path_to_exit = Path([])
+        line_list = []
         prev_point = best_path[0]
         for point in best_path[1:-1]:
             line = LineSegment([prev_point, point])
-            path_to_exit.append(line)
+            line_list.append(line)
             prev_point = point
         finish_point = GraphPlanner.get_closest_goal_position(prev_point, closest_goal)
         line_to_finish = LineSegment([prev_point, finish_point])
         # assert self.line_crosses_no_obstacles(line_to_finish)
-        path_to_exit.append(line_to_finish)
+        line_list.append(line_to_finish)
         # print ("Path: %s\nPath obj %s"%(path,path_to_exit))
-        return path_to_exit
+        return Path(line_list)
 
     def step(self):
         """
