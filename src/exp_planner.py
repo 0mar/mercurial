@@ -20,8 +20,8 @@ class ExponentialPlanner(GraphPlanner):
     def __init__(self, scene):
         super().__init__(scene)
         self.path_weights = np.array([0.4,0.3,0.2,0.1])
-        self.path_points = np.zeros([self.scene.position_array.shape[0],self.path_weights.shape[1]])
-        self.path_dt = 1
+        self.way_point_num = len(self.path_weights)
+        self.path_points = np.zeros([self.scene.position_array.shape[0], self.path_weights.shape[1], 2])
         for pedestrian in self.scene.pedestrian_list:
             pedestrian.path_param = 0
 
@@ -31,20 +31,37 @@ class ExponentialPlanner(GraphPlanner):
         index_array = []
         for pedestrian in self.scene.pedestrian_list:
             if self.needs_new_points(pedestrian):
-                pedestrian.param += self.path_dt
-                point = pedestrian.path.get(pedestrian.param)
+                pedestrian.param += 1
+                point = pedestrian.path.get_sample_point(pedestrian.param)
                 new_point_array[pedestrian.index] = point.array
                 index_array.append(pedestrian.index)
-        pass
-        # copy data into other array
-        # roll axis and add new array
-        # Copy on places where index changed
+        new_path_points = np.roll(self.path_points, -1, 1)
+        new_path_points[:, -1, :] = new_point_array
+        self.path_points[index_array] = new_path_points[index_array]
 
     def compute_new_velocities(self):
-        weighted_points = self.path_weights[None,:]*self.path_points
+        """
+        Doing a 'naive' vectorised implementation.
+        Speedups: Splitting the x and y and using dot products.
+        :return:
+        """
+        weighted_points = np.sum(self.path_weights[None, :, None] * self.path_points, axis=1)
         distances = self.scene.position_array - weighted_points
-        # Compute angles with atan2
-        # Adapt velocity array
+        self.scene.velocity_array[:] = distances / np.linalg.norm(distances)[:, None] * self.scene.max_speed_array
+
+    def needs_new_points(self, pedestrian):
+        """
+        We compute whether new points are necessary by using linear algebra
+        We assume that the angle between the first waypoint and the last waypoint
+        should have the same 'direction', i.e. a positive inner product.
+        If this is not true, the last waypoint is no longer relevant and should be updated
+        :param pedestrian: Pedestrian whose waypoints are under consideration
+        :return: True if update is necessary, false otherwise
+        """
+        dist_to_path_points = self.path_points[pedestrian.index] - pedestrian.position.array
+        inner_product = np.dot(dist_to_path_points[0], dist_to_path_points[self.way_point_num - 1])
+        return inner_product <= 0
+
 
     def step(self):
         """
