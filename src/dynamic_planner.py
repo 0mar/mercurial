@@ -90,9 +90,8 @@ class DynamicPlanner:
                                                     (dx, dy))
             self.speed_field_dict[direction] = Field(shape, Field.Orientation.vertical_face,
                                                      'Unit field %s' % direction, (dx, dy))
-
+        self.get_obstacle_potential_field()
         self._compute_initial_interface()
-        self.obstacle_potential_field = self.get_obstacle_potential_field()
         if self.show_plot:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
@@ -127,24 +126,31 @@ class DynamicPlanner:
         We transform our kernel to an ellipsis to service the rectangular obstacles.
         :return: An 2D array with potential contributions
         """
-        h = self.smoothing_length  # Obstacle factor
-        cell_centers = self.potential_field.mesh_grid
-        potential_obstacles = np.zeros(self.grid_dimension)
-        obstacle_form = self.config['dynamic']['obstacle_form']
-        for obstacle in self.scene.obstacle_list:
-            if not obstacle.accessible:
+        # h = self.smoothing_length  # Obstacle factor
+        # cell_centers = self.potential_field.mesh_grid
+        # potential_obstacles = np.zeros(self.grid_dimension)
+        # obstacle_form = self.config['dynamic']['obstacle_form']
+        # for obstacle in self.scene.obstacle_list:
+        #     if not obstacle.accessible:
+        #
+        #         if obstacle_form == 'rectangle':
+        #             distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
+        #                                np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
+        #         elif obstacle_form == 'ellips':
+        #             distances = np.sqrt(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)) ** 2 +
+        #                                 np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)) ** 2)
+        #         else:
+        #             raise ValueError("Obstacle form %s not recognized" % obstacle_form)
+        #         weights = weight_function(distances / h)
+        #         potential_obstacles += weights
+        # return potential_obstacles
 
-                if obstacle_form == 'rectangle':
-                    distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
-                                       np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
-                elif obstacle_form == 'ellips':
-                    distances = np.sqrt(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)) ** 2 +
-                                        np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)) ** 2)
-                else:
-                    raise ValueError("Obstacle form %s not recognized" % obstacle_form)
-                weights = weight_function(distances / h)
-                potential_obstacles += weights
-        return potential_obstacles
+        for (i,j) in np.ndindex(self.discomfort_field.array.shape):
+            location = np.array([self.discomfort_field.x_range[i],self.discomfort_field.y_range[j]])
+            if self.scene.is_accessible(Point(location)):
+                self.discomfort_field.array[i,j] = 0
+            else:
+                self.discomfort_field.array[i,j]= 3
 
     def _exists(self, index, max_index=None):
         """
@@ -238,9 +244,10 @@ class DynamicPlanner:
         * Discomfort increases linearly between these values.
         :return: None
         """
-        self.discomfort_field.update(
-            0 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
-                                                                                     self.max_density))
+        # self.discomfort_field.update(
+        #    0 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
+        #                                                                              self.max_density))
+        pass
 
     def compute_random_discomfort_field(self):
         """
@@ -358,8 +365,7 @@ class DynamicPlanner:
             unknown_cells.remove(best_cell)
             known_cells.add(best_cell)
             new_candidate_cells = get_new_candidate_cells({best_cell})
-        max_potential = np.max(self.potential_field.array)
-        self.potential_field.update(potential_field + self.obstacle_potential_field * max_potential * 0.7)
+        self.potential_field.update(potential_field)
 
     def compute_potential_gradient(self):
         """
@@ -435,10 +441,7 @@ class DynamicPlanner:
         self.graphs[1, 0].set_title('Discomfort')
         self.graphs[0, 1].imshow(np.rot90(self.potential_field.array))
         self.graphs[0, 1].set_title('Potential field')
-        self.graphs[1, 1].imshow(np.rot90(self.obstacle_potential_field))
-        self.graphs[1, 1].set_title('Obstacle Potentials')
-        # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.v_x, self.v_y, scale=1, scale_units='xy')
-        # self.graphs[1, 1].set_title('Velocity field')
-        # # self.graphs[1, 1].quiver(self.mesh_x, self.mesh_y, self.grad_p_x, self.grad_p_y, scale=1, scale_units='xy')
-        # self.graphs[1, 1].set_title('Pressure gradient')
+        self.graphs[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1], self.potential_field.mesh_grid[1][1:-1, 1:-1],
+                                 ft.normalize(self.potential_field.gradient('x')[:, 1:-1]),
+                                 ft.normalize(self.potential_field.gradient('y')[1:-1, :]), scale=1, scale_units='xy')
         plt.show(block=False)
