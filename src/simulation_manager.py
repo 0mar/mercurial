@@ -51,13 +51,13 @@ class SimulationManager:
         if args.dynamic:
             planner = DynamicPlanner(self.scene, show_plot=args.graph)
             self.step_functions += [planner.step]
-        elif True:  # Todo: Fix with argparser
-            planner = GraphPlanner(self.scene)
+        elif args.exponential_planner:
+            planner = ExponentialPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
         else:
-            planner = ExponentialPlanner(self.scene)
+            planner = GraphPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]

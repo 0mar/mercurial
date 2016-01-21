@@ -80,7 +80,6 @@ def normalize(array, safe=False):
         return array / (np.linalg.norm(array, axis=1)[:, None] + EPS)
 
 
-
 def is_close(a, b):
     """
     Checks if two numbers are sufficiently close together. Absolute tolerance only
@@ -111,14 +110,16 @@ def rectangles_intersect(start_1, end_1, start_2, end_2, open_sets=False):
     :param open_sets: Whether we check for strict inequality or equality also suffices
     :return: True if rectangles intersect, false otherwise
     """
-    cmp = np.greater_equal
-    if not open_sets:
-        cmp = np.greater
-    if cmp(start_1[0], end_2[0]) or cmp(start_2[0], end_1[0]) \
-            or cmp(start_1[1], end_2[1]) or cmp(start_2[1], end_1[1]):
-        return False
+    if open_sets:
+        if (start_1[0] > end_2[0]) or (start_2[0] > end_1[0]) \
+                or (start_1[1] > end_2[1]) or (start_2[1] > end_1[1]):
+            return False
     else:
-        return True
+        if (start_1[0] >= end_2[0]) or (start_2[0] >= end_1[0]) \
+                or (start_1[1] >= end_2[1]) or (start_2[1] >= end_1[1]):
+            return False
+    return True
+
 
 
 def get_hyperplane_functional(p, q):

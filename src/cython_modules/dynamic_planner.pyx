@@ -7,27 +7,28 @@ cimport numpy as np
 import math
 float_type = np.float64
 
-def compute_density_and_velocity_field(cell_dim, cell_size, np.ndarray[np.float64_t, ndim=2] position_array,
+def compute_density_and_velocity_field(cell_dim, size_array,
+                                       np.ndarray[np.float64_t, ndim=2] position_array,
+                                       np.ndarray[np.float64_t, ndim=2] velocity_array,
                                        pedestrian_list, eps = 0.01):
     """
     Compute the density and velocity field in cell centers as done in Treuille et al. (2004).
     Density and velocity are splatted to only surrounding cell centers.
-    This is a naive implementation, looping over all pedestrians
+    This is a semi-naive implementation, looping over all pedestrians
     :return: (density, velocity_x, velocity_y) as 2D arrays
     """
-    # Todo (after merge): Integrate with grid_computer
     cdef np.ndarray[np.float64_t, ndim=2]density_field = np.zeros(cell_dim) + eps
     # Initialize density with an epsilon to facilitate division
     cdef np.ndarray[np.float64_t, ndim=2] v_x = np.zeros(cell_dim)
     cdef np.ndarray[np.float64_t, ndim=2] v_y = np.zeros(cell_dim)
-    cell_center_indices = (np.around(position_array / cell_size) - np.array([1, 1])).astype(int)
+    cell_center_indices = (np.around(position_array / size_array) - np.array([1, 1])).astype(int)
     # These are the closest cell center indices whose coordinates both less than the corresponding pedestrians.
-    cell_centers = (cell_center_indices + [0.5, 0.5]) * cell_size
+    cell_centers = (cell_center_indices + [0.5, 0.5]) * size_array
     # These are the coordinates of those centers
     differences = position_array - cell_centers
     # These are the differences between the cell centers and the pedestrian positions.
     # They should all be positive and smaller than (dx,dy)
-    rel_differences = differences / cell_size
+    rel_differences = differences / size_array
     density_contributions = [[None, None], [None, None]]
     cdef Py_ssize_t x_coord, y_coord, x, y, ped_index, list_index
     cdef int max_cell_x = cell_dim[0]
@@ -39,11 +40,10 @@ def compute_density_and_velocity_field(cell_dim, cell_size, np.ndarray[np.float6
                 1 - rel_differences[:, 0] + (2 * rel_differences[:, 0] - 1) * x,
                 1 - rel_differences[:, 1] + (2 * rel_differences[:, 1] - 1) * y) ** 2  # density exponent
     # For each cell center surrounding the pedestrian, add (in both dimensions) 1-\delta . or \delta .
-    for list_index in range(len(pedestrian_list)):
-        ped = pedestrian_list[list_index]
+    for list_index, ped in enumerate(pedestrian_list):
         ped_index = ped.index
-        vel_x = ped.velocity.x
-        vel_y = ped.velocity.y
+        vel_x = velocity_array[ped_index, 0]
+        vel_y = velocity_array[ped_index, 0]
         dens_cont = density_contributions[x][y][ped_index]
         for x in range(2):
             x_coord = cell_center_indices[ped_index, 0] + x

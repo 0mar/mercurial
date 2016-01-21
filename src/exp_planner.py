@@ -3,7 +3,7 @@ __author__ = 'omar'
 import numpy as np
 
 import functions as ft
-from geometry import Point, Velocity
+from geometry import Point, Velocity, Path
 from static_planner import GraphPlanner
 
 
@@ -17,8 +17,9 @@ class ExponentialPlanner(GraphPlanner):
     """
 
     def __init__(self, scene):
+        Path.sample_length = 2
         super().__init__(scene)
-        self.path_weights = np.array([0.6, 0.3, 0.05, 0.05])
+        self.path_weights = np.array([0.4, 0.3, 0.2, 0.1])
         self.way_point_num = len(self.path_weights)
         self.path_points = np.zeros([self.scene.position_array.shape[0], self.way_point_num, 2])
         [self.compute_init_path_points(pedestrian) for pedestrian in self.scene.pedestrian_list]

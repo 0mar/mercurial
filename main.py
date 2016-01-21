@@ -15,6 +15,7 @@ parser.add_argument('-s', '--step', action='store_true', help='Let simulation pr
 parser.add_argument('-g', '--graph', action='store_true', help='Let simulation graph grid values on each time step')
 parser.add_argument('-i', '--apply-interpolation', action='store_true',
                     help='Let simulation impose swarm behaviour to pedestrians')
+parser.add_argument('-e', '--exponential-planner', action='store_true', help='Use the exponential planner')
 parser.add_argument('-p', '--apply-pressure', action='store_true',
                     help='Let simulation impose UIC (pressure term) to the pedestrians (-c implied)')
 parser.add_argument('-t', '--time-delay', type=int, help='Delay between time steps (in milliseconds)', default=1)

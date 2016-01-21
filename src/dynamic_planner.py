@@ -383,7 +383,6 @@ class DynamicPlanner:
         """
         grad_x_func = self.pot_grad_x.get_interpolation_function()
         grad_y_func = self.pot_grad_y.get_interpolation_function()
-        # Todo: How:? speed_x_func = Rbs(self.x_range,self.y_range,self.speed_field_dict)
         solved_grad_x = grad_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad_y = grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
@@ -401,6 +400,7 @@ class DynamicPlanner:
         else:
             dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
                                                                       self.scene.position_array,
+                                                                      self.scene.velocity_array,
                                                                       self.scene.pedestrian_list)
             self.density_field.update(dens_f)
             ft.debug("Min: %.3f\tmax: %.3f\n" % (np.min(dens_f), np.max(dens_f)))

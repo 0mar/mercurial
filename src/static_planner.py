@@ -26,7 +26,7 @@ class GraphPlanner:
         """
         self.scene = scene
         self.graph = None
-        self.config = scene.config  # todo: Add the safety margin and checkpoint_range in this
+        self.config = scene.config
         self._create_obstacle_graph()
         ft.log("Started pre-processing global paths")
         for pedestrian in scene.pedestrian_list:

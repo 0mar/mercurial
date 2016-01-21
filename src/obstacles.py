@@ -96,7 +96,7 @@ class Entrance(Obstacle):
         Converts an angle into a vector on the boundary of the cube.
         Uses some basic linear algebra; extended on in report.
         """
-        # Todo: Vectorize for exit_log implementation
+        # Possible: Vectorize for exit_log implementation
         object_radius = ft.norm(self.size[0], self.size[1]) / 2
         x = math.cos(angle) * object_radius + ft.EPS
         abs_x = math.fabs(x)
@@ -136,7 +136,7 @@ class Entrance(Obstacle):
         """
 
         angle = self.angle_interval.random()
-        # Todo: This angle should be coming from the data, not implemented.
+        # This angle should be coming from the data, not implemented.
         boundary_vector = self.convert_angle_to_vector(angle)
         new_position = Point(boundary_vector + self.center)
         return new_position

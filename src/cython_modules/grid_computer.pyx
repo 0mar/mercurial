@@ -32,12 +32,11 @@ def compute_density_and_velocity_field(cell_dim, size_array,
 
     cdef np.ndarray[np.float64_t, ndim=2] differences
     cdef np.ndarray[np.float64_t, ndim=1] distances, close_distances, weights
-    #Todo: Move active entries to here, saves us x400 times or such
-
+    position_array = position_array[active_entries]
     for (cell_x, cell_y) in np.ndindex((cell_dim_x, cell_dim_y)):
         differences = position_array - cell_size * (cell_x + 0.5, cell_y + 0.5)
         distances = np.linalg.norm(differences, axis=1)
-        close_indices = np.where(np.logical_and(distances < cutoff, active_entries))[0]
+        close_indices = np.where(distances < cutoff)[0]
         if len(close_indices):
             close_distances = distances[close_indices]
             weights = weight_function(close_distances,smoothing_length)
