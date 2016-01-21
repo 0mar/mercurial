@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = 'omar'
 import tkinter
 from enum import Enum

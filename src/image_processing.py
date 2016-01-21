@@ -39,7 +39,7 @@ class ImageProcessor:
                         + re.search('/[^/\.]+', obstacle_file).group(0) + ImageProcessor.file_postfix
         if not os.path.exists(skeleton_file):
             functions.log("No corresponding skeleton found, creating from obstacle file")
-            dummy_vis = EmptyVisualization(scene, scene.config, filename=skeleton_file)
+            dummy_vis = EmptyVisualization(scene, filename=skeleton_file)
             dummy_vis.step_callback = dummy_vis.loop
             dummy_vis.start()
             data = io.imread(skeleton_file)
@@ -70,7 +70,7 @@ class ImageProcessor:
                            + re.search('/[^/\.]+', obstacle_file).group(0) + ImageProcessor.file_postfix
         if not os.path.exists(medial_axis_file):
             functions.log("No corresponding medial axis found, creating from obstacle file")
-            dummy_vis = EmptyVisualization(scene, scene.config, filename=medial_axis_file)
+            dummy_vis = EmptyVisualization(scene, filename=medial_axis_file)
             dummy_vis.step_callback = dummy_vis.loop
             dummy_vis.start()
             data = io.imread(medial_axis_file)
@@ -115,7 +115,7 @@ class ImageProcessor:
         feature_matrix_file = feature_file.replace(ImageProcessor.file_postfix, '.mat')  # Remove for clear restart
         if not os.path.exists(feature_matrix_file):
             functions.log("No corresponding feature transform found, creating from obstacle file")
-            dummy_vis = EmptyVisualization(scene, scene.config, filename=feature_file)
+            dummy_vis = EmptyVisualization(scene, filename=feature_file)
             dummy_vis.step_callback = dummy_vis.loop
             dummy_vis.start()
             data = io.imread(feature_file)
@@ -161,5 +161,15 @@ class EmptyVisualization(VisualScene):
                     self.draw_obstacle(obstacle)
         else:
             self.store_scene(None, self.filename)
+            print(self.filename)
             print("Scene size", self.size)
             self.window.destroy()
+
+if __name__=="__main__":
+    from simulation_manager import SimulationManager
+    from scene import Scene
+    config = SimulationManager.get_default_config()
+    scene = Scene(config)
+    ImageProcessor.get_feature_transform(scene)
+    ImageProcessor.get_medial_axis(scene)
+    ImageProcessor.get_skeleton(scene)
