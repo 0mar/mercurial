@@ -8,7 +8,7 @@ import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
-from cython_modules.mde import minimum_distance_enforcement
+from cython_modules.mde_cy import minimum_distance_enforcement
 
 
 class Scene:

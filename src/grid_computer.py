@@ -7,7 +7,7 @@ import numpy as np
 import scipy.io as sio
 import scipy.sparse as ss
 import matplotlib.pyplot as plt
-from cython_modules.grid_computer import compute_density_and_velocity_field, solve_LCP_with_pgs
+from cython_modules.grid_computer_cy import compute_density_and_velocity_field, solve_LCP_with_pgs
 from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft

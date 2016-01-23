@@ -9,9 +9,10 @@ import operator
 import functions as ft
 from geometry import Point, Size
 from scalar_field import ScalarField as Field
-from cython_modules.dynamic_planner import weight_function
-from cython_modules.dynamic_planner import compute_density_and_velocity_field
-from cython_modules.dynamic_planner import compute_potential_cy
+from cython_modules.dynamic_planner_cy import weight_function
+#from cython_modules.dynamic_planner_cy import compute_density_and_velocity_field
+from cython_modules.grid_computer_cy import compute_density_and_velocity_field
+from cython_modules.dynamic_planner_cy import compute_potential_cy
 
 class DynamicPlanner:
     """
@@ -407,7 +408,7 @@ class DynamicPlanner:
             dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
                                                                       self.scene.position_array,
                                                                       self.scene.velocity_array,
-                                                                      self.scene.pedestrian_list)
+                                                                      self.scene.active_entries )
             self.density_field.update(dens_f)
             ft.debug("Min: %.3f\tmax: %.3f\n" % (np.min(dens_f), np.max(dens_f)))
             self.v_x.update(v_x_f)
