@@ -61,7 +61,7 @@ class Entrance(Obstacle):
     """
 
     def __init__(self, spawn_rate=0.5, max_pedestrians=8000, start_time=0, exit_data=[], *args, **kwargs):
-        super().__init__(accessible=False, *args, **kwargs)
+        super(Entrance,self).__init__(accessible=False, *args, **kwargs)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
         self.depleted = False

@@ -147,6 +147,6 @@ def increase_array_size(array, increment_factor=2):
     inc = int(increment_factor)
     new_shape = array.shape
     new_shape[0] = 2 * array.shape[0]
-    new_array = np.zeros(new_shape)
+    new_array = np.zeros(new_shape,dtype=array.dtype)
     new_array[0:array.shape[0], :] = array
     return new_array

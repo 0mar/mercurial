@@ -161,7 +161,7 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin=begin, size=Size(size), name=name, spawn_rate=spawn_rate,
+            entrance_obs = Entrance(begin=begin, size=Size(size), name=name, margin=margin,spawn_rate=spawn_rate,
                                     max_pedestrians=max_pedestrians, start_time=start_time)
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
@@ -179,7 +179,7 @@ class Scene:
                      "max_speed_array", "active_entries"]
         for attr in attr_list:
             array = getattr(self, attr)
-            addition = np.zeros(array.shape)
+            addition = np.zeros(array.shape,dtype=array.dtype)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
         self.index_map.update({len(self.index_map) + i: None for i in range(len(self.index_map))})
 
