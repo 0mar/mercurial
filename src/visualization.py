@@ -61,14 +61,15 @@ class VisualScene:
         :param _: Event object from tkinter
         :return: None
         """
-        self.draw_scene()
         if self.scene.status == 'DONE':
             self.window.destroy()
             self.autoloop = False
-        if self.autoloop:
-            self.window.after(self.delay, self.step_callback)
         else:
-            self.step_callback()
+            self.draw_scene()
+            if self.autoloop:
+                self.window.after(self.delay, self.step_callback)
+            else:
+                self.step_callback()
 
     def _provide_information(self, event):
         """
