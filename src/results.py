@@ -97,7 +97,7 @@ class Result:
                 self.time_spent[pedestrian.counter] = self.scene.time
         if not self.no_paths:
             if np.all(self.scene.active_entries):
-                ft.warn("No pedestrian reached exit. No valid observed path information stored")
+                ft.warn("No pedestrian reached exit. No valid observed path information obtained")
             else:
                 self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries)] / \
                                          self.path_length[np.invert(self.scene.active_entries)]

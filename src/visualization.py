@@ -31,7 +31,7 @@ class VisualScene:
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (init_size.width, init_size.height))
-        self.window.bind("<Button-3>", self.store_scene)
+        self.window.bind("<Button-3>", self._provide_information)
         self.canvas = tkinter.Canvas(self.window,width=init_size.width, height=init_size.height)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
         self.canvas.delete('all')
@@ -98,13 +98,14 @@ class VisualScene:
         self.draw_pedestrians()
 
     def store_scene(self, _, filename=None):
-        print("storing in %s"%filename)
+
         directory = 'images'
         if not filename:
             import time
 
             name = "scene#%d" % time.time()
             filename = "%s/%s-%.2f.eps" % (directory, name, self.scene.time)
+        print("storing in %s" % filename)
         self.canvas.postscript(file=filename, pageheight=self.size.height, pagewidth=self.size.width)
 
     def draw_pedestrians(self):

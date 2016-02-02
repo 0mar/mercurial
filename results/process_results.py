@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = 'omar'
 import sys
 
@@ -11,7 +12,7 @@ import functions as ft
 class Processor:
     def __init__(self, result=None):
         if not result:
-            filename = "narrow1000.mat"
+            filename = "results.mat"
             self.s = 100
             self.norm_l = -0.1
             self.norm_u = 1
@@ -63,12 +64,15 @@ class Processor:
         plt.show()
 
     def time_spent_histogram(self):
-        time = self.result.time_spent.T / self.dt
-        plt.hist(time, bins=50)
-        plt.xlabel('Time steps to reach exit')
-        plt.ylabel('Number of pedestrians')
-        plt.suptitle('Histogram of pedestrian walking time')
-        plt.show()
+        if len(self.result.time_spent) > 1:
+            time = self.result.time_spent.T / self.dt
+            plt.hist(time, bins=50)
+            plt.xlabel('Time steps to reach exit')
+            plt.ylabel('Number of pedestrians')
+            plt.suptitle('Histogram of pedestrian walking time')
+            plt.show()
+        else:
+            ft.warn("No histogram made, insufficient data set (size %d)" % len(self.result.time_spent))
 
 if __name__ == '__main__':
     proc = Processor()
