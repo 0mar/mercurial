@@ -85,6 +85,7 @@ class SimulationManager:
             if not args.store_positions or args.results:
                 functions.warn("No results are logged. Ensure you want a headless simulation.")
             self.vis = NoVisualScene(self.scene)
+        self.scene.on_pedestrian_exit_functions += self.on_pedestrian_exit_functions
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
 

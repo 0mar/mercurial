@@ -36,19 +36,20 @@ class Result:
         else:
             self.no_paths = False
             ft.log("Storing results for Graph Planner")
-        self.planned_path_length = np.zeros(self.scene.pedestrian_number)
-        self.path_length_ratio = np.zeros(self.scene.pedestrian_number)
+        self.planned_path_length = np.zeros(
+            len(self.scene.pedestrian_list))  # Todo: Does not work when using entrances as well.
+        self.path_length_ratio = np.zeros(len(self.scene.pedestrian_list))
         self.avg_path_length_ratio = 0
-        self.paths_list = [[] for _ in range(self.scene.pedestrian_number)]
-        self.path_length = np.zeros(self.scene.pedestrian_number)
-        self.time_spent = np.zeros(self.scene.pedestrian_number)
-        self.mean_speed = np.zeros(self.scene.pedestrian_number)
+        self.paths_list = [[] for _ in range(len(self.scene.pedestrian_list))]
+        self.path_length = np.zeros(len(self.scene.pedestrian_list))
+        self.time_spent = np.zeros(len(self.scene.pedestrian_list))
+        self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
 
-        self.max_speed = np.zeros(self.scene.pedestrian_number)
+        self.max_speed = np.zeros(len(self.scene.pedestrian_list))
 
         self.avg_mean_speed = 0
-        self.density = self.scene.pedestrian_number / (self.scene.size.width * self.scene.size.height)
-        self.origins = np.zeros([self.scene.pedestrian_number, 2])
+        self.density = len(self.scene.pedestrian_list) / (self.scene.size.width * self.scene.size.height)
+        self.origins = np.zeros([len(self.scene.pedestrian_list), 2])
 
 
         self.on_init()
@@ -62,7 +63,7 @@ class Result:
             if not self.no_paths:
                 self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
             self.origins[pedestrian.counter] = pedestrian.origin.array
-        self.density = self.scene.pedestrian_number / np.prod(self.scene.size.array)
+        self.density = len(self.scene.pedestrian_list) / np.prod(self.scene.size.array)
         self.max_speed = self.scene.max_speed_array
 
     def on_step(self):
@@ -92,12 +93,15 @@ class Result:
         :return: None
         """
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.active_entries[pedestrian.counter] == 1:
+            if self.scene.active_entries[pedestrian.counter]:
                 self.time_spent[pedestrian.counter] = self.scene.time
         if not self.no_paths:
-            self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries.astype(bool))] / \
-                                     self.path_length[np.invert(self.scene.active_entries.astype(bool))]
-            self.avg_path_length_ratio = np.mean(self.path_length_ratio)
+            if np.all(self.scene.active_entries):
+                ft.warn("No pedestrian reached exit. No valid observed path information stored")
+            else:
+                self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries)] / \
+                                         self.path_length[np.invert(self.scene.active_entries)]
+                self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.path_length / self.time_spent
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
