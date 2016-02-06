@@ -4,8 +4,6 @@ import matplotlib
 matplotlib.use('TkAgg')
 import time
 import numpy as np
-import scipy.io as sio
-import scipy.sparse as ss
 import matplotlib.pyplot as plt
 from cython_modules.grid_computer_cy import compute_density_and_velocity_field, solve_LCP_with_pgs
 from scalar_field import ScalarField as Field
@@ -141,12 +139,13 @@ class GridComputer:
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
 
     @staticmethod
-    def solve_LCP_with_quad(M, q):
+    def solve_LCP_with_quad(M, q, _):
         """
         Solves the linear complementarity problem w = Mz + q using a quadratic solver.
         This method is unused as we employ a Cython PGS-solver.
         :param M: nxn non-singular positive definite matrix
         :param q: length n vector
+        :param _: consistency parameter for other LCP solver
         :return: length n vector z such that z>=0, w>=0, (w,z) < eps if optimum is found, else zeros vector.
         """
         n = M.shape[0]
@@ -173,7 +172,7 @@ class GridComputer:
         """
         Solves the linear complementarity problem w = Mz + q using a Projected Gauss Seidel solver.
         Possible improvements:
-            -Sparse matrix use
+            -Sparse matrix use (Tried and failed. Python and sparse matrices is less than optimal).
         :param M: nxn non-singular positive definite matrix
         :param q: length n vector
         :return: length n vector z such that z>=0, w>=0, (w,z)\approx 0 if optimum is found, else zeros vector.
@@ -263,6 +262,7 @@ class GridComputer:
             if self.apply_pressure:
                 self.compute_pressure()
                 self.adjust_velocity()
+                # self.compute_pressure()
             self.interpolate_pedestrians()
 
     @staticmethod
