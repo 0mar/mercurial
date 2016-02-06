@@ -19,7 +19,7 @@ class Coordinate(object):
         """
         :param x: iterable of coordinates. Requires a list of length 2.
         """
-        self.array = np.array(x, dtype='float64')
+        self.array = np.asarray(x, dtype='float64')
         self.type = self.__class__.__name__
 
     angle = property(lambda s: math.atan2(s[1], s[0]))
@@ -64,9 +64,7 @@ class Size(Coordinate):
 
     def __init__(self, x):
         super().__init__(x)
-        self.width = x[0]
-        self.height = x[1]
-        if self.width < 0 or self.height < 0:
+        if any(self.array < 0):
             raise ValueError("Negative size specified")
 
     def random_internal_point(self):
@@ -104,7 +102,7 @@ class Interval(object):
     """
 
     def __init__(self, coords):
-        self.array = np.array(coords)
+        self.array = np.asarray(coords)
         self.length = coords[1] - coords[0]
         if self.length < 0:
             raise ValueError("Interval start larger than interval end")
@@ -136,7 +134,7 @@ class LineSegment(object):
         :param point_list: List (or other iterable) of Points
         :return: Line segment
         """
-        self.array = np.array(point_list)
+        self.array = np.asarray(point_list)
         self.color = 'gray'
 
     length = property(lambda s: ft.norm(s.begin[0] - s.end[0], s.begin[1] - s.end[1]))

@@ -30,9 +30,9 @@ class VisualScene:
         self.ny = int(self.config['general'].getint('scene_size_y') / self.config['general'].getint('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
-        self.window.geometry("%dx%d" % (init_size.width, init_size.height))
+        self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
         self.window.bind("<Button-3>", self._provide_information)
-        self.canvas = tkinter.Canvas(self.window,width=init_size.width, height=init_size.height)
+        self.canvas = tkinter.Canvas(self.window, width=init_size[0], height=init_size[1])
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
         self.canvas.delete('all')
         self.step_callback = None  # set in manager
@@ -106,7 +106,7 @@ class VisualScene:
             name = "scene#%d" % time.time()
             filename = "%s/%s-%.2f.eps" % (directory, name, self.scene.time)
         print("storing in %s" % filename)
-        self.canvas.postscript(file=filename, pageheight=self.size.height, pagewidth=self.size.width)
+        self.canvas.postscript(file=filename, pageheight=self.size.height, pagewidth=self.size[0])
 
     def draw_pedestrians(self):
         """
