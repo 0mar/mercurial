@@ -247,12 +247,17 @@ class GridComputer:
         :return: None
         """
         if self.apply_interpolation or self.show_plot:
-            # density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
-            #                                                              self.scene.size.array,
-            #                                                              self.scene.position_array,
-            #                                                              self.scene.velocity_array,
-            #                                                              self.scene.active_entries)
-            density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array
+            if False:  # Todo: Integrate fortran modules
+                density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
+                                                                             self.scene.size.array,
+                                                                             self.scene.position_array,
+                                                                             self.scene.velocity_array,
+                                                                             self.scene.active_entries)
+            else:
+                n_x, n_y = self.grid_dimension
+                dx, dy = self.scene.size.array / self.grid_dimension
+                density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
+                                                         self.scene.active_entries, n_x, n_y, dx, dy)
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)

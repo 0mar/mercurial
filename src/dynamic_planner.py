@@ -1,3 +1,5 @@
+import time
+
 __author__ = 'omar'
 import matplotlib
 
@@ -7,12 +9,13 @@ import numpy as np
 import math
 import operator
 import functions as ft
-from geometry import Point, Size
+from geometry import Point
 from scalar_field import ScalarField as Field
-from cython_modules.dynamic_planner_cy import weight_function
-#from cython_modules.dynamic_planner_cy import compute_density_and_velocity_field
+# from cython_modules.dynamic_planner_cy import compute_density_and_velocity_field
+from fortran_modules.grid_computer import comp_dens_velo
 from cython_modules.grid_computer_cy import compute_density_and_velocity_field
 from cython_modules.dynamic_planner_cy import compute_potential_cy
+
 
 class DynamicPlanner:
     """
@@ -61,7 +64,7 @@ class DynamicPlanner:
         self.max_density = self.config['dynamic'].getfloat('max_density')
 
         self.density_exponent = self.config['dynamic'].getfloat('density_exponent')
-        self.density_threshold = (1/2)**self.density_exponent
+        self.density_threshold = (1 / 2) ** self.density_exponent
         self.all_cells = {(i, j) for i, j in np.ndindex(self.grid_dimension)}
         self.exit_cell_set = set()
         self.obstacle_cell_set = set()
@@ -146,12 +149,12 @@ class DynamicPlanner:
         #         potential_obstacles += weights
         # return potential_obstacles
 
-        for (i,j) in np.ndindex(self.discomfort_field.array.shape):
-            location = np.array([self.discomfort_field.x_range[i],self.discomfort_field.y_range[j]])
+        for (i, j) in np.ndindex(self.discomfort_field.array.shape):
+            location = np.array([self.discomfort_field.x_range[i], self.discomfort_field.y_range[j]])
             if self.scene.is_accessible(Point(location)):
-                self.discomfort_field.array[i,j] = 0
+                self.discomfort_field.array[i, j] = 0
             else:
-                self.discomfort_field.array[i,j]= 3
+                self.discomfort_field.array[i, j] = 3
 
     def _exists(self, index, max_index=None):
         """
@@ -402,17 +405,19 @@ class DynamicPlanner:
         If plotting is enables, updates the plot.
         :return: None
         """
-        if False:  # Pure python implementation. Leave False for Cython implementation
-            self.compute_density_and_velocity_field()
+        time1 = time.time()
+        if True:  # FORTRAN implementation. Set False for Cython implementation
+            dens_f, v_x_f, v_y_f = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
+                                                  self.scene.active_entries, self.grid_dimension[0],
+                                                  self.grid_dimension[1], self.dx, self.dy)
         else:
             dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
                                                                       self.scene.position_array,
                                                                       self.scene.velocity_array,
-                                                                      self.scene.active_entries )
-            self.density_field.update(dens_f)
-            ft.debug("Min: %.3f\tmax: %.3f\n" % (np.min(dens_f), np.max(dens_f)))
-            self.v_x.update(v_x_f)
-            self.v_y.update(v_y_f)
+                                                                      self.scene.active_entries)
+        self.density_field.update(dens_f)
+        self.v_x.update(v_x_f)
+        self.v_y.update(v_y_f)
         self.compute_discomfort_field()
 
         for direction in ft.DIRECTIONS:
@@ -442,7 +447,8 @@ class DynamicPlanner:
         self.graphs[1, 0].set_title('Discomfort')
         self.graphs[0, 1].imshow(np.rot90(self.potential_field.array))
         self.graphs[0, 1].set_title('Potential field')
-        self.graphs[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1], self.potential_field.mesh_grid[1][1:-1, 1:-1],
+        self.graphs[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1],
+                                 self.potential_field.mesh_grid[1][1:-1, 1:-1],
                                  ft.normalize(self.potential_field.gradient('x')[:, 1:-1]),
                                  ft.normalize(self.potential_field.gradient('y')[1:-1, :]), scale=1, scale_units='xy')
         plt.show(block=False)
