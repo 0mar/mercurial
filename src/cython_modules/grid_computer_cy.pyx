@@ -11,7 +11,7 @@ float_type = np.float64
 def compute_density_and_velocity_field(cell_dim, size_array,
                                        np.ndarray[np.float64_t, ndim=2] position_array,
                                        np.ndarray[np.float64_t, ndim=2] velocity_array,
-                                       np.ndarray[np.uint8_t, cast=True, ndim=1] active_entries, eps = 0.01):
+                                       np.ndarray[np.uint8_t, cast=True, ndim=1] active_entries, eps = 0.0001):
     """
     Compute the density and velocity field in cell centers as done in Treuille et al. (2004).
     Density and velocity are splatted to only surrounding cell centers.
@@ -24,15 +24,17 @@ def compute_density_and_velocity_field(cell_dim, size_array,
 
     cdef np.ndarray[np.float64_t, ndim=2] v_x = np.zeros([cell_dim_x, cell_dim_y])
     cdef np.ndarray[np.float64_t, ndim=2] v_y = np.zeros([cell_dim_x, cell_dim_y])
-    cdef np.ndarray[np.float64_t, ndim=2] density_field = np.zeros([cell_dim_x, cell_dim_y]) + eps
+    cdef np.ndarray[np.float64_t, ndim=2] density_field = np.zeros([cell_dim_x, cell_dim_y])
     cdef np.ndarray[np.float64_t, ndim=1] cell_size = size_array / [cell_dim_x, cell_dim_y]
-    cdef float cutoff = math.sqrt(cell_size[0] ** 2 + cell_size[1] ** 2)
-    cdef float smoothing_length = cutoff/2
+
+    cdef float smoothing_length = math.sqrt(cell_size[0] ** 2 + cell_size[1] ** 2) * 3 / 4
+    cdef float cutoff = 2 * smoothing_length
     # cell_locations = np.floor(position_array / cell_size)
 
     cdef np.ndarray[np.float64_t, ndim=2] differences
     cdef np.ndarray[np.float64_t, ndim=1] distances, close_distances, weights
     position_array = position_array[active_entries]
+    velocity_array = velocity_array[active_entries]
     for (cell_x, cell_y) in np.ndindex((cell_dim_x, cell_dim_y)):
         differences = position_array - cell_size * (cell_x + 0.5, cell_y + 0.5)
         distances = np.linalg.norm(differences, axis=1)
@@ -44,7 +46,7 @@ def compute_density_and_velocity_field(cell_dim, size_array,
             density_field[cell_x, cell_y] += total_weight
             v_x[cell_x, cell_y] = np.sum(velocity_array[:, 0][close_indices] * weights)
             v_y[cell_x, cell_y] = np.sum(velocity_array[:, 1][close_indices] * weights)
-    return (density_field - eps), v_x / density_field, v_y / density_field
+    return density_field, v_x / (density_field + eps), v_y / (density_field + eps)
 
 def weight_function(np.ndarray[np.float64_t, ndim=1] array, float smoothing_length=1.):
     """

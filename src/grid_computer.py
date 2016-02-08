@@ -5,6 +5,7 @@ matplotlib.use('TkAgg')
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+from fortran_modules.grid_computer import comp_dens_velo
 from cython_modules.grid_computer_cy import compute_density_and_velocity_field, solve_LCP_with_pgs
 from scalar_field import ScalarField as Field
 import cvxopt
@@ -246,11 +247,12 @@ class GridComputer:
         :return: None
         """
         if self.apply_interpolation or self.show_plot:
-            density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
-                                                                         self.scene.size.array,
-                                                                         self.scene.position_array,
-                                                                         self.scene.velocity_array,
-                                                                         self.scene.active_entries)
+            # density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
+            #                                                              self.scene.size.array,
+            #                                                              self.scene.position_array,
+            #                                                              self.scene.velocity_array,
+            #                                                              self.scene.active_entries)
+            density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
