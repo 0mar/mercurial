@@ -3,12 +3,13 @@ __author__ = 'omar'
 import json
 
 import numpy as np
-
+import time
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
 from cython_modules.mde_cy import minimum_distance_enforcement
+from fortran_modules.mde import compute_mde
 
 
 class Scene:
@@ -250,7 +251,11 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
-            self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
+            if True:
+                self.position_array += compute_mde(self.position_array, self.size[0], self.size[1],
+                                                   self.active_entries, self.minimal_distance)
+            else:
+                self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
                                                                 self.active_entries,
                                                                 self.minimal_distance)
 

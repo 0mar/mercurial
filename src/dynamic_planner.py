@@ -415,22 +415,28 @@ class DynamicPlanner:
                                                                       self.scene.position_array,
                                                                       self.scene.velocity_array,
                                                                       self.scene.active_entries)
+        # time2 = time.time()
         self.density_field.update(dens_f)
         self.v_x.update(v_x_f)
         self.v_y.update(v_y_f)
         self.compute_discomfort_field()
+        #time3 = time.time()
 
         for direction in ft.DIRECTIONS:
             self.compute_speed_field(direction)
             self.compute_unit_cost_field(direction)
             # assert np.all(self.unit_field_dict[direction].array>0)
+        #time4 = time.time()
 
         self.compute_potential_field()
         self.compute_potential_gradient()
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
+        #time5 = time.time()
         self.scene.move_pedestrians()  # Todo: Decide to put this here or in simulation manager
+        # time6 = time.time()
+        #print("Timings:\n%s"%"\n".join(["%.4f"%number for number in [time2-time1,time6-time2]]))
         self.scene.correct_for_geometry()
         self.scene.find_finished_pedestrians()
 

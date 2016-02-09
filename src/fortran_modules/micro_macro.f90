@@ -13,7 +13,7 @@
       real (kind=8), parameter :: eps = 0.0001
       real (kind=8):: x_center,y_center ! cell center
       real (kind=8),dimension(0:n_x-1,0:n_y-1) :: dens,v_x,v_y ! output
-      real (kind=8),dimension(0:n-1,2) :: pos,velo ! input
+      real (kind=8),dimension(0:n-1,0:1) :: pos,velo ! input
       real (kind=8) :: dist,weight, h ! smoothing length
       real (kind=8), external :: weight_function
 
@@ -27,8 +27,8 @@
       range_ = int(2.*h/(min(dx,dy))+1) ! depends on smoothing length
 
       do k=0,n-1
-          x_cell = int(pos(k,1)/dx)
-          y_cell = int(pos(k,2)/dy)
+          x_cell = int(pos(k,0)/dx)
+          y_cell = int(pos(k,1)/dy)
           do i=x_cell-range_,x_cell+range_
           if (i>=0 .and. i<=n_x-1) then
               do j=y_cell-range_,y_cell+range_
@@ -36,12 +36,12 @@
               ! Contributions in 
               x_center = (i+0.5)*dx
               y_center = (j+0.5)*dy
-              dist = sqrt((pos(k,1)-x_center)*(pos(k,1)-x_center) +&
-                          (pos(k,2)-y_center)*(pos(k,2)-y_center))
+              dist = sqrt((pos(k,0)-x_center)*(pos(k,0)-x_center) +&
+                          (pos(k,1)-y_center)*(pos(k,1)-y_center))
               weight = weight_function(dist,h)*active(k)
               dens(i,j) = dens(i,j) + weight
-              v_x(i,j) = v_x(i,j) + weight*velo(k,1)
-              v_y(i,j) = v_y(i,j) + weight*velo(k,2)
+              v_x(i,j) = v_x(i,j) + weight*velo(k,0)
+              v_y(i,j) = v_y(i,j) + weight*velo(k,1)
               end if
               end do
           end if
