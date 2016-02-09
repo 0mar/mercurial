@@ -57,7 +57,7 @@ real (kind=8) function weight_function(distance,h)
     ! Compute gaussian interpolation kernel
     implicit none
 
-    real (kind=8),parameter :: pi =3.14159265359
+    real (kind=8),parameter :: pi =3.14159265359 ! Precision?
     real (kind=8) h ! smoothing length
     real (kind=8) :: norm,weight,distance
     norm = 7.0/(4*pi*h*h)

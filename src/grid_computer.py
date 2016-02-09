@@ -6,6 +6,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from fortran_modules.grid_computer import comp_dens_velo
+from fortran_modules.pgs import pgs
 from cython_modules.grid_computer_cy import compute_density_and_velocity_field, solve_LCP_with_pgs
 from scalar_field import ScalarField as Field
 import cvxopt
@@ -74,6 +75,7 @@ class GridComputer:
         ny = self.grid_dimension[1] - 2
         ex = np.ones(nx)
         ey = np.ones(ny)
+        self._last_solution = np.zeros(nx * ny)
         Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
         Adyy = np.diag(ey[:-1], 1) + np.diag(-ey[:-1], -1)
         self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(ny))
@@ -133,7 +135,7 @@ class GridComputer:
                         - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
-        flat_p = solve_LCP_with_pgs(-C * self.dt, b, self._last_solution)
+        flat_p = pgs(-C * self.dt, b, self._last_solution)
         self._last_solution = np.reshape(flat_p, (nx * ny, 1))
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
@@ -266,10 +268,12 @@ class GridComputer:
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:
+            time1 = time.time()
             if self.apply_pressure:
                 self.compute_pressure()
                 self.adjust_velocity()
                 # self.compute_pressure()
+            print("Time took: %.4f" % (time.time() - time1))
             self.interpolate_pedestrians()
 
     @staticmethod
