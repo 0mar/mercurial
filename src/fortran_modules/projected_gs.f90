@@ -36,7 +36,7 @@ w = matmul(M,x)+q
 it = 0
 
 ! Propagation
-do while ((any(w < -eps) .or. abs(dot_product(w,x))> eps .or. any(x < -eps)) .and. (it < max_it))
+do while ((any(w < -eps) .or. abs(dot_product(w,x))> eps) .and. (it < max_it))
     it = it + 1
     do i=1,n
         r = -q(i)-dot_product(M(i,:),x) + M(i,i)*x(i)
