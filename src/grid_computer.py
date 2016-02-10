@@ -119,6 +119,7 @@ class GridComputer:
         We have to anticipate the case of a singular matrix
         :return:
         """
+        time1 = time.time()
         nx = self.grid_dimension[0] - 2
         ny = self.grid_dimension[1] - 2
         flat_rho = self.density_field.without_boundary().flatten(order='F') + 0.1  # Solve when analysed the effects
@@ -135,11 +136,17 @@ class GridComputer:
                         - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
 
         b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
+        time2 = time.time()
         flat_p = pgs(-C * self.dt, b, self._last_solution)
+        time3 = time.time()
         self._last_solution = np.reshape(flat_p, (nx * ny, 1))
         dim_p = np.reshape(flat_p, (nx, ny), order='F')
 
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
+        time4 = time.time()
+        print("Step 1: Init matrices: %.4f"%(time2-time1))
+        print("Step 1: Doing PGS: %.4f"%(time3-time2))
+        print("Step 1: Reshaping and updating: %.4f"%(time4-time3))
 
     @staticmethod
     def solve_LCP_with_quad(M, q, _):
@@ -211,10 +218,13 @@ class GridComputer:
         :return: None
         """
         # Not using the update method.
+        time1 = time.time()
         well_shaped_x_grad = self.pressure_field.gradient('x')[:, 1:-1]
         well_shaped_y_grad = self.pressure_field.gradient('y')[1:-1, :]
         self.v_x.array -= well_shaped_x_grad
         self.v_y.array -= well_shaped_y_grad
+        print("Step 4: Applying pressure %.4f"%(time.time()-time1))
+
 
     def interpolate_pedestrians(self):
         """
@@ -268,12 +278,12 @@ class GridComputer:
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:
-            time1 = time.time()
+
             if self.apply_pressure:
                 self.compute_pressure()
                 self.adjust_velocity()
                 # self.compute_pressure()
-            print("Time took: %.4f" % (time.time() - time1))
+            # print("Time took: %.4f" % (time.time() - time1))
             self.interpolate_pedestrians()
 
     @staticmethod

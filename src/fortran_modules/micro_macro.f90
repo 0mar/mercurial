@@ -30,10 +30,10 @@ range_ = int(2.*h/(min(dx,dy))+1) ! depends on smoothing length
 do k=0,n-1
     x_cell = int(pos(k,0)/dx)
     y_cell = int(pos(k,1)/dy)
-    do i=x_cell-range_,x_cell+range_
-        if (i>=0 .and. i<=n_x-1) then
             do j=y_cell-range_,y_cell+range_
                 if (j>=0 .and. j<=n_y-1) then
+    do i=x_cell-range_,x_cell+range_
+        if (i>=0 .and. i<=n_x-1) then
                     ! Contributions of pedestrian k for cell (i,k)
                     x_center = (i+0.5)*dx
                     y_center = (j+0.5)*dy

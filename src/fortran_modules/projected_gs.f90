@@ -19,12 +19,12 @@ subroutine pgs(M,q,init_guess,x,n)
 implicit none
 integer n
 
-real ,dimension(n,n) :: M
+real ,dimension(n,n) :: M,M_T
 real ,dimension(n) :: q,w
 real ,dimension(n) :: x, init_guess
 real ,parameter  :: eps = 0.001
 integer it,i
-integer , parameter :: max_it = 10
+integer , parameter :: max_it = 1000
 real  :: r
 !f2py intent(in) M,q,init_guess
 !f2py intent(out) x
@@ -34,12 +34,12 @@ real  :: r
 x = init_guess
 w = matmul(M,x)+q
 it = 0
-
+M_T = transpose(M)
 ! Propagation
 do while ((any(w < -eps) .or. abs(dot_product(w,x))> eps) .and. (it < max_it))
     it = it + 1
     do i=1,n
-        r = -q(i)-dot_product(M(i,:),x) + M(i,i)*x(i)
+        r = -q(i)-dot_product(M_T(:,i),x) + M(i,i)*x(i)
         x(i) = max(0.,r/M(i,i))
     end do
     w = matmul(M,x)+q
