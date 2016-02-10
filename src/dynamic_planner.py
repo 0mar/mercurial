@@ -94,7 +94,6 @@ class DynamicPlanner:
                                                     (dx, dy))
             self.speed_field_dict[direction] = Field(shape, Field.Orientation.vertical_face,
                                                      'Unit field %s' % direction, (dx, dy))
-        self.get_obstacle_potential_field()
         self._compute_initial_interface()
         if self.show_plot:
             # Plotting hooks
@@ -118,6 +117,11 @@ class DynamicPlanner:
                     self.initial_interface[i, j] = 0
                     valid_exits[goal] = True
                     self.exit_cell_set.add((i, j))
+            for obstacle in self.scene.obstacle_list:
+                if not obstacle.accessible:
+                    if cell_center in obstacle:
+                        # self.initial_interface[i,j] = np.inf
+                        self.obstacle_cell_set.add((i, j))
         if not any(valid_exits.values()):
             raise RuntimeError("No cell centers in exit. Redo the scene")
         if not all(valid_exits.values()):
@@ -285,11 +289,11 @@ class DynamicPlanner:
         :return:
         """
         opposites = {'left': 'right', 'right': 'left', 'up': 'down', 'down': 'up'}
-        # This implementation is allowed to be naive: it's costly and should be implemented in C(++)
+        # This implementation is allowed to be naive: it's costly and should be implemented in FORTRAN
         # But maybe do a heap structure first?
         potential_field = self.initial_interface.copy()
         known_cells = self.exit_cell_set.copy()
-        unknown_cells = self.all_cells - known_cells  # - self.obstacle_cell_set
+        unknown_cells = self.all_cells - known_cells - self.obstacle_cell_set
         # All the inaccessible cells are not required.
 
         def get_new_candidate_cells(new_known_cells):  # Todo: Finalize list/set interfacing
@@ -297,7 +301,7 @@ class DynamicPlanner:
             for cell in new_known_cells:
                 for direction in ft.DIRECTIONS.values():
                     nb_cell = (cell[0] + direction[0], cell[1] + direction[1])
-                    if self._exists(nb_cell) and nb_cell not in known_cells:
+                    if self._exists(nb_cell) and nb_cell not in known_cells and nb_cell not in self.obstacle_cell_set:
                         new_candidate_cells.add(nb_cell)
             return new_candidate_cells
 
@@ -354,7 +358,9 @@ class DynamicPlanner:
 
         candidate_cells = {cell: compute_potential_cy(cell, potential_field, self.unit_field_dict, opposites)
                            for cell in get_new_candidate_cells(known_cells)}
+
         new_candidate_cells = get_new_candidate_cells(known_cells)
+        # Todo: Proposed improvement: new_candidate_cells = candidate_cells.keys()
         while unknown_cells:
             for candidate_cell in new_candidate_cells:
                 if False:
@@ -381,10 +387,13 @@ class DynamicPlanner:
         right_field = Field.get_with_offset(self.potential_field.array, 'right')
         assert self.pot_grad_x.array.shape == left_field.shape
         self.pot_grad_x.update((right_field - left_field) / self.dx)
+        self.pot_grad_x.array[np.logical_not(np.isfinite(self.pot_grad_x.array))] =0
         down_field = self.potential_field.array[:, :-1]
         up_field = Field.get_with_offset(self.potential_field.array, 'up')
         assert self.pot_grad_y.array.shape == up_field.shape
         self.pot_grad_y.update((up_field - down_field) / self.dy)
+        self.pot_grad_y.array[np.logical_not(np.isfinite(self.pot_grad_y.array))] =0
+
 
     def assign_velocities(self):
         """
