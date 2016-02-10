@@ -14,7 +14,7 @@ class Obstacle:
     and a permeability factor.
     """
 
-    def __init__(self, begin, size, name, margin, accessible=False):
+    def __init__(self, begin, size, name, margin, accessible=False, cell_size=None):
         """
         Constructor for the obstacle.
         :param begin: Point object with lower-left values of object
@@ -24,8 +24,14 @@ class Obstacle:
         :param accessible: whether pedestrians are able to go through this object
         :return: object instance.
         """
-        self.begin = begin
-        self.size = size
+        try:
+            new_begin = np.floor(begin.array / cell_size) * cell_size
+            new_end = np.ceil((begin.array + size.array) / cell_size) * cell_size
+            self.begin = Point(new_begin)
+            self.size = Point(new_end - new_begin)
+        except TypeError:
+            self.begin = begin
+            self.size = size
         self.end = self.begin + self.size
         self.name = name
         self.accessible = accessible

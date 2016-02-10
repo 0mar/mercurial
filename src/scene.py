@@ -124,11 +124,13 @@ class Scene:
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
         margin = self.config['general'].getfloat('margin')
+        cell_size = np.array([self.config['general'].getfloat('cell_size_x'),
+                              self.config['general'].getfloat('cell_size_y')])
         for obstacle_data in data["obstacles"]:
             begin = Point(self.size * obstacle_data['begin'])
             size = Size(self.size * obstacle_data['size'])
             name = obstacle_data["name"]
-            self.obstacle_list.append(Obstacle(begin, size, name, margin))
+            self.obstacle_list.append(Obstacle(begin, size, name, margin, cell_size=cell_size))
         if len(data['exits']) == 0:
             raise AttributeError('No exits specified in %s' % file_name)
         for exit_data in data['exits']:
@@ -143,7 +145,7 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            exit_obs = Exit(cap=cap, begin=begin, size=Size(size), name=name, margin=margin)
+            exit_obs = Exit(cap=cap, begin=begin, size=Size(size), name=name, margin=margin, cell_size=cell_size)
             self.exit_list.append(exit_obs)
             self.obstacle_list.append(exit_obs)
         for entrance_data in data['entrances']:
@@ -163,7 +165,7 @@ class Scene:
                 if size[dim] == 0.:
                     size[dim] = 1.
             entrance_obs = Entrance(begin=begin, size=Size(size), name=name, margin=margin,spawn_rate=spawn_rate,
-                                    max_pedestrians=max_pedestrians, start_time=start_time)
+                                    max_pedestrians=max_pedestrians, start_time=start_time, cell_size=cell_size)
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
         if len(data['entrances']):
