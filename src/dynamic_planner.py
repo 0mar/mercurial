@@ -78,6 +78,7 @@ class DynamicPlanner:
         self.potential_field = Field(shape, Field.Orientation.center, 'potential', (dx, dy))
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
+        self.compute_obstacle_potential_field()
 
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
@@ -128,7 +129,7 @@ class DynamicPlanner:
             ft.warn("%s not properly processed" % "/"
                     .join([repr(goal) for goal in self.scene.exit_list if not valid_exits[goal]]))
 
-    def get_obstacle_potential_field(self):
+    def compute_obstacle_potential_field(self):  # Todo: Rename
         """
         Compute the Gaussian-like potential field surrounding each obstacle
         We transform our kernel to an ellipsis to service the rectangular obstacles.
@@ -155,10 +156,8 @@ class DynamicPlanner:
 
         for (i, j) in np.ndindex(self.discomfort_field.array.shape):
             location = np.array([self.discomfort_field.x_range[i], self.discomfort_field.y_range[j]])
-            if self.scene.is_accessible(Point(location)):
-                self.discomfort_field.array[i, j] = 0
-            else:
-                self.discomfort_field.array[i, j] = 3
+            if not self.scene.is_accessible(Point(location)):
+                self.obstacle_discomfort_field[i - 1:i + 2, j - 1:j + 2] = 1
 
     def _exists(self, index, max_index=None):
         """
@@ -252,9 +251,9 @@ class DynamicPlanner:
         * Discomfort increases linearly between these values.
         :return: None
         """
-        # self.discomfort_field.update(
-        #    0 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
-        #                                                                              self.max_density))
+        self.discomfort_field.update(
+            self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
+                                                                                 self.max_density))
         pass
 
     def compute_random_discomfort_field(self):
@@ -424,28 +423,22 @@ class DynamicPlanner:
                                                                       self.scene.position_array,
                                                                       self.scene.velocity_array,
                                                                       self.scene.active_entries)
-        # time2 = time.time()
         self.density_field.update(dens_f)
         self.v_x.update(v_x_f)
         self.v_y.update(v_y_f)
         self.compute_discomfort_field()
-        #time3 = time.time()
 
         for direction in ft.DIRECTIONS:
             self.compute_speed_field(direction)
             self.compute_unit_cost_field(direction)
             # assert np.all(self.unit_field_dict[direction].array>0)
-        #time4 = time.time()
 
         self.compute_potential_field()
         self.compute_potential_gradient()
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
-        #time5 = time.time()
         self.scene.move_pedestrians()  # Todo: Decide to put this here or in simulation manager
-        # time6 = time.time()
-        #print("Timings:\n%s"%"\n".join(["%.4f"%number for number in [time2-time1,time6-time2]]))
         self.scene.correct_for_geometry()
         self.scene.find_finished_pedestrians()
 
