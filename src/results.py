@@ -46,9 +46,10 @@ class Result:
         self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
 
         self.max_speed = np.zeros(len(self.scene.pedestrian_list))
+        self.finished = np.zeros(len(self.scene.pedestrian_list))
 
         self.avg_mean_speed = 0
-        self.density = len(self.scene.pedestrian_list) / (self.scene.size.width * self.scene.size.height)
+        self.density = len(self.scene.pedestrian_list) / (self.scene.size[0] * self.scene.size[1])
         self.origins = np.zeros([len(self.scene.pedestrian_list), 2])
 
 
@@ -105,6 +106,7 @@ class Result:
         self.mean_speed = self.path_length / self.time_spent
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
+        self.finished = np.invert(self.scene.active_entries).astype(int)
         self.write_matlab_results()
 
     def write_results(self):
@@ -137,7 +139,8 @@ class Result:
                                      "origins": self.origins,
                                      "avg_mean_speed": self.avg_mean_speed,
                                      "paths_list": self.paths_list,
-                                     "mean_speed": self.mean_speed})
+                                     "mean_speed": self.mean_speed,
+                                     "finished": self.finished})
 
     def write_density_results(self, filename):
         import os

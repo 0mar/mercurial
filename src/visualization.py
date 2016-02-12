@@ -2,7 +2,7 @@ __author__ = 'omar'
 import tkinter
 
 import numpy as np
-
+import time
 import functions as ft
 from geometry import Point, Size, LineSegment, Path
 
@@ -24,14 +24,14 @@ class VisualScene:
             [self.config['visual'].getfloat('screen_size_x'), self.config['visual'].getfloat('screen_size_y')])
         self.scene = scene
         self.autoloop = True
-        self.draws_cells = True
+        self.draws_cells = False
         self.delay = self.config['visual'].getint('time_delay')
         self.nx = int(self.config['general'].getint('scene_size_x') / self.config['general'].getint('cell_size_x'))
         self.ny = int(self.config['general'].getint('scene_size_y') / self.config['general'].getint('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
-        self.window.bind("<Button-3>", self._provide_information)
+        self.window.bind("<Button-3>", self.store_scene)
         self.canvas = tkinter.Canvas(self.window, width=init_size[0], height=init_size[1])
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
         self.canvas.delete('all')
@@ -80,6 +80,10 @@ class VisualScene:
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         scene_point = Point([x * self.scene.size[0], y * self.scene.size[1]])
         ft.log("Mouse location: %s" % scene_point)
+        for pedestrian in self.scene.pedestrian_list:
+            print(pedestrian)
+        for obstacle in self.scene.obstacle_list:
+            print(obstacle)
 
     def draw_scene(self):
         """
@@ -106,7 +110,7 @@ class VisualScene:
             name = "scene#%d" % time.time()
             filename = "%s/%s-%.2f.eps" % (directory, name, self.scene.time)
         print("storing in %s" % filename)
-        self.canvas.postscript(file=filename, pageheight=self.size.height, pagewidth=self.size[0])
+        self.canvas.postscript(file=filename, pageheight=self.size[1], pagewidth=self.size[0])
 
     def draw_pedestrians(self):
         """
@@ -206,8 +210,11 @@ class VisualScene:
 class NoVisualScene(VisualScene):
     def __init__(self, scene):
         self.scene = scene
+        self.time = time.time()
 
     def start(self):
         while not self.scene.status == 'DONE':
             self.step_callback()
+            ft.log("Iteration took %.4f seconds" % (time.time() - self.time))
             ft.log("Time step %d" % self.scene.counter)
+            self.time = time.time()

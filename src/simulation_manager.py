@@ -71,6 +71,8 @@ class SimulationManager:
             self.finish_functions.append(self.store_exit_logs)
 
         if args.results:
+            if args.dynamic:
+                GraphPlanner(self.scene)  # Create paths for reference
             results = Result(self.scene)
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
