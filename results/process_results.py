@@ -29,10 +29,7 @@ class Processor:
                         setattr(self, key, res_dict[key])
 
             self.result = MockResult(result_dict)
-            # one time hack
-            self.result.finished = np.ones([10000], dtype=bool)
-            unfinished = [129, 715, 1575, 2166, 3630, 3713, 4513, 5163, 5850, 7753, 8220, 9379, 9573, 9764, 9804]
-            self.result.finished[unfinished] = 0
+            self.result.finished = self.result.finished.astype(bool).flatten()
         else:
             self.result = result
 
@@ -70,7 +67,7 @@ class Processor:
 
     def time_spent_histogram(self):
         if self.result.time_spent.size > 1:
-            time = self.result.time_spent.T / self.dt
+            time = (self.result.time_spent.flatten()[self.result.finished] / self.dt).T
             plt.hist(time, bins=50)
             plt.xlabel('Time steps to reach exit')
             plt.ylabel('Number of pedestrians')

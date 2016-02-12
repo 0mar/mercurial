@@ -106,7 +106,7 @@ class Result:
         self.mean_speed = self.path_length / self.time_spent
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
-        self.finished = np.invert(self.scene.active_entries).astype(int)
+        self.finished = np.invert(self.scene.active_entries).astype(bool)
         self.write_matlab_results()
 
     def write_results(self):
