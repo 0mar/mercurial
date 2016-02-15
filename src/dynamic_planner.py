@@ -61,7 +61,9 @@ class DynamicPlanner:
 
         # This is dependent on cell size, because of the discretization
         self.min_density = self.config['dynamic'].getfloat('min_density')
-        self.max_density = self.config['dynamic'].getfloat('max_density')
+        # assume round pedestrian, max density comes from packing formula
+        self.max_density = 1.3  # /(self.scene.core_distance**2*np.sqrt(3)*1.4)
+        # Something goes wrong in normalization. Should check this later
 
         self.density_exponent = self.config['dynamic'].getfloat('density_exponent')
         self.density_threshold = (1 / 2) ** self.density_exponent
@@ -96,9 +98,30 @@ class DynamicPlanner:
             self.speed_field_dict[direction] = Field(shape, Field.Orientation.vertical_face,
                                                      'Unit field %s' % direction, (dx, dy))
         self._compute_initial_interface()
+        if not ft.VERBOSE:
+            np.seterr(invalid='ignore')
         if self.show_plot:
             # Plotting hooks
-            f, self.graphs = plt.subplots(2, 2)
+            self.figure, self.axes = plt.subplots(1, 3)
+            self.cbars = [None, None, None]
+            self.images = [None, None, None]
+
+            self.images[0] = self.axes[0].imshow(np.rot90(self.density_field.array))
+            self.axes[0].set_title('Density')
+            self.cbars[0] = self.figure.colorbar(self.images[0], ax=self.axes[0])
+
+            self.images[1] = self.axes[1].imshow(np.rot90(self.discomfort_field.array))
+            self.axes[1].set_title('Discomfort')
+            self.cbars[1] = self.figure.colorbar(self.images[1], ax=self.axes[1])
+
+            self.images[2] = self.axes[2].imshow(np.rot90(self.potential_field.array))
+            self.axes[2].set_title('Potential field')
+            self.cbars[2] = self.figure.colorbar(self.images[2], ax=self.axes[2])
+
+            # self.axes[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1],
+            #                          self.potential_field.mesh_grid[1][1:-1, 1:-1],
+            #                          ft.normalize(self.pot_grad_x.array[:, 1:-1]),
+            #                          ft.normalize(self.pot_grad_y.array[1:-1, :]), scale=1, scale_units='xy')
             plt.show(block=False)
 
     def _compute_initial_interface(self):
@@ -252,7 +275,7 @@ class DynamicPlanner:
         :return: None
         """
         self.discomfort_field.update(
-            self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
+            0.5 * self.obstacle_discomfort_field + 1.0 * self.density_field.normalized(self.min_density,
                                                                                  self.max_density))
         pass
 
@@ -424,6 +447,8 @@ class DynamicPlanner:
                                                                       self.scene.velocity_array,
                                                                       self.scene.active_entries)
         self.density_field.update(dens_f)
+        ft.debug(np.max(dens_f))
+        ft.debug(self.max_density)
         self.v_x.update(v_x_f)
         self.v_y.update(v_y_f)
         self.compute_discomfort_field()
@@ -447,16 +472,11 @@ class DynamicPlanner:
         Plots the grid values density, discomfort and potential
         :return: None
         """
-        for graph in self.graphs.flatten():
-            graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
-        self.graphs[0, 0].set_title('Density')
-        self.graphs[1, 0].imshow(np.rot90(self.discomfort_field.array))
-        self.graphs[1, 0].set_title('Discomfort')
-        self.graphs[0, 1].imshow(np.rot90(self.potential_field.array))
-        self.graphs[0, 1].set_title('Potential field')
-        self.graphs[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1],
-                                 self.potential_field.mesh_grid[1][1:-1, 1:-1],
-                                 ft.normalize(self.potential_field.gradient('x')[:, 1:-1]),
-                                 ft.normalize(self.potential_field.gradient('y')[1:-1, :]), scale=1, scale_units='xy')
+        self.images[0] = self.axes[0].imshow(np.rot90(self.density_field.array))
+        self.cbars[0].set_clim(np.min(self.density_field.array), np.max(self.density_field.array))
+        self.images[1] = self.axes[1].imshow(np.rot90(self.discomfort_field.array))
+        self.cbars[1].update_normal(self.images[1])
+        self.images[2] = self.axes[2].imshow(np.rot90(self.potential_field.array))
+        self.cbars[2].update_normal(self.images[2])
+        self.figure.canvas.draw()
         plt.show(block=False)
