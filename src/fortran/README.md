@@ -3,7 +3,7 @@
 This directory contains FORTRAN 90 code used in *Mercurial*. 
 Compiling happens using the command `python3 setup.py install`.
 Alternatively, for debugging or extending the modules, any FORTRAN compiler should work.
-However, these modules have been tested using `f2py` (included in `numpy`) and `gfortran`).
+However, these modules have been tested using `f2py` (included in `numpy`) and `gfortran`.
 
 ## Syntax ##
 

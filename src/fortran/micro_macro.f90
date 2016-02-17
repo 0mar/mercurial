@@ -23,8 +23,8 @@ real (kind=8), external :: weight_function
 dens=0
 v_x=0
 v_y=0
-h = sqrt(dx*dx+dy*dy)*3/4
-range_ = int(2.*h/(min(dx,dy))+1) ! depends on smoothing length
+h = sqrt(dx*dx+dy*dy)*3/2
+range_ = int(2.*h/(min(dx,dy))+1) ! depends on smoothing length, but not correct yet I think
 
 !Computing interpolations
 do k=0,n-1
