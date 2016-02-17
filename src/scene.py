@@ -8,9 +8,7 @@ import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval
 from obstacles import Obstacle, Entrance, Exit
-from cython_modules.mde_cy import minimum_distance_enforcement
 from fortran_modules.mde import compute_mde
-
 
 class Scene:
     """
@@ -39,14 +37,16 @@ class Scene:
 
         self.config = config
         self.load_config()
+        self.core_distance = self.minimal_distance +self.pedestrian_size[0] # Distance between ped centers
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
         self.velocity_array = np.zeros([self.total_pedestrians, 2])
         self.max_speed_array = np.empty(self.total_pedestrians)
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
-        self.max_speed_array = self.max_speed_interval.begin + \
-                               np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
+        # self.max_speed_array = self.max_speed_interval.begin + \
+        #                        np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
+        self.max_speed_array = np.random.randn(self.position_array.shape[0])*0.15+1.4
         self.pedestrian_list = []
         self._init_pedestrians(self.total_pedestrians)
         self.index_map = {i: self.pedestrian_list[i] for i in range(self.total_pedestrians)}
@@ -253,13 +253,11 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
-            if True:
+            try:
                 self.position_array += compute_mde(self.position_array, self.size[0], self.size[1],
-                                                   self.active_entries, self.minimal_distance)
-            else:
-                self.position_array += minimum_distance_enforcement(self.size.array, self.position_array,
-                                                                self.active_entries,
-                                                                self.minimal_distance)
+                                                   self.active_entries, self.core_distance)
+            except Exception as e:
+                ft.warn("Fortran error: %s"%e)
 
     def correct_for_geometry(self):
         """
