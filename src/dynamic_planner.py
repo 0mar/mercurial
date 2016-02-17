@@ -11,11 +11,8 @@ import operator
 import functions as ft
 from geometry import Point
 from scalar_field import ScalarField as Field
-# from cython_modules.dynamic_planner_cy import compute_density_and_velocity_field
-from fortran_modules.grid_computer import comp_dens_velo
-from cython_modules.grid_computer_cy import compute_density_and_velocity_field
-from cython_modules.dynamic_planner_cy import compute_potential_cy
-
+from fortran_modules.micro_macro import comp_dens_velo
+from fortran_modules.dynamic_planner_cy import compute_potential_cy
 
 class DynamicPlanner:
     """
@@ -62,7 +59,7 @@ class DynamicPlanner:
         # This is dependent on cell size, because of the discretization
         self.min_density = self.config['dynamic'].getfloat('min_density')
         # assume round pedestrian, max density comes from packing formula
-        self.max_density = 1.3  # /(self.scene.core_distance**2*np.sqrt(3)*1.4)
+        self.max_density = 0.4  # /(self.scene.core_distance**2*np.sqrt(3)*1.4)
         # Something goes wrong in normalization. Should check this later
 
         self.density_exponent = self.config['dynamic'].getfloat('density_exponent')
@@ -102,26 +99,7 @@ class DynamicPlanner:
             np.seterr(invalid='ignore')
         if self.show_plot:
             # Plotting hooks
-            self.figure, self.axes = plt.subplots(1, 3)
-            self.cbars = [None, None, None]
-            self.images = [None, None, None]
-
-            self.images[0] = self.axes[0].imshow(np.rot90(self.density_field.array))
-            self.axes[0].set_title('Density')
-            self.cbars[0] = self.figure.colorbar(self.images[0], ax=self.axes[0])
-
-            self.images[1] = self.axes[1].imshow(np.rot90(self.discomfort_field.array))
-            self.axes[1].set_title('Discomfort')
-            self.cbars[1] = self.figure.colorbar(self.images[1], ax=self.axes[1])
-
-            self.images[2] = self.axes[2].imshow(np.rot90(self.potential_field.array))
-            self.axes[2].set_title('Potential field')
-            self.cbars[2] = self.figure.colorbar(self.images[2], ax=self.axes[2])
-
-            # self.axes[1, 1].quiver(self.potential_field.mesh_grid[0][1:-1, 1:-1],
-            #                          self.potential_field.mesh_grid[1][1:-1, 1:-1],
-            #                          ft.normalize(self.pot_grad_x.array[:, 1:-1]),
-            #                          ft.normalize(self.pot_grad_y.array[1:-1, :]), scale=1, scale_units='xy')
+            f, self.graphs = plt.subplots(1,3)
             plt.show(block=False)
 
     def _compute_initial_interface(self):
@@ -437,15 +415,9 @@ class DynamicPlanner:
         :return: None
         """
         time1 = time.time()
-        if True:  # FORTRAN implementation. Set False for Cython implementation
-            dens_f, v_x_f, v_y_f = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
-                                                  self.scene.active_entries, self.grid_dimension[0],
-                                                  self.grid_dimension[1], self.dx, self.dy)
-        else:
-            dens_f, v_x_f, v_y_f = compute_density_and_velocity_field(self.grid_dimension, np.array([self.dx, self.dy]),
-                                                                      self.scene.position_array,
-                                                                      self.scene.velocity_array,
-                                                                      self.scene.active_entries)
+        dens_f, v_x_f, v_y_f = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
+                                              self.scene.active_entries, self.grid_dimension[0],
+                                              self.grid_dimension[1], self.dx, self.dy)
         self.density_field.update(dens_f)
         ft.debug(np.max(dens_f))
         ft.debug(self.max_density)
@@ -465,18 +437,29 @@ class DynamicPlanner:
             self.plot_grid_values()
         self.scene.move_pedestrians()  # Todo: Decide to put this here or in simulation manager
         self.scene.correct_for_geometry()
+        self.nudge_stationary_pedestrians()
         self.scene.find_finished_pedestrians()
+
+    def nudge_stationary_pedestrians(self):
+        stat_ped_array = self.scene.get_stationary_pedestrians()
+        num_stat = np.sum(stat_ped_array)
+        if num_stat>0:
+            nudge = np.random.random((num_stat,2))-0.5
+            correction = self.scene.max_speed_array[stat_ped_array][:,None]*nudge
+            self.scene.position_array[stat_ped_array] += correction
+            self.scene.correct_for_geometry()
 
     def plot_grid_values(self):
         """
         Plots the grid values density, discomfort and potential
         :return: None
         """
-        self.images[0] = self.axes[0].imshow(np.rot90(self.density_field.array))
-        self.cbars[0].set_clim(np.min(self.density_field.array), np.max(self.density_field.array))
-        self.images[1] = self.axes[1].imshow(np.rot90(self.discomfort_field.array))
-        self.cbars[1].update_normal(self.images[1])
-        self.images[2] = self.axes[2].imshow(np.rot90(self.potential_field.array))
-        self.cbars[2].update_normal(self.images[2])
-        self.figure.canvas.draw()
+        for graph in self.graphs.flatten():
+            graph.cla()
+        self.graphs[0].imshow(np.rot90(self.density_field.array))
+        self.graphs[0].set_title('Density')
+        self.graphs[1].imshow(np.rot90(self.discomfort_field.array))
+        self.graphs[1].set_title('Discomfort')
+        self.graphs[2].imshow(np.rot90(self.potential_field.array))
+        self.graphs[2].set_title('Potential field')
         plt.show(block=False)
