@@ -22,7 +22,7 @@ The repository can be cloned using the link above, or with
 
 `git clone https://github.com/0mar/crowd_simulation.git`
 
-Move into the source directory and Build the library objects with 
+Move into the source directory and build the library objects with 
 
 `python3 setup.py install`
 
@@ -40,9 +40,12 @@ An example file with a set of regular parameters is provided in `configs/default
 * Structure
 
 The simulation source files are located in `src`. Simulation results are stored in `results` and can be processed by running `process_results.py`.
+
 Example scenes files are stored in `scenes`. Scenes can be created manually or by using the (simple) tool `create_scene.py`, located in the `src` folder.
+
 Other preset configuration files (corresponding to several test cases in the project) are present in the `configs` folder.
-Profiling the code is possible with `get_profile.sh` and `view_profile.sh` provided these scripts are run in a UNIX-environment with `gprof2dot`,`dot`,and `profile_eye` are installed.
+
+Finally, profiling the code is possible with `get_profile.sh` and `view_profile.sh` provided these scripts are run in a UNIX-environment with `gprof2dot`,`dot`,and `profile_eye` are installed.
 * Dependencies
 
 This project depends on the following external libraries:
@@ -82,6 +85,10 @@ Since the indicative path planner computes intermediate locations for the pedest
 #### Slowness of QP solver for larger grids ####
 
 The default cell size for the grid computer is 50 times 50, quite coarse. A sparse matrix implementation should solve this.
+
+#### Memory allocation error/Segfault ###
+
+When using the minimal distance enforcement, for large and dense crowds sometimes the FORTRAN module crashes. This is being looked at. For now, if this poses a problem, the minimal distance enforcement can be disabled in the configuration file.
 
 ### Contribution guidelines ###
 
