@@ -46,7 +46,8 @@ class Scene:
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
         # self.max_speed_array = self.max_speed_interval.begin + \
         #                        np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
-        self.max_speed_array = np.random.randn(self.position_array.shape[0])*0.15+1.4
+        self.max_speed_array = np.random.randn(self.position_array.shape[0])*0.15+1.4 #Todo: Fix in config file
+
         self.pedestrian_list = []
         self._init_pedestrians(self.total_pedestrians)
         self.index_map = {i: self.pedestrian_list[i] for i in range(self.total_pedestrians)}

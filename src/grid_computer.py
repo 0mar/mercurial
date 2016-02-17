@@ -5,9 +5,8 @@ matplotlib.use('TkAgg')
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from fortran_modules.grid_computer import comp_dens_velo
-from fortran_modules.pgs import pgs
-from cython_modules.grid_computer_cy import compute_density_and_velocity_field, solve_LCP_with_pgs
+from fortran_modules.micro_macro import comp_dens_velo
+from fortran_modules.pgs_solver import pgs
 from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft
@@ -41,9 +40,8 @@ class GridComputer:
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.dt = self.scene.dt
         self.packing_factor = scene.config['dynamic'].getfloat('packing_factor')
-        self.min_distance = scene.config['general'].getfloat('minimal_distance')
-        self.max_density = 2 * self.packing_factor / \
-                           (np.sqrt(3) * self.min_distance ** 2)
+        self.max_density =  self.packing_factor / \
+                           (np.sqrt(3) * self.scene.core_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
@@ -144,9 +142,9 @@ class GridComputer:
 
         self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
         time4 = time.time()
-        print("Step 1: Init matrices: %.4f"%(time2-time1))
-        print("Step 1: Doing PGS: %.4f"%(time3-time2))
-        print("Step 1: Reshaping and updating: %.4f"%(time4-time3))
+        ft.debug("Step 1: Init matrices: %.4f"%(time2-time1))
+        ft.debug("Step 1: Doing PGS: %.4f"%(time3-time2))
+        ft.debug("Step 1: Reshaping and updating: %.4f"%(time4-time3))
 
     @staticmethod
     def solve_LCP_with_quad(M, q, _):
@@ -223,7 +221,7 @@ class GridComputer:
         well_shaped_y_grad = self.pressure_field.gradient('y')[1:-1, :]
         self.v_x.array -= well_shaped_x_grad
         self.v_y.array -= well_shaped_y_grad
-        print("Step 4: Applying pressure %.4f"%(time.time()-time1))
+        ft.debug("Step 4: Applying pressure %.4f"%(time.time()-time1))
 
 
     def interpolate_pedestrians(self):
@@ -259,22 +257,15 @@ class GridComputer:
         :return: None
         """
         if self.apply_interpolation or self.show_plot:
-            if False:  # Todo: Integrate fortran modules
-                density_field, v_x, v_y = compute_density_and_velocity_field(self.grid_dimension,
-                                                                             self.scene.size.array,
-                                                                             self.scene.position_array,
-                                                                             self.scene.velocity_array,
-                                                                             self.scene.active_entries)
-            else:
-                n_x, n_y = self.grid_dimension
-                dx, dy = self.scene.size.array / self.grid_dimension
-                density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
-                                                         self.scene.active_entries, n_x, n_y, dx, dy)
+            n_x, n_y = self.grid_dimension
+            dx, dy = self.scene.size.array / self.grid_dimension
+            density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
+                                                     self.scene.active_entries, n_x, n_y, dx, dy) # Todo: fix smoothing length
             self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
-            ft.debug(self.max_density)
-            ft.debug(self.density_field)
+            ft.debug("Max allowed density: %.4f"%self.max_density)
+            ft.debug("Max observed density: %.4f"%np.max(self.density_field.array))
             if self.show_plot:
                 self.plot_grid_values()
         if self.apply_interpolation:
