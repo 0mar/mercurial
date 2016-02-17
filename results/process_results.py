@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 __author__ = 'omar'
 import sys
+import os
 
 sys.path.insert(0, '../src')
 import scipy.io as sio
@@ -11,16 +12,17 @@ import functions as ft
 
 
 class Processor:
-    def __init__(self, result=None):
+    def __init__(self, result=None,filename=None):
         if not result:
-            filename = "results.mat"
+            if not filename:
+                filename = "results.mat"
             self.s = 100
             self.norm_l = -0.1
             self.norm_u = 1
             self.alpha = 0.6
             self.dt = 0.05
             self.clip = False
-            ft.log("No results passed, reading from %s" % filename)
+            ft.log("Reading from %s" % filename)
             result_dict = sio.loadmat(filename)
 
             class MockResult:
@@ -42,7 +44,7 @@ class Processor:
         positions = self.result.origins[self.result.finished]
         plt.scatter(x=positions[:, 0], y=positions[:, 1], c=delay, s=self.s, norm=norm, alpha=self.alpha)
         # plt.xlim(-10, 80)
-        #plt.ylim(40, 80)
+        # plt.ylim(40, 80)
         plt.xlabel('x-coordinate of scene')
         plt.ylabel('y-coordinate of scene')
         plt.suptitle('Average relative delay as a function of initial location')
@@ -58,7 +60,7 @@ class Processor:
         positions = self.result.origins[self.result.finished]
         plt.scatter(positions[:, 0], positions[:, 1], c=time, s=self.s, norm=norm, alpha=self.alpha)
         # plt.xlim(-10, 80)
-        #plt.ylim(45, 80)
+        # plt.ylim(45, 80)
         plt.xlabel('x-coordinate of scene')
         plt.ylabel('y-coordinate of scene')
         plt.suptitle('Time to exit in seconds as a function of initial location')
@@ -76,8 +78,27 @@ class Processor:
         else:
             ft.warn("No histogram made, insufficient data set (size %d)" % len(self.result.time_spent))
 
+    def path_length_histogram(self):
+        if self.result.path_length.size > 1:
+            # Consistent with time histogram
+            path = (self.result.path_length.flatten()[self.result.finished] / self.dt).T
+            plt.hist(path, bins=50)
+            plt.xlabel('Time steps to reach exit')
+            plt.ylabel('Number of pedestrians')
+            plt.suptitle('Histogram of pedestrian distance time')
+            plt.show()
+        else:
+            ft.warn("No histogram made, insufficient data set (size %d)" % len(self.result.time_spent))
+
+
 if __name__ == '__main__':
-    proc = Processor()
+    filename = None
+    if len(sys.argv)>1:
+        filename = sys.argv[1]
+        if not os.path.exists(filename):
+            ft.error("Result file %s does not exist"%filename)
+    proc = Processor(filename=filename)
     proc.time_spent_histogram()
+    proc.path_length_histogram()
     proc.delay_scatter_plot()
     proc.time_scatter_plot()

@@ -77,9 +77,10 @@ class Result:
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
         self.path_length[np.where(self.scene.active_entries)] += distance[np.where(self.scene.active_entries)]
         for pedestrian in self.scene.pedestrian_list:
-            if self.scene.active_entries[pedestrian.counter]:
-                # Comment out if not needed.
-                self.paths_list[pedestrian.counter].append(pedestrian.position.array)
+            if self.scene.active_entries[pedestrian.index]:
+                # Comment out if not needed. Lots of memory
+                self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy()) # AAH!
+                # Without copy(), we get a reference (even though we slice the array...)
 
     def on_pedestrian_exit(self, pedestrian):
         """
@@ -101,12 +102,12 @@ class Result:
                 ft.warn("No pedestrian reached exit. No valid observed path information obtained")
             else:
                 self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries)] / \
-                                         self.path_length[np.invert(self.scene.active_entries)]
+                                         self.path_length[np.logical_not(self.scene.active_entries)]
                 self.avg_path_length_ratio = np.mean(self.path_length_ratio)
-        self.mean_speed = self.path_length / self.time_spent
+        self.mean_speed = self.planned_path_length/ self.time_spent
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
-        self.finished = np.invert(self.scene.active_entries).astype(bool)
+        self.finished = np.logical_not(self.scene.active_entries)
         self.write_matlab_results()
 
     def write_results(self):
@@ -129,7 +130,7 @@ class Result:
         Stores result in binary matlab file
         :return: None
         """
-        filename = self.result_dir + 'results'
+        filename = self.result_dir + 'results'+self.scene.config['general']['number_of_pedestrians']
         sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
                                      "path_length": self.path_length,
                                      "path_length_ratio": self.path_length_ratio,
