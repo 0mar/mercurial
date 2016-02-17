@@ -7,28 +7,42 @@ This document provides an overview for setting up and running the prototype crow
 * Quick summary
 
 This repository is a private repository for a project on Crowd Dynamics simulation, managed by Omar Richardson.
-The simulation is written in Python and relies on some Cython modules to increase computation speed.
+The simulation is written in Python and relies on some Cython and FORTRAN90 modules to increase computation speed.
 
 * Version
 
 This simulation is under active development. 
-Any information on simulation techniques and features can be found in the included LaTeX file.
+Any information on simulation techniques and features is present in the (currently not disclosed) graduation report.
 
 ### How do I get set up? ###
 
-* Summary of set up
+* Summary of setup
 
-The repository can be cloned using the link above. Build the library objects and use python 3.4 or higher to run the application.
-All source files are collected in folder `src/`.
-Create the shared library objects with `python3 setup.py build_ext --build-lib=src/cython_modules`
-The simulation can then be run like so: `python3 main.py`. 
+The repository can be cloned using the link above, or with 
+
+`git clone https://github.com/0mar/crowd_simulation.git`
+
+Move into the source directory and Build the library objects with 
+
+`python3 setup.py install`
+
+After that, the simulation is ready to be run with the command
+
+`python3 main.py`. 
+
 Additional command line arguments can be inspected by appending `-h`.
 
 * Configuration
 
 All free parameters not provided on the command line can be set in a configuration file.
-An example file with a set of regular parameters is provided in `config.ini`.
+An example file with a set of regular parameters is provided in `configs/default.ini`.
 
+* Structure
+
+The simulation source files are located in `src`. Simulation results are stored in `results` and can be processed by running `process_results.py`.
+Example scenes files are stored in `scenes`. Scenes can be created manually or by using the (simple) tool `create_scene.py`, located in the `src` folder.
+Other preset configuration files (corresponding to several test cases in the project) are present in the `configs` folder.
+Profiling the code is possible with `get_profile.sh` and `view_profile.sh` provided these scripts are run in a UNIX-environment with `gprof2dot`,`dot`,and `profile_eye` are installed.
 * Dependencies
 
 This project depends on the following external libraries:
@@ -40,7 +54,7 @@ This project depends on the following external libraries:
 - `cvxopt`
 - `cython`
 
-Each of these libraries can be installed using the `pip3` command.
+Each of these libraries can be installed using python's package installer `pip3` command.
 
 * How to run tests
 
@@ -51,10 +65,7 @@ The coverage of the tests highly varies per module. Feel free to contribute to u
 
 - Increased pedestrian capacity
 - Increased computational speed
-- Dynamic planner module
-- Alternative LCP solver, based on Projected Gauss Seidel iterations
-- Multiple exits
-- Entrances
+- Introduced fortran90 modules
 - Result processing
 - Bug fixes
 
@@ -63,23 +74,14 @@ The coverage of the tests highly varies per module. Feel free to contribute to u
 
 This simulation has quite some points for improvement. Known issues include:
 
-#### Dynamic planner speed directions ####
-
-For large crowds, the speed computation of the dynamic planner becomes unstable and pedestrians are observed congregating in waves. This is especially noticed around entrances with a high pedestrian output
 #### Path planning checkpoint congestion ####
 
 Since the indicative path planner computes intermediate locations for the pedestrians to follow until they reach the goal
  and many pedestrians share the same indicative path, congestion and brawls occur when too many pedestrians approach the same obstacle.
-  
-#### Pressure driving pedestrians up walls ####
 
- While the simulation deals with stuck pedestrians, sometimes the pressure pushes pedestrians into walls or obstacles.
-  Sometimes this means pedestrians are stationary until the density reduces to normal proportions, but in some configurations a 
-  dead lock can occur, in which a group of pedestrians is unable to because of a pressure caused by the group itself.
 #### Slowness of QP solver for larger grids ####
 
-The default cell size for the grid computer is 20 times 20, quite coarse. However, larger grids have their impact on the 
-simulation speed.
+The default cell size for the grid computer is 50 times 50, quite coarse. A sparse matrix implementation should solve this.
 
 ### Contribution guidelines ###
 
