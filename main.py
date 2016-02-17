@@ -25,7 +25,7 @@ parser.add_argument('-c', '--configuration', type=str, choices=['uniform', 'top'
                     default='uniform',
                     help='Specify configuration of pedestrian initialization')
 parser.add_argument('--draw-cells', action='store_true', help='Draw the boundaries and cell centers of the cells')
-parser.add_argument('-f', '--config-file', type=str, default='config.ini', help='Specify configuration file to be used')
+parser.add_argument('-f', '--config-file', type=str, default='configs/default.ini', help='Specify configuration file to be used')
 parser.add_argument('-r', '--results', action='store_true', help='Log results of simulation to disk')
 parser.add_argument('--store-positions', action='store_true', help='Store positions at some time steps')
 
