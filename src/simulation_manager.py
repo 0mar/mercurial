@@ -14,7 +14,6 @@ from results import Result
 from static_planner import GraphPlanner
 from exp_planner import ExponentialPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
-from skeleton_planner import SkeletonPlanner
 
 
 class SimulationManager:

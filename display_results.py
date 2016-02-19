@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = 'omar'
 import sys, os
 import numpy as np
@@ -21,7 +22,7 @@ class Displayer:
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.canvas = tkinter.Canvas(self.window)
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.time_step = 0.1
+        self.time_step = 0.05
         self.read_json_file(filename)
         self.window.bind("<Button-1>", self.info)
         self.window.bind("<Button-3>", self.picture)
