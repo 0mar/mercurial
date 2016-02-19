@@ -1,5 +1,5 @@
 from distutils.core import setup
-
+import os
 from numpy.distutils.core import Extension
 from numpy.distutils.core import setup as npsetup
 from Cython.Build import cythonize
@@ -9,6 +9,8 @@ micro_macro = Extension(name='micro_macro', sources=['src/fortran/micro_macro.f9
 pgs_solver = Extension(name='pgs_solver', sources=['src/fortran/projected_gs.f90'])
 
 if __name__ == "__main__":
+    if not os.path.exists('images'):
+        os.makedirs('images')
     npsetup(name='FORTRAN modules',
             description="FORTRAN modules for Mercurial",
             author="Omar Richardson",
