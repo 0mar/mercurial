@@ -445,7 +445,7 @@ class DynamicPlanner:
         num_stat = np.sum(stat_ped_array)
         if num_stat>0:
             nudge = np.random.random((num_stat,2))-0.5
-            correction = self.scene.max_speed_array[stat_ped_array][:,None]*nudge
+            correction = self.scene.max_speed_array[stat_ped_array][:, None] * nudge * self.scene.dt
             self.scene.position_array[stat_ped_array] += correction
             self.scene.correct_for_geometry()
 
