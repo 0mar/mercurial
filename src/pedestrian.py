@@ -66,9 +66,9 @@ class Pedestrian(object):
             return 'blue'
         max_val = 255
         speed = self.scene.max_speed_array[self.index]
-        red = max_val * (speed - start) / (end - start)
+        red = int(max_val * (speed - start) / (end - start))
         green = 0
-        blue = max_val * (speed - end) / (start - end)
+        blue = int(max_val * (speed - end) / (start - end))
         return "#%02x%02x%02x" % (red, green, blue)
 
 
