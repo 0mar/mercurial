@@ -10,7 +10,7 @@ from fortran_modules.pgs_solver import pgs
 from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft
-
+from geometry import Point
 
 class GridComputer:
     """
@@ -52,6 +52,9 @@ class GridComputer:
         self.apply_pressure = apply_pressure
         dx, dy = self.dx, self.dy
         shape = self.grid_dimension
+        self.obstacle_coverage = np.zeros(shape)
+        self._get_obstacle_coverage()
+        print(self.obstacle_coverage)
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
@@ -62,6 +65,28 @@ class GridComputer:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
+
+    def _get_obstacle_coverage(self, precision=6):
+        """
+        Compute the fraction of the cells covered with obstacles
+        Since an exact computation involves either big shot linear algebra
+        or too much case distinctions, we sample the cell space.
+        :param precision: row number of samples per cell. More samples, more precision.
+        :return: an array approximating the inaccessible space in the cells
+        """
+        covered_samples = 0
+        num_samples = (precision, precision)
+        size = Point([self.dx, self.dy])
+        for row, col in np.ndindex(self.obstacle_coverage.shape):
+            covered_samples = 0
+            begin = Point([row * self.dx, col * self.dy])
+            for i, j in np.ndindex(num_samples):
+                for obstacle in self.scene.obstacle_list:
+                    if not obstacle.accessible:
+                        if begin + Point([i + 0.5, j + 0.5] / np.array(num_samples)) * size in obstacle:
+                            covered_samples += 1
+                            break
+            self.obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
 
     def _create_base_matrices(self):
         """
@@ -92,7 +117,7 @@ class GridComputer:
         """
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
+        self.graphs[0, 0].imshow(np.rot90(self.obstacle_coverage))
         self.graphs[0, 0].set_title('Density')
         self.graphs[1, 0].imshow(np.rot90(self.pressure_field.array))
         self.graphs[1, 0].set_title('Pressure')

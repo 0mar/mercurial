@@ -34,6 +34,7 @@ class Scene:
         # Parameter initialization (will be overwritten by _load_parameters)
         self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
+        self.snap_obstacles = None
 
         self.config = config
         self.load_config()
@@ -111,6 +112,7 @@ class Scene:
         self.pedestrian_size = Size([section.getfloat('pedestrian_size'), section.getfloat('pedestrian_size')])
         self.size = Size([section.getfloat('scene_size_x'), section.getfloat('scene_size_y')])
         self.max_speed_interval = Interval([section.getfloat('max_speed_begin'), section.getfloat('max_speed_end')])
+        self.snap_obstacles = section.getboolean('snap_obstacles')
         self.load_obstacle_file(obstacle_file)
 
     def load_obstacle_file(self, file_name: str):
@@ -125,8 +127,10 @@ class Scene:
         with open(file_name, 'r') as json_file:
             data = json.loads(json_file.read())
         margin = self.config['general'].getfloat('margin')
-        cell_size = np.array([self.config['general'].getfloat('cell_size_x'),
-                              self.config['general'].getfloat('cell_size_y')])
+        cell_size = None
+        if self.snap_obstacles:
+            cell_size = np.array([self.config['general'].getfloat('cell_size_x'),
+                                  self.config['general'].getfloat('cell_size_y')])
         for obstacle_data in data["obstacles"]:
             begin = Point(self.size * obstacle_data['begin'])
             size = Size(self.size * obstacle_data['size'])
