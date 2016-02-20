@@ -52,9 +52,8 @@ class GridComputer:
         self.apply_pressure = apply_pressure
         dx, dy = self.dx, self.dy
         shape = self.grid_dimension
-        self.obstacle_coverage = np.zeros(shape)
+        self.obstacle_correction = np.zeros(shape)
         self._get_obstacle_coverage()
-        print(self.obstacle_coverage)
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
@@ -74,10 +73,10 @@ class GridComputer:
         :param precision: row number of samples per cell. More samples, more precision.
         :return: an array approximating the inaccessible space in the cells
         """
-        covered_samples = 0
+        obstacle_coverage = np.zeros(self.obstacle_correction.shape)
         num_samples = (precision, precision)
         size = Point([self.dx, self.dy])
-        for row, col in np.ndindex(self.obstacle_coverage.shape):
+        for row, col in np.ndindex(obstacle_coverage.shape):
             covered_samples = 0
             begin = Point([row * self.dx, col * self.dy])
             for i, j in np.ndindex(num_samples):
@@ -86,7 +85,11 @@ class GridComputer:
                         if begin + Point([i + 0.5, j + 0.5] / np.array(num_samples)) * size in obstacle:
                             covered_samples += 1
                             break
-            self.obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
+            obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
+        # Correct the fully covered entries
+        obstacle_coverage[obstacle_coverage == 1] = 0.8
+        self.obstacle_correction = 1 / (1 - obstacle_coverage)
+
 
     def _create_base_matrices(self):
         """
@@ -117,7 +120,7 @@ class GridComputer:
         """
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.obstacle_coverage))
+        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
         self.graphs[0, 0].set_title('Density')
         self.graphs[1, 0].imshow(np.rot90(self.pressure_field.array))
         self.graphs[1, 0].set_title('Pressure')
@@ -286,7 +289,7 @@ class GridComputer:
             dx, dy = self.scene.size.array / self.grid_dimension
             density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
                                                      self.scene.active_entries, n_x, n_y, dx, dy) # Todo: fix smoothing length
-            self.density_field.update(density_field)
+            self.density_field.update(self.obstacle_correction * density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
             ft.debug("Max allowed density: %.4f"%self.max_density)
