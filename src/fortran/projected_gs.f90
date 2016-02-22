@@ -19,13 +19,13 @@ subroutine pgs(M,q,init_guess,x,n)
 implicit none
 integer n
 
-real ,dimension(n,n) :: M,M_T
-real ,dimension(n) :: q,w
-real ,dimension(n) :: x, init_guess
-real ,parameter  :: eps = 0.001
+real (kind=8),dimension(n,n) :: M,M_T
+real (kind=8),dimension(n) :: q,w
+real (kind=8),dimension(n) :: x, init_guess
+real (kind=8),parameter  :: eps = 0.001
 integer it,i
 integer , parameter :: max_it = 1000
-real  :: r
+real (kind=8) :: r
 !f2py intent(in) M,q,init_guess
 !f2py intent(out) x
 !f2py depend(n) x

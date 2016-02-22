@@ -258,9 +258,11 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
+            time1 = time.time()
             try:
                 self.position_array += compute_mde(self.position_array, self.size[0], self.size[1],
                                                    self.active_entries, self.core_distance)
+                ft.debug("MDE: %.3e" % (time.time() - time1))
             except Exception as e:
                 ft.warn("Fortran error: %s"%e)
 

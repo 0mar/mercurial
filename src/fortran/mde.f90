@@ -43,7 +43,7 @@ count_arr=0
 cell_pos = int(pos/min_dist)+1
 do k=1,n
     count_arr(cell_pos(k,1),cell_pos(k,2)) =&
-    count_arr(cell_pos(k,1),cell_pos(k,2))+1
+    count_arr(cell_pos(k,1),cell_pos(k,2))+active(k)
 end do
 !write(*,*) count_arr
 
@@ -52,10 +52,12 @@ max_val = maxval(count_arr)
 allocate(bin_arr(n_x,n_y,max_val))
 bin_arr = 0
 do k=1,n
-    bin_arr(cell_pos(k,1),cell_pos(k,2),&
-    count_arr(cell_pos(k,1),cell_pos(k,2))) = k ! Fill the bins backwards
-    count_arr(cell_pos(k,1),cell_pos(k,2)) =&
-    count_arr(cell_pos(k,1),cell_pos(k,2))-1
+    if (active(k)==1) then
+        bin_arr(cell_pos(k,1),cell_pos(k,2),&
+        count_arr(cell_pos(k,1),cell_pos(k,2))) = k ! Fill the bins backwards
+        count_arr(cell_pos(k,1),cell_pos(k,2)) =&
+        count_arr(cell_pos(k,1),cell_pos(k,2))-1
+    end if
 end do
 
 ! Compute the interactions (+80% of time)

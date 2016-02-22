@@ -24,7 +24,7 @@ class VisualScene:
             [self.config['visual'].getfloat('screen_size_x'), self.config['visual'].getfloat('screen_size_y')])
         self.scene = scene
         self.autoloop = True
-        self.draws_cells = False
+        self.draws_cells = True
         self.delay = self.config['visual'].getint('time_delay')
         self.nx = int(self.config['general'].getint('scene_size_x') / self.config['general'].getint('cell_size_x'))
         self.ny = int(self.config['general'].getint('scene_size_y') / self.config['general'].getint('cell_size_y'))

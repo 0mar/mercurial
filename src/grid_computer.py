@@ -6,7 +6,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from fortran_modules.micro_macro import comp_dens_velo
-from fortran_modules.pgs_solver import pgs
+from fortran_modules.pressure_computer import compute_pressure
 from scalar_field import ScalarField as Field
 import cvxopt
 import functions as ft
@@ -45,8 +45,6 @@ class GridComputer:
         cvxopt.solvers.options['show_progress'] = False
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
-        self._create_base_matrices()
-
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation or apply_pressure
         self.apply_pressure = apply_pressure
@@ -65,7 +63,7 @@ class GridComputer:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    def _get_obstacle_coverage(self, precision=6):
+    def _get_obstacle_coverage(self, precision=3):
         """
         Compute the fraction of the cells covered with obstacles
         Since an exact computation involves either big shot linear algebra
@@ -90,28 +88,6 @@ class GridComputer:
         obstacle_coverage[obstacle_coverage == 1] = 0.8
         self.obstacle_correction = 1 / (1 - obstacle_coverage)
 
-
-    def _create_base_matrices(self):
-        """
-        Creates the matrix for solving the LCP using kronecker sums and the finite difference scheme
-        The matrix returned is sparse and in cvxopt format.
-        :return: \Delta t/\Delta x^2*'ones'. Matrices are ready apart from multiplication with density.
-        """
-        nx = self.grid_dimension[0] - 2
-        ny = self.grid_dimension[1] - 2
-        ex = np.ones(nx)
-        ey = np.ones(ny)
-        self._last_solution = np.zeros(nx * ny)
-        Adxx = np.diag(ex[:-1], 1) + np.diag(-ex[:-1], -1)
-        Adyy = np.diag(ey[:-1], 1) + np.diag(-ey[:-1], -1)
-        self.Ax = 1 / (4 * self.dx ** 2) * np.kron(Adxx, np.eye(ny))
-        self.Ay = 1 / (4 * self.dy ** 2) * np.kron(np.eye(nx), Adyy)
-
-        Bdxx = np.diag(ex[:-1], 1) + np.diag(-2 * ex) + np.diag(ex[:-1], -1)
-        Bdyy = np.diag(ey[:-1], 1) + np.diag(-2 * ey) + np.diag(ey[:-1], -1)
-        self.Bx = 1 / (self.dx ** 2) * np.kron(Bdxx, np.eye(ny))
-        self.By = 1 / (self.dy ** 2) * np.kron(np.eye(nx), Bdyy)
-
     def plot_grid_values(self):
         """
         Plot the density, velocity field, pressure, and pressure gradient.
@@ -134,108 +110,12 @@ class GridComputer:
         plt.show(block=False)
 
     def compute_pressure(self):
-        """
-        We solve min {1/2x^TAx+x^Tq}.
-        First we cut off the boundary of the 2D fields.
-        Then we convert the 2D fields to vectors.
-        Then we construct the matrices from the base matrices made on initialization.
-        These matrices can be validated from the theory in the report
-        Then we convert the matrix system to a quadratic program and throw it into cvxopt solver.
-        Finally we (hopefully) find a pressure and reconvert it to a 2D store.
-        We have to anticipate the case of a singular matrix
-        :return:
-        """
-        time1 = time.time()
-        nx = self.grid_dimension[0] - 2
-        ny = self.grid_dimension[1] - 2
-        flat_rho = self.density_field.without_boundary().flatten(order='F') + 0.1  # Solve when analysed the effects
-        diff_rho_x = (self.density_field.with_offset('right', 2) - self.density_field.with_offset('left', 2))[:, 1:-1]
-        diff_rho_y = (self.density_field.with_offset('up', 2) - self.density_field.with_offset('down', 2))[1:-1, :]
-        A = (self.Ax * diff_rho_x.flatten(order='F') + self.Ay * diff_rho_y.flatten(order='F'))
-        B = (self.Bx + self.By) * flat_rho
-        C = A + B
+        pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
+                                    self.dx, self.dy, self.dt, self.max_density)
+        dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
+        padded_dim_p1 = np.pad(dim_p, (1, 1), 'constant', constant_values=1)
+        self.pressure_field.update(padded_dim_p1)
 
-        diff_v_rho_x = (self.density_field.with_offset('right', 2) * self.v_x.with_offset('right', 2) \
-                        - self.density_field.with_offset('left', 2) * self.v_x.with_offset('left', 2))[:, 1:-1]
-
-        diff_v_rho_y = (self.density_field.with_offset('up', 2) * self.v_y.with_offset('up', 2) \
-                        - self.density_field.with_offset('down', 2) * self.v_y.with_offset('down', 2))[1:-1, :]
-
-        b = self.max_density - flat_rho + (diff_v_rho_x.flatten(order='F') + diff_v_rho_y.flatten(order='F')) * self.dt
-        time2 = time.time()
-        flat_p = pgs(-C * self.dt, b, self._last_solution)
-        time3 = time.time()
-        self._last_solution = np.reshape(flat_p, (nx * ny, 1))
-        dim_p = np.reshape(flat_p, (nx, ny), order='F')
-
-        self.pressure_field.update(np.pad(dim_p, (2, 2), 'constant', constant_values=1))
-        time4 = time.time()
-        ft.debug("Step 1: Init matrices: %.4f"%(time2-time1))
-        ft.debug("Step 1: Doing PGS: %.4f"%(time3-time2))
-        ft.debug("Step 1: Reshaping and updating: %.4f"%(time4-time3))
-
-    @staticmethod
-    def solve_LCP_with_quad(M, q, _):
-        """
-        Solves the linear complementarity problem w = Mz + q using a quadratic solver.
-        This method is unused as we employ a Cython PGS-solver.
-        :param M: nxn non-singular positive definite matrix
-        :param q: length n vector
-        :param _: consistency parameter for other LCP solver
-        :return: length n vector z such that z>=0, w>=0, (w,z) < eps if optimum is found, else zeros vector.
-        """
-        n = M.shape[0]
-        cvx_P = cvxopt.matrix(2 * M, tc='d')
-        cvx_q = cvxopt.matrix(q, tc='d')
-        I = np.eye(n)
-        O = np.zeros([n, 1])
-        cvx_G = cvxopt.matrix(np.vstack([-M, -I]), tc='d')
-        cvx_h = cvxopt.matrix(np.vstack([q[:, None], O]), tc='d')
-
-        try:
-            result = cvxopt.solvers.qp(P=cvx_P, q=cvx_q, G=cvx_G, h=cvx_h)
-            if result['status'] == 'optimal':
-                z = result['x']
-                return z
-            else:
-                ft.warn("No optimal result found in LCP solver")
-        except ValueError as e:
-            ft.warn("CVXOPT Error: " + str(e))
-        return O
-
-    @staticmethod
-    def solve_LCP_with_pgs(M, q, init_guess=None):
-        """
-        Solves the linear complementarity problem w = Mz + q using a Projected Gauss Seidel solver.
-        Possible improvements:
-            -Sparse matrix use (Tried and failed. Python and sparse matrices is less than optimal).
-        :param M: nxn non-singular positive definite matrix
-        :param q: length n vector
-        :return: length n vector z such that z>=0, w>=0, (w,z)\approx 0 if optimum is found, else zeros vector.
-        """
-        eps = 1e-02
-        max_it = 10000
-        n = len(q)
-        q = q[:, None]
-        O = np.zeros([n, 1])
-        if init_guess is not None:
-            z = init_guess
-        else:
-            z = np.ones([n, 1])
-        w = np.dot(M, z) + q
-        it = 0
-        while (np.abs(np.dot(w.T, z)) > eps or np.any(z < -eps) or np.any(w < -eps)) and it < max_it:
-            it += 1
-            for i in range(n):
-                r = -q[i] - np.dot(M[i, :], z) + M[i, i] * z[i]
-                z[i] = max(0, r / M[i, i])
-            w = np.dot(M, z) + q
-        ft.debug("Iterations: %d" % it)
-        if it == max_it:
-            ft.warn("Max iterations reached, no optimal result found")
-            return O
-        else:
-            return z
 
     def adjust_velocity(self):
         """
