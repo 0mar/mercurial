@@ -10,7 +10,7 @@ This repository is a private repository for a project on Crowd Dynamics simulati
 The simulation is written in Python and relies on some Cython and FORTRAN90 modules to increase computation speed.
 
 * Version
-
+Current version: 3.1
 This simulation is under active development. 
 Any information on simulation techniques and features is present in the (currently not disclosed) graduation report.
 
@@ -81,14 +81,6 @@ This simulation has quite some points for improvement. Known issues include:
 
 Since the indicative path planner computes intermediate locations for the pedestrians to follow until they reach the goal
  and many pedestrians share the same indicative path, congestion and brawls occur when too many pedestrians approach the same obstacle.
-
-#### Slowness of QP solver for larger grids ####
-
-The default cell size for the grid computer is 50 times 50, quite coarse. A sparse matrix implementation should solve this.
-
-#### Memory allocation error/Segfault ###
-
-When using the minimal distance enforcement, for large and dense crowds sometimes the FORTRAN module crashes. This is being looked at. For now, if this poses a problem, the minimal distance enforcement can be disabled in the configuration file.
 
 ### Contribution guidelines ###
 

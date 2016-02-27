@@ -63,7 +63,7 @@ class GridComputer:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    def _get_obstacle_coverage(self, precision=3):
+    def _get_obstacle_coverage(self, precision=2):
         """
         Compute the fraction of the cells covered with obstacles
         Since an exact computation involves either big shot linear algebra
@@ -71,6 +71,7 @@ class GridComputer:
         :param precision: row number of samples per cell. More samples, more precision.
         :return: an array approximating the inaccessible space in the cells
         """
+        ft.log("Started sampling objects (%d checks)"%(precision**2*self.grid_dimension[0]*self.grid_dimension[1]))
         obstacle_coverage = np.zeros(self.obstacle_correction.shape)
         num_samples = (precision, precision)
         size = Point([self.dx, self.dy])
@@ -80,13 +81,14 @@ class GridComputer:
             for i, j in np.ndindex(num_samples):
                 for obstacle in self.scene.obstacle_list:
                     if not obstacle.accessible:
-                        if begin + Point([i + 0.5, j + 0.5] / np.array(num_samples)) * size in obstacle:
+                        if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples)*size.array) in obstacle:
                             covered_samples += 1
                             break
             obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
         # Correct the fully covered entries
         obstacle_coverage[obstacle_coverage == 1] = 0.8
         self.obstacle_correction = 1 / (1 - obstacle_coverage)
+        ft.log("Finished sampling objects")
 
     def plot_grid_values(self):
         """
