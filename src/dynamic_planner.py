@@ -136,25 +136,6 @@ class DynamicPlanner:
         We transform our kernel to an ellipsis to service the rectangular obstacles.
         :return: An 2D array with potential contributions
         """
-        # h = self.smoothing_length  # Obstacle factor
-        # cell_centers = self.potential_field.mesh_grid
-        # potential_obstacles = np.zeros(self.grid_dimension)
-        # obstacle_form = self.config['dynamic']['obstacle_form']
-        # for obstacle in self.scene.obstacle_list:
-        #     if not obstacle.accessible:
-        #
-        #         if obstacle_form == 'rectangle':
-        #             distances = np.maximum(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)),
-        #                                np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)))
-        #         elif obstacle_form == 'ellips':
-        #             distances = np.sqrt(np.abs((cell_centers[0] - obstacle.center[0]) / (obstacle.size[0] / 2)) ** 2 +
-        #                                 np.abs((cell_centers[1] - obstacle.center[1]) / (obstacle.size[1] / 2)) ** 2)
-        #         else:
-        #             raise ValueError("Obstacle form %s not recognized" % obstacle_form)
-        #         weights = weight_function(distances / h)
-        #         potential_obstacles += weights
-        # return potential_obstacles
-
         for (i, j) in np.ndindex(self.discomfort_field.array.shape):
             location = np.array([self.discomfort_field.x_range[i], self.discomfort_field.y_range[j]])
             if not self.scene.is_accessible(Point(location)):
@@ -278,6 +259,10 @@ class DynamicPlanner:
         f = self.speed_field_dict[direction].array
         g = self.discomfort_field.with_offset(direction)
         self.unit_field_dict[direction].update(alpha + (f + beta + gamma * g) / (f + ft.EPS))
+
+    def compute_lyapunov(self):
+        return np.nansum(self.density_field.array[self.potential_field.array < np.inf] *
+                         self.potential_field.array[self.potential_field.array < np.inf]) * (self.dx * self.dy)
 
     def compute_potential_field(self):
         """
@@ -435,6 +420,9 @@ class DynamicPlanner:
         self.assign_velocities()
         if self.show_plot:
             self.plot_grid_values()
+        self_score = self.compute_lyapunov()
+        ft.debug("Self-organisation score: %.2f" % self_score)
+
         self.scene.move_pedestrians()  # Todo: Decide to put this here or in simulation manager
         self.scene.correct_for_geometry()
         self.nudge_stationary_pedestrians()
