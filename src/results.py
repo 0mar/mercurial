@@ -38,6 +38,11 @@ class Result:
             ft.log("Storing results for Graph Planner")
         self.planned_path_length = np.zeros(
             len(self.scene.pedestrian_list))  # Todo: Does not work when using entrances as well.
+        """
+        Proposal: Replace the numpy arrays with dictionaries. {index,list}
+        Finally, convert the dictionaries to a numpy array and store.
+
+        """
         self.path_length_ratio = np.zeros(len(self.scene.pedestrian_list))
         self.avg_path_length_ratio = 0
         self.paths_list = [[] for _ in range(len(self.scene.pedestrian_list))]
@@ -82,9 +87,19 @@ class Result:
                 self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy()) # AAH!
                 # Without copy(), we get a reference (even though we slice the array...)
 
+    def on_pedestrian_entrance(self, pedestrian):
+        """
+        All data that should be initialized and gathered on pedestrian entrance
+        :param pedestrian: Entering pedestrian (from entrance)
+        :return: None
+        """
+        """
+        Here make the init plans that are present in self.__init__
+        """
     def on_pedestrian_exit(self, pedestrian):
         """
         All data that should be gathered on each pedestrians exit:
+        :param pedestrian: Exiting pedestrian
         :return: None
         """
         self.time_spent[pedestrian.counter] = self.scene.time

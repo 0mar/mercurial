@@ -110,6 +110,8 @@ class SimulationManager:
             self.config.write(config_file)
 
     def store_exit_logs(self, file_name=None):
+        # Todo: Alter this, we need the positions stored in one file.
+        # This way we clean up the files and we are able to extract a 4 domain density field from one file.
         log_dir = self.config['general']['result_dir']
         if not file_name:
             file_name = self.config['general']['log_file']
