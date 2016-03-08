@@ -10,7 +10,7 @@
                 0.35,
                 0.08
             ],
-			"spawn_rate" : 300,
+            "spawn_rate": 30,
 			"max_pedestrians" : 500
         }
     ],

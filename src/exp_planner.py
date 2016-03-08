@@ -32,6 +32,7 @@ class ExponentialPlanner(GraphPlanner):
     def compute_new_path_points(self):
         new_point_array = np.zeros((self.scene.position_array.shape[0], 2))
         index_array = []
+        self._synchronize_arrays()
         for pedestrian in self.scene.pedestrian_list:
             if self.needs_new_points(pedestrian):
                 pedestrian.path_param += 1
@@ -41,6 +42,19 @@ class ExponentialPlanner(GraphPlanner):
         new_path_points = np.roll(self.path_points, -1, 1)
         new_path_points[:, -1, :] = new_point_array
         self.path_points[index_array] = new_path_points[index_array]
+
+    def _synchronize_arrays(self):
+        """
+        When entrances are present, the number of pedestrians may exceed array length.
+        In this case, we need to expand the self.path_points array.
+        @see Scene._expand_arrays()
+        :return: None
+        """
+        if self.path_points.shape[0] != self.scene.position_array.shape[0]:
+            addition = np.zeros(self.path_points.shape, dtype=self.path_points.dtype)
+            self.path_points = np.concatenate((self.path_points, addition), axis=0)
+        assert self.path_points.shape[0] == self.scene.position_array.shape[0]
+
 
     def compute_new_velocities(self):
         """

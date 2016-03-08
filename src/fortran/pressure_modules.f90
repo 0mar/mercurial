@@ -147,7 +147,7 @@ else ! Correct stencil with Diriclet boundary conditions
 end if
 end do
 end do
-!! Convert to CSR format ! Todo: Time to see if should be inplace
+!! Convert to CSR format
 call coocsr(nx*ny,nnz,SM,row,col,out_a,out_ja,out_ia)
 end subroutine
 
