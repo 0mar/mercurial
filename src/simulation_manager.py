@@ -18,6 +18,7 @@ from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
 
 class SimulationManager:
     def __init__(self, args):
+        np.seterr(all='raise')
         functions.VERBOSE = args.verbose
         self.scene = None
         self.step_functions = []
