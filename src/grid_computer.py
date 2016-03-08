@@ -43,7 +43,7 @@ class GridComputer:
         self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.scene.core_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
-        self.smoothing_length = scene.config['general'].getfloat('minimal_distance')
+        self.smoothing_length = self.scene.core_distance
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
         self.show_plot = show_plot
@@ -148,9 +148,9 @@ class GridComputer:
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
         self.scene.velocity_array = self.scene.velocity_array \
                                     + local_dens[:, None] / self.max_density * (
-            solved_velocity - self.scene.velocity_array)
+            solved_velocity - self.scene.velocity_array) + ft.EPS
         self.scene.velocity_array /= \
-            np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / self.scene.max_speed_array[:, None]
+            np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / (self.scene.max_speed_array[:, None] + ft.EPS)
 
     def step(self):
         """
