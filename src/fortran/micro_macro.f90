@@ -1,4 +1,4 @@
-subroutine comp_dens_velo(pos, velo, active, n_x, n_y, dx, dy,dens, v_x, v_y,n)
+subroutine comp_dens_velo(pos, velo, active, n_x, n_y, dx, dy,dens, v_x, v_y,h,n)
 implicit none
 integer n
 !
@@ -16,14 +16,13 @@ real (kind=8),dimension(0:n-1,0:1) :: pos,velo ! input
 real (kind=8) :: dist,weight, h ! smoothing length
 real (kind=8), external :: weight_function
 
-!f2py intent(in) n_x,n_y,dx,dy
+!f2py intent(in) n_x,n_y,dx,dy,h
 !f2py intent(out) dens,v_x,v_y
 !f2py depend(n_x,n_y) dens,v_x,v_y
 ! Initialization
 dens=0
 v_x=0
 v_y=0
-h = sqrt(dx*dx+dy*dy)*3/2
 range_ = int(2.*h/(min(dx,dy))+1) ! depends on smoothing length, but not correct yet I think
 
 !Computing interpolations

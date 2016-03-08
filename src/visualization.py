@@ -24,10 +24,10 @@ class VisualScene:
             [self.config['visual'].getfloat('screen_size_x'), self.config['visual'].getfloat('screen_size_y')])
         self.scene = scene
         self.autoloop = True
-        self.draws_cells = True
+        self.draws_cells = self.config['visual'].getboolean('draw_grid')
         self.delay = self.config['visual'].getint('time_delay')
-        self.nx = int(self.config['general'].getint('scene_size_x') / self.config['general'].getint('cell_size_x'))
-        self.ny = int(self.config['general'].getint('scene_size_y') / self.config['general'].getint('cell_size_y'))
+        self.nx = int(self.config['general'].getfloat('scene_size_x') / self.config['general'].getfloat('cell_size_x'))
+        self.ny = int(self.config['general'].getfloat('scene_size_y') / self.config['general'].getfloat('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))

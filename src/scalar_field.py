@@ -69,7 +69,7 @@ class ScalarField:
     def __str__(self):
         field_repr = ""
         for row in np.rot90(self.array):
-            field_repr += " [%s]\n" % "\t".join(["%4.2f" % val for val in row])
+            field_repr += " [%s]\n" % "\t".join(["%4.2e" % val for val in row])
         return repr(self) + "\n[%s]" % field_repr[1:-1]
 
     def with_offset(self, direction, cutoff=1):

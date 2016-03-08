@@ -14,7 +14,7 @@ from geometry import Point
 
 class GridComputer:
     """
-    Class responsible for the fluid-dynamic ca  lculations of the crowd.
+    Class responsible for the macroscopic calculations of the crowd.
     Main tasks:
     1. Interpolating velocity on grid points
     2. Computing pressure
@@ -40,9 +40,10 @@ class GridComputer:
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.dt = self.scene.dt
         self.packing_factor = scene.config['dynamic'].getfloat('packing_factor')
-        self.max_density =  self.packing_factor / \
+        self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.scene.core_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
+        self.smoothing_length = scene.config['general'].getfloat('minimal_distance')
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
         self.show_plot = show_plot
@@ -60,7 +61,7 @@ class GridComputer:
 
         if self.show_plot:
             # Plotting hooks
-            f, self.graphs = plt.subplots(2, 2)
+            f, self.graphs = plt.subplots(1, 2)
             plt.show(block=False)
 
     def _get_obstacle_coverage(self, precision=2):
@@ -98,17 +99,11 @@ class GridComputer:
         """
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
-        self.graphs[0, 0].set_title('Density')
-        self.graphs[1, 0].imshow(np.rot90(self.pressure_field.array))
-        self.graphs[1, 0].set_title('Pressure')
-        self.graphs[0, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=1,
+        self.graphs[0].imshow(np.rot90(self.density_field.array))
+        self.graphs[0].set_title('Density')
+        self.graphs[1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=0.5,
                                  scale_units='xy')
-        self.graphs[0, 1].set_title('Velocity field')
-        self.graphs[1, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1],
-                                 self.pressure_field.gradient('x')[:, 1:-1],
-                                 self.pressure_field.gradient('y')[1:-1, :], scale=1, scale_units='xy')
-        self.graphs[1, 1].set_title('Pressure gradient')
+        self.graphs[1].set_title('Velocity field')
         plt.show(block=False)
 
     def compute_pressure(self):
@@ -170,7 +165,7 @@ class GridComputer:
             n_x, n_y = self.grid_dimension
             dx, dy = self.scene.size.array / self.grid_dimension
             density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
-                                                     self.scene.active_entries, n_x, n_y, dx, dy) # Todo: fix smoothing length
+                                                     self.scene.active_entries, n_x, n_y, dx, dy, self.smoothing_length)
             self.density_field.update(self.obstacle_correction * density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
@@ -178,6 +173,7 @@ class GridComputer:
             ft.debug("Max observed density: %.4f"%np.max(self.density_field.array))
             if self.show_plot:
                 self.plot_grid_values()
+                # print(self.density_field)
         if self.apply_interpolation:
 
             if self.apply_pressure:
