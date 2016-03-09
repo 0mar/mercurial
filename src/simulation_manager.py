@@ -23,6 +23,7 @@ class SimulationManager:
         self.scene = None
         self.step_functions = []
         self.on_pedestrian_exit_functions = []
+        self.on_pedestrian_init_functions = []
         self.finish_functions = []
         config = configparser.ConfigParser()
         has_config = config.read(args.config_file)
@@ -56,11 +57,13 @@ class SimulationManager:
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
+            self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
         else:
             planner = GraphPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
                                 apply_pressure=args.apply_pressure)
             self.step_functions += [planner.step, grid.step]
+            self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
         if args.store_positions:
             # filename = input('Specify storage file\n')
             import re
@@ -76,6 +79,7 @@ class SimulationManager:
             results = Result(self.scene)
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
+            self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
             self.finish_functions.append(results.on_finish)
         if not args.kernel:
             self.vis = VisualScene(self.scene)
@@ -88,6 +92,7 @@ class SimulationManager:
                 functions.warn("No results are logged. Ensure you want a headless simulation.")
             self.vis = NoVisualScene(self.scene)
         self.scene.on_pedestrian_exit_functions += self.on_pedestrian_exit_functions
+        self.scene.on_pedestrian_init_functions += self.on_pedestrian_init_functions
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
 

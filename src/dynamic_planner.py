@@ -77,7 +77,7 @@ class DynamicPlanner:
         self.potential_field = Field(shape, Field.Orientation.center, 'potential', (dx, dy))
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
-        self.compute_obstacle_potential_field()
+        self.compute_obstacle_discomfort()
 
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
@@ -130,11 +130,9 @@ class DynamicPlanner:
             ft.warn("%s not properly processed" % "/"
                     .join([repr(goal) for goal in self.scene.exit_list if not valid_exits[goal]]))
 
-    def compute_obstacle_potential_field(self):  # Todo: Rename
+    def compute_obstacle_discomfort(self):
         """
-        Compute the Gaussian-like potential field surrounding each obstacle
-        We transform our kernel to an ellipsis to service the rectangular obstacles.
-        :return: An 2D array with potential contributions
+        Create a layer of discomfort around obstacles to repel pedestrians from those locations.
         """
         for (i, j) in np.ndindex(self.discomfort_field.array.shape):
             location = np.array([self.discomfort_field.x_range[i], self.discomfort_field.y_range[j]])

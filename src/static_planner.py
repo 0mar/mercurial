@@ -30,10 +30,13 @@ class GraphPlanner:
         self._create_obstacle_graph()
         ft.log("Started pre-processing global paths")
         for pedestrian in scene.pedestrian_list:
-            pedestrian.path = self.create_path(pedestrian)
-            pedestrian.line = pedestrian.path.pop_next_segment()
-            pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+            self.on_pedestrian_init(pedestrian)
         ft.log("Finished pre-processing global paths")
+
+    def on_pedestrian_init(self, pedestrian):
+        pedestrian.path = self.create_path(pedestrian)
+        pedestrian.line = pedestrian.path.pop_next_segment()
+        pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
 
     def _create_obstacle_graph(self):
         """
@@ -177,10 +180,7 @@ class GraphPlanner:
                 else:
                     pedestrian.velocity = Velocity(remaining_path)  # Expensive...
             else:
-                # Stationary pedestrian or new. Creating new path.
-                pedestrian.path = self.create_path(pedestrian)
-                pedestrian.line = pedestrian.path.pop_next_segment()
-                pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position.array)
+                self.on_pedestrian_init(pedestrian)
         self.scene.find_finished_pedestrians()
 
     @staticmethod

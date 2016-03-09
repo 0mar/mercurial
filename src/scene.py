@@ -30,6 +30,7 @@ class Scene:
         self.entrance_list = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
+        self.on_pedestrian_init_functions = []
 
         # Parameter initialization (will be overwritten by _load_parameters)
         self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
@@ -97,6 +98,7 @@ class Scene:
                 self.active_entries[new_index] = True
                 self.pedestrian_list.append(new_pedestrian)
                 self.index_map[new_index] = new_pedestrian
+                [func(new_pedestrian) for func in self.on_pedestrian_init_functions]
                 new_number -= 1
 
     def load_config(self):
@@ -184,6 +186,7 @@ class Scene:
         :return: None
         """
         # I don't like [gs]etattr, but this is pretty explicit
+        # Todo: Is it possible to to make one method that expands all arrays application-wide?
         attr_list = ["position_array", "last_position_array", "velocity_array",
                      "max_speed_array", "active_entries"]
         for attr in attr_list:

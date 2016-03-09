@@ -36,29 +36,36 @@ class Result:
         else:
             self.no_paths = False
             ft.log("Storing results for Graph Planner")
-        self.planned_path_length = np.zeros(
-            len(self.scene.pedestrian_list))  # Todo: Does not work when using entrances as well.
-        """
-        Proposal: Replace the numpy arrays with dictionaries. {index,list}
-        Finally, convert the dictionaries to a numpy array and store.
-
-        """
+        self.planned_path_length = np.zeros(len(self.scene.pedestrian_list))
         self.path_length_ratio = np.zeros(len(self.scene.pedestrian_list))
         self.avg_path_length_ratio = 0
         self.paths_list = [[] for _ in range(len(self.scene.pedestrian_list))]
         self.path_length = np.zeros(len(self.scene.pedestrian_list))
         self.time_spent = np.zeros(len(self.scene.pedestrian_list))
         self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
-
         self.max_speed = np.zeros(len(self.scene.pedestrian_list))
-        self.finished = np.zeros(len(self.scene.pedestrian_list))
+        self.finished = np.zeros(len(self.scene.pedestrian_list), dtype=bool)
 
         self.avg_mean_speed = 0
         self.density = len(self.scene.pedestrian_list) / (self.scene.size[0] * self.scene.size[1])
         self.origins = np.zeros([len(self.scene.pedestrian_list), 2])
 
-
         self.on_init()
+
+    def _expand_arrays(self):
+        """
+        Increases the size (first dimension) of a numpy array with the given factor.
+        Missing entries are set to zero
+        :return: None
+        """
+        attr_list = ["path_length", "max_speed", "mean_speed", "time_spent",
+                     "finished", "origins", "planned_path_length"]
+
+        for attr in attr_list:
+            array = getattr(self, attr)
+            addition = np.zeros(array.shape, dtype=array.dtype)
+            setattr(self, attr, np.concatenate((array, addition), axis=0))
+        self.paths_list += [[] for _ in range(len(self.paths_list))]
 
     def on_init(self):
         """
@@ -66,9 +73,7 @@ class Result:
         :return: None
         """
         for pedestrian in self.scene.pedestrian_list:
-            if not self.no_paths:
-                self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
-            self.origins[pedestrian.counter] = pedestrian.origin.array
+            self.on_pedestrian_entrance(pedestrian)
         self.density = len(self.scene.pedestrian_list) / np.prod(self.scene.size.array)
         self.max_speed = self.scene.max_speed_array
 
@@ -80,11 +85,12 @@ class Result:
         :return: None
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
-        self.path_length[np.where(self.scene.active_entries)] += distance[np.where(self.scene.active_entries)]
+        index_list = [self.scene.index_map[index].counter for index in np.where(self.scene.active_entries)[0]]
+        self.path_length[index_list] += distance[np.where(self.scene.active_entries)]
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.active_entries[pedestrian.index]:
                 # Comment out if not needed. Lots of memory
-                self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy()) # AAH!
+                self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy())
                 # Without copy(), we get a reference (even though we slice the array...)
 
     def on_pedestrian_entrance(self, pedestrian):
@@ -93,9 +99,14 @@ class Result:
         :param pedestrian: Entering pedestrian (from entrance)
         :return: None
         """
-        """
-        Here make the init plans that are present in self.__init__
-        """
+        if self.origins.shape[0] < self.scene.total_pedestrians:  # Check if we need to expand
+            self._expand_arrays()
+            print("Expanding to %d" % self.origins.shape[0])
+        assert self.origins.shape[0] >= self.scene.total_pedestrians
+        if not self.no_paths:
+            self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
+        self.origins[pedestrian.counter] = pedestrian.origin.array
+
     def on_pedestrian_exit(self, pedestrian):
         """
         All data that should be gathered on each pedestrians exit:
@@ -103,26 +114,28 @@ class Result:
         :return: None
         """
         self.time_spent[pedestrian.counter] = self.scene.time
+        self.finished[pedestrian.counter] = True
 
     def on_finish(self):
         """
         All data that should be gathered on finishing the simulation:
         :return: None
         """
-        for pedestrian in self.scene.pedestrian_list:
-            if self.scene.active_entries[pedestrian.counter]:
-                self.time_spent[pedestrian.counter] = self.scene.time
+        unfinished_counters = [self.scene.index_map[index].counter for index in
+                               np.where(self.scene.active_entries)[0]]
+        for ped_index in unfinished_counters:
+            self.time_spent[ped_index] = self.scene.time
         if not self.no_paths:
+
             if np.all(self.scene.active_entries):
                 ft.warn("No pedestrian reached exit. No valid observed path information obtained")
             else:
-                self.path_length_ratio = self.planned_path_length[np.invert(self.scene.active_entries)] / \
-                                         self.path_length[np.logical_not(self.scene.active_entries)]
+                self.path_length_ratio = self.planned_path_length[self.finished] / \
+                                         self.path_length[self.finished]
                 self.avg_path_length_ratio = np.mean(self.path_length_ratio)
-        self.mean_speed = self.planned_path_length/ self.time_spent
+        self.mean_speed = self.planned_path_length[self.finished] / self.time_spent[self.finished]
         self.paths_list = np.array(self.paths_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
-        self.finished = np.logical_not(self.scene.active_entries)
         self.write_matlab_results()
 
     def write_results(self):
@@ -139,13 +152,12 @@ class Result:
             file.write("Mean speed\n%s\n\n" % self.mean_speed)
             file.write("Density:\n%s\n\n" % self.density)
 
-
     def write_matlab_results(self):
         """
         Stores result in binary matlab file
         :return: None
         """
-        filename = self.result_dir + 'results'+self.scene.config['general']['number_of_pedestrians']
+        filename = self.result_dir + 'results' + self.scene.config['general']['number_of_pedestrians']
         sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
                                      "path_length": self.path_length,
                                      "path_length_ratio": self.path_length_ratio,
