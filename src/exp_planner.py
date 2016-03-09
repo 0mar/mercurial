@@ -17,7 +17,7 @@ class ExponentialPlanner(GraphPlanner):
     """
 
     def __init__(self, scene):
-        Path.sample_length = 2
+        Path.sample_length = scene.config['static'].getfloat('sample_length')
         super().__init__(scene)
         self.path_weights = np.array([0.4, 0.3, 0.2, 0.1])
         self.way_point_num = len(self.path_weights)
