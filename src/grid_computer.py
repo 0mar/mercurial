@@ -61,7 +61,7 @@ class GridComputer:
 
         if self.show_plot:
             # Plotting hooks
-            f, self.graphs = plt.subplots(1, 2)
+            f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
     def _get_obstacle_coverage(self, precision=2):
@@ -99,11 +99,17 @@ class GridComputer:
         """
         for graph in self.graphs.flatten():
             graph.cla()
-        self.graphs[0].imshow(np.rot90(self.density_field.array))
-        self.graphs[0].set_title('Density')
-        self.graphs[1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=0.5,
+        self.graphs[0, 0].imshow(np.rot90(self.density_field.array))
+        self.graphs[0, 0].set_title('Density')
+        self.graphs[1, 0].imshow(np.rot90(self.pressure_field.array))
+        self.graphs[1, 0].set_title('Pressure')
+        self.graphs[0, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1], self.v_x.array, self.v_y.array, scale=1,
                                  scale_units='xy')
-        self.graphs[1].set_title('Velocity field')
+        self.graphs[0, 1].set_title('Velocity field')
+        self.graphs[1, 1].quiver(self.v_x.mesh_grid[0], self.v_x.mesh_grid[1],
+                                 self.pressure_field.gradient('x')[:, 1:-1],
+                                 self.pressure_field.gradient('y')[1:-1, :], scale=1, scale_units='xy')
+        self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
     def compute_pressure(self):
@@ -146,9 +152,8 @@ class GridComputer:
         local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),
                                 self.max_density)
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
-        self.scene.velocity_array = self.scene.velocity_array \
-                                    + local_dens[:, None] / self.max_density * (
-            solved_velocity - self.scene.velocity_array) + ft.EPS
+        self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / self.max_density * (
+        solved_velocity - self.scene.velocity_array) + ft.EPS
         self.scene.velocity_array /= \
             np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / (self.scene.max_speed_array[:, None] + ft.EPS)
 
@@ -171,14 +176,15 @@ class GridComputer:
             self.v_y.update(v_y)
             ft.debug("Max allowed density: %.4f"%self.max_density)
             ft.debug("Max observed density: %.4f"%np.max(self.density_field.array))
-            if self.show_plot:
-                self.plot_grid_values()
+
                 # print(self.density_field)
         if self.apply_interpolation:
 
             if self.apply_pressure:
                 self.compute_pressure()
                 self.adjust_velocity()
+                if self.show_plot:
+                    self.plot_grid_values()
                 # self.compute_pressure()
             # print("Time took: %.4f" % (time.time() - time1))
             self.interpolate_pedestrians()

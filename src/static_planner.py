@@ -159,6 +159,7 @@ class GraphPlanner:
         :return: None
         """
         # 1
+        self.scene.find_finished_pedestrians()
         self.scene.move_pedestrians()
 
         # 2
@@ -181,7 +182,6 @@ class GraphPlanner:
                     pedestrian.velocity = Velocity(remaining_path)  # Expensive...
             else:
                 self.on_pedestrian_init(pedestrian)
-        self.scene.find_finished_pedestrians()
 
     @staticmethod
     def get_path_length(pedestrian):

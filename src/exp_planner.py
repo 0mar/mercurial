@@ -92,9 +92,10 @@ class ExponentialPlanner(GraphPlanner):
         :return: None
         """
         # 1
+        self.scene.find_finished_pedestrians()
+        self.scene.move_pedestrians()
         self.compute_new_path_points()
         self.compute_new_velocities()
-        self.scene.move_pedestrians()
 
         # 2
         self.scene.correct_for_geometry()
@@ -118,4 +119,3 @@ class ExponentialPlanner(GraphPlanner):
                 # Stationary pedestrian or new. Creating new path.
                 pedestrian.path = self.create_path(pedestrian)
                 self.compute_init_path_points(pedestrian)
-        self.scene.find_finished_pedestrians()

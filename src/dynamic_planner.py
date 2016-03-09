@@ -59,7 +59,7 @@ class DynamicPlanner:
         # This is dependent on cell size, because of the discretization
         self.min_density = self.config['dynamic'].getfloat('min_density')
         # assume round pedestrian, max density comes from packing formula
-        self.max_density = 0.4  # /(self.scene.core_distance**2*np.sqrt(3)*1.4)
+        self.max_density = 3  # /(self.scene.core_distance**2*np.sqrt(3)*1.4)
         # Something goes wrong in normalization. Should check this later
 
         self.density_exponent = self.config['dynamic'].getfloat('density_exponent')

@@ -148,7 +148,6 @@ class Result:
         self.write_matlab_results()
         ft.log("Finished post-processing results")
 
-
     def write_results(self):
         """
         Store results to file or to stdout
