@@ -40,11 +40,13 @@ class Result:
         self.path_length_ratio = np.zeros(len(self.scene.pedestrian_list))
         self.avg_path_length_ratio = 0
         self.paths_list = [[] for _ in range(len(self.scene.pedestrian_list))]
+        self.position_list = []
         self.path_length = np.zeros(len(self.scene.pedestrian_list))
         self.time_spent = np.zeros(len(self.scene.pedestrian_list))
         self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
         self.max_speed = np.zeros(len(self.scene.pedestrian_list))
         self.finished = np.zeros(len(self.scene.pedestrian_list), dtype=bool)
+        self.started = np.zeros(len(self.scene.pedestrian_list), dtype=bool)
 
         self.avg_mean_speed = 0
         self.density = len(self.scene.pedestrian_list) / (self.scene.size[0] * self.scene.size[1])
@@ -59,7 +61,7 @@ class Result:
         :return: None
         """
         attr_list = ["path_length", "max_speed", "mean_speed", "time_spent",
-                     "finished", "origins", "planned_path_length"]
+                     "started", "finished", "origins", "planned_path_length"]
 
         for attr in attr_list:
             array = getattr(self, attr)
@@ -91,6 +93,9 @@ class Result:
             if self.scene.active_entries[pedestrian.index]:
                 # Comment out if not needed. Lots of memory
                 self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy())
+                self.position_list.append(
+                    [self.scene.position_array[pedestrian.index, 0], self.scene.position_array[pedestrian.index, 1],
+                     self.scene.time])
                 # Without copy(), we get a reference (even though we slice the array...)
 
     def on_pedestrian_entrance(self, pedestrian):
@@ -106,6 +111,7 @@ class Result:
         if not self.no_paths:
             self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
         self.origins[pedestrian.counter] = pedestrian.origin.array
+        self.started[pedestrian.counter] = True
 
     def on_pedestrian_exit(self, pedestrian):
         """
@@ -115,12 +121,14 @@ class Result:
         """
         self.time_spent[pedestrian.counter] = self.scene.time
         self.finished[pedestrian.counter] = True
+        assert self.path_length[pedestrian.counter] > 0
 
     def on_finish(self):
         """
         All data that should be gathered on finishing the simulation:
         :return: None
         """
+        ft.log("Starting post-processing results")
         unfinished_counters = [self.scene.index_map[index].counter for index in
                                np.where(self.scene.active_entries)[0]]
         for ped_index in unfinished_counters:
@@ -135,8 +143,11 @@ class Result:
                 self.avg_path_length_ratio = np.mean(self.path_length_ratio)
         self.mean_speed = self.planned_path_length[self.finished] / self.time_spent[self.finished]
         self.paths_list = np.array(self.paths_list)
+        self.position_list = np.array(self.position_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
         self.write_matlab_results()
+        ft.log("Finished post-processing results")
+
 
     def write_results(self):
         """
@@ -157,6 +168,7 @@ class Result:
         Stores result in binary matlab file
         :return: None
         """
+        ft.log("Started writing results to binary file")
         filename = self.result_dir + 'results' + self.scene.config['general']['number_of_pedestrians']
         sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
                                      "path_length": self.path_length,
@@ -168,7 +180,9 @@ class Result:
                                      "avg_mean_speed": self.avg_mean_speed,
                                      "paths_list": self.paths_list,
                                      "mean_speed": self.mean_speed,
+                                     "position_list": self.position_list,
                                      "finished": self.finished})
+        ft.log("Finished writing results to binary file")
 
     def write_density_results(self, filename):
         import os

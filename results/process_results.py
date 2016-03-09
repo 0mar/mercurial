@@ -4,12 +4,14 @@ import sys
 import os
 
 sys.path.insert(0, '../src')
+sys.path.insert(0, '..')
+
 import scipy.io as sio
 import numpy as np
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import functions as ft
-
+from fortran_modules.micro_macro import comp_dens_velo
 
 class Processor:
     def __init__(self, result=None,filename=None):
@@ -90,6 +92,22 @@ class Processor:
         else:
             ft.warn("No histogram made, insufficient data set (size %d)" % len(self.result.time_spent))
 
+    def density_map(self):
+        if self.result.position_list.size > 1:
+            positions = self.result.position_list[:, 1:3]
+            dummy_velo = np.random.random(positions.shape)
+            active = np.ones(positions.shape[0], dtype=bool)
+            size_x = np.max(positions[:, 0])
+            size_y = np.max(positions[:, 1])
+            nx, ny = 200, 200
+            dx, dy = size_x / nx, size_y / ny
+            dens, _, _ = comp_dens_velo(positions, dummy_velo, active, nx, ny, dx, dy, dx)
+            print(dens)
+            plt.imshow(np.rot90(dens))
+            plt.suptitle("Densities :D")
+            plt.show()
+
+
 
 if __name__ == '__main__':
     filename = None
@@ -102,3 +120,4 @@ if __name__ == '__main__':
     proc.path_length_histogram()
     proc.delay_scatter_plot()
     proc.time_scatter_plot()
+    proc.density_map()
