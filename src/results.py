@@ -121,7 +121,8 @@ class Result:
         """
         self.time_spent[pedestrian.counter] = self.scene.time
         self.finished[pedestrian.counter] = True
-        assert self.path_length[pedestrian.counter] > 0
+        if not self.no_paths:
+            assert self.path_length[pedestrian.counter] > 0
 
     def on_finish(self):
         """
@@ -134,7 +135,6 @@ class Result:
         for ped_index in unfinished_counters:
             self.time_spent[ped_index] = self.scene.time
         if not self.no_paths:
-
             if np.all(self.scene.active_entries):
                 ft.warn("No pedestrian reached exit. No valid observed path information obtained")
             else:

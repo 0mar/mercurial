@@ -400,7 +400,7 @@ class DynamicPlanner:
         time1 = time.time()
         dens_f, v_x_f, v_y_f = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
                                               self.scene.active_entries, self.grid_dimension[0],
-                                              self.grid_dimension[1], self.dx, self.dy)
+                                              self.grid_dimension[1], self.dx, self.dy, self.smoothing_length)
         self.density_field.update(dens_f)
         ft.debug(np.max(dens_f))
         ft.debug(self.max_density)

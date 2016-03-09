@@ -94,14 +94,14 @@ class Processor:
 
     def density_map(self):
         if self.result.position_list.size > 1:
-            positions = self.result.position_list[:, 1:3]
+            positions = self.result.position_list[:, 0:2]
             dummy_velo = np.random.random(positions.shape)
             active = np.ones(positions.shape[0], dtype=bool)
             size_x = np.max(positions[:, 0])
             size_y = np.max(positions[:, 1])
-            nx, ny = 200, 200
+            nx, ny = 400, 400
             dx, dy = size_x / nx, size_y / ny
-            dens, _, _ = comp_dens_velo(positions, dummy_velo, active, nx, ny, dx, dy, dx)
+            dens, _, _ = comp_dens_velo(positions, dummy_velo, active, nx, ny, dx, dy, 5 * dx)
             print(dens)
             plt.imshow(np.rot90(dens))
             plt.suptitle("Densities :D")
