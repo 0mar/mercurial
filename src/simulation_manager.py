@@ -116,8 +116,6 @@ class SimulationManager:
             self.config.write(config_file)
 
     def store_exit_logs(self, file_name=None):
-        # Todo: Alter this, we need the positions stored in one file.
-        # This way we clean up the files and we are able to extract a 4 domain density field from one file.
         log_dir = self.config['general']['result_dir']
         if not file_name:
             file_name = self.config['general']['log_file']
@@ -125,6 +123,8 @@ class SimulationManager:
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
     def store_positions_to_file(self, file_name):
+        # Todo: Alter this, we need the positions stored in one file.
+        # This way we clean up the files and we are able to extract a 4 dimension density field from one file.
         log_dir = self.config['general']['result_dir']
         if self.scene.counter % 10 == 0:
             with open("%s%s-%d" % (log_dir, file_name, int(self.scene.counter / 10)), 'wb') as f:
