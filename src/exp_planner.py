@@ -103,18 +103,19 @@ class ExponentialPlanner(GraphPlanner):
         stationary_pedestrian_array = self.scene.get_stationary_pedestrians()
         for pedestrian in self.scene.pedestrian_list:
             if not stationary_pedestrian_array[pedestrian.index] and hasattr(pedestrian, 'line'):
-                # assert self.scene.is_accessible(pedestrian.position)
-                pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
-                remaining_path = pedestrian.line.end - pedestrian.position
-                allowed_range = 0.5 * self.scene.config['general'].getfloat(
-                    'margin')  # some experimental threshold based on safety margin of obstacles
-                checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
-                if checkpoint_reached:  # but not done
-                    if pedestrian.path:
-                        pedestrian.line = pedestrian.path.pop_next_segment()
-                        pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position)
-                else:
-                    pedestrian.velocity = Velocity(remaining_path)  # Expensive...
+                # # assert self.scene.is_accessible(pedestrian.position)
+                # pedestrian.move_to_position(Point(pedestrian.line.end), self.scene.dt)
+                # remaining_path = pedestrian.line.end - pedestrian.position
+                # allowed_range = 0.5 * self.scene.config['general'].getfloat(
+                #     'margin')  # some experimental threshold based on safety margin of obstacles
+                # checkpoint_reached = ft.norm(remaining_path[0], remaining_path[1]) < allowed_range
+                # if checkpoint_reached:  # but not done
+                #     if pedestrian.path:
+                #         pedestrian.line = pedestrian.path.pop_next_segment()
+                #         pedestrian.velocity = Velocity(pedestrian.line.end - pedestrian.position)
+                # else:
+                #     pedestrian.velocity = Velocity(remaining_path)  # Expensive...
+                pass
             else:
                 # Stationary pedestrian or new. Creating new path.
                 pedestrian.path = self.create_path(pedestrian)

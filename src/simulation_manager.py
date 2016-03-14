@@ -75,7 +75,8 @@ class SimulationManager:
 
         if args.results:
             if args.dynamic:
-                GraphPlanner(self.scene)  # Create paths for reference
+                planner = GraphPlanner(self.scene)  # Create paths for reference
+                self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
             results = Result(self.scene)
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)

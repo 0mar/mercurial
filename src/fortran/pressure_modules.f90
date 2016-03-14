@@ -190,7 +190,6 @@ density_overshoot=0 !
      density_overshoot = density_overshoot+q
      !write(*,*) "Score: ",dot_product(density_overshoot,out_pressure)
      end do
-     write(*,*) "Iterations: ",it
      end subroutine
      !write(*,*) "done at it ",it
      !write(*,*) "density ", density_overshoot
