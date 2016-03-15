@@ -220,4 +220,5 @@ class NoVisualScene(VisualScene):
                 ft.log("Time step %d" % self.scene.counter)
                 self.time = time.time()
             except KeyboardInterrupt:
+                ft.log("\nUser interrupted simulation")
                 self.scene.status = 'DONE'

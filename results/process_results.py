@@ -19,8 +19,8 @@ class Processor:
             if not filename:
                 filename = "results.mat"
             self.s = 100
-            self.norm_l = -0.1
-            self.norm_u = 1
+            self.norm_l = 0
+            self.norm_u = 0.5
             self.alpha = 0.6
             self.dt = 0.05
             self.clip = False
@@ -38,7 +38,7 @@ class Processor:
             self.result = result
 
     def delay_scatter_plot(self):
-        if self.clip:
+        if True:
             norm = mc.Normalize(self.norm_l, self.norm_u, False)
         else:
             norm = None
@@ -102,9 +102,10 @@ class Processor:
             nx, ny = 400, 400
             dx, dy = size_x / nx, size_y / ny
             dens, _, _ = comp_dens_velo(positions, dummy_velo, active, nx, ny, dx, dy, 5 * dx)
-            print(dens)
-            plt.imshow(np.rot90(dens))
-            plt.suptitle("Densities :D")
+            plt.imshow(np.log(1 + np.rot90(dens)))
+            plt.xlabel('x-coordinate in scene')
+            plt.ylabel('y-coordinate in scene')
+            plt.suptitle('Logarithmic density heatmap')
             plt.show()
 
 
