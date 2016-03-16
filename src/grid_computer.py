@@ -43,7 +43,7 @@ class GridComputer:
         self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.scene.core_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
-        self.smoothing_length = self.scene.core_distance
+        self.smoothing_length = 2 * self.scene.core_distance
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
         self.show_plot = show_plot
@@ -177,7 +177,6 @@ class GridComputer:
             ft.debug("Max allowed density: %.4f"%self.max_density)
             ft.debug("Max observed density: %.4f"%np.max(self.density_field.array))
 
-                # print(self.density_field)
         if self.apply_interpolation:
 
             if self.apply_pressure:
