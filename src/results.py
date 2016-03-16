@@ -180,7 +180,8 @@ class Result:
                                      "paths_list": self.paths_list,
                                      "mean_speed": self.mean_speed,
                                      "position_list": self.position_list,
-                                     "finished": self.finished})
+                                     "finished": self.finished,
+                                     "final_positions": self.scene.position_array[self.scene.active_entries]})
         ft.log("Finished writing results to binary file")
 
     def write_density_results(self, filename):

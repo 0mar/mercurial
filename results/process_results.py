@@ -12,6 +12,7 @@ import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import functions as ft
 from fortran_modules.micro_macro import comp_dens_velo
+from fortran_modules.mde import compute_mde
 
 class Processor:
     def __init__(self, result=None,filename=None):
@@ -38,7 +39,7 @@ class Processor:
             self.result = result
 
     def delay_scatter_plot(self):
-        if True:
+        if self.clip:
             norm = mc.Normalize(self.norm_l, self.norm_u, False)
         else:
             norm = None
@@ -108,6 +109,22 @@ class Processor:
             plt.suptitle('Logarithmic density heatmap')
             plt.show()
 
+    def mde_violations(self):
+        active_arrays = np.ones(self.result.final_positions.shape[0])
+        size_x = np.max(self.result.final_positions[:, 0]) + 1
+        size_y = np.max(self.result.final_positions[:, 1]) + 1
+        min_dist = 0.2
+        max_dist = 1.8
+        resolution = 100
+        distances = np.linspace(min_dist, max_dist, resolution)
+        vio_amount = np.zeros(distances.shape)
+        for i, distance in enumerate(distances):
+            mde = compute_mde(self.result.final_positions, size_x, size_y, active_arrays, distance)
+            mde_found = np.where(np.sum(np.abs(mde), axis=1) > 0)[0]
+            vio_amount[i] = len(mde_found)
+        plt.plot(distances, vio_amount)
+        sio.savemat('vio', {'distances': distances, 'vio': vio_amount})
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -117,8 +134,9 @@ if __name__ == '__main__':
         if not os.path.exists(filename):
             ft.error("Result file %s does not exist"%filename)
     proc = Processor(filename=filename)
-    proc.time_spent_histogram()
-    proc.path_length_histogram()
-    proc.delay_scatter_plot()
-    proc.time_scatter_plot()
-    proc.density_map()
+    proc.mde_violations()
+    # proc.time_spent_histogram()
+    # proc.path_length_histogram()
+    # proc.delay_scatter_plot()
+    # proc.time_scatter_plot()
+    # proc.density_map()
