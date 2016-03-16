@@ -50,7 +50,7 @@ class Scene:
         #                        np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.max_speed_array = np.maximum(np.random.randn(self.position_array.shape[0]) * 0.15 + 1.4,
                                           0.3)  # Todo: Fix in config file
-
+        self.mde_proc = []
         self.pedestrian_list = []
         self._init_pedestrians(self.total_pedestrians)
         self.index_map = {i: self.pedestrian_list[i] for i in range(self.total_pedestrians)}
@@ -262,13 +262,12 @@ class Scene:
         self.last_position_array = np.array(self.position_array)
         self.position_array += self.velocity_array * self.dt
         if self.mde:
-            time1 = time.time()
-            try:
-                self.position_array += compute_mde(self.position_array, self.size[0], self.size[1],
+            mde = compute_mde(self.position_array, self.size[0], self.size[1],
                                                    self.active_entries, self.core_distance)
-                ft.debug("MDE: %.3e" % (time.time() - time1))
-            except Exception as e:
-                ft.warn("Fortran error: %s"%e)
+            mde_found = np.where(np.sum(np.abs(mde[self.active_entries]), axis=1) > 0.001)[0]
+            self.mde_proc.append(len(mde_found) / np.sum(self.active_entries))
+            print("mde percentage: %.4f" % (sum(self.mde_proc) / len(self.mde_proc)))
+            # self.position_array += mde
 
     def correct_for_geometry(self):
         """
