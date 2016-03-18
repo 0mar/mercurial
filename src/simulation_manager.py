@@ -9,6 +9,7 @@ import scene as scene_module
 import functions
 from visualization import VisualScene, NoVisualScene
 from dynamic_planner import DynamicPlanner
+from combi_planner import CombiPlanner
 from grid_computer import GridComputer
 from results import Result
 from static_planner import GraphPlanner
@@ -52,6 +53,9 @@ class SimulationManager:
         if args.dynamic:
             planner = DynamicPlanner(self.scene, show_plot=args.graph)
             self.step_functions += [planner.step]
+        elif args.combi:
+            planner = CombiPlanner(self.scene)
+            self.step_functions.append(planner.step)
         elif args.exponential_planner:
             planner = ExponentialPlanner(self.scene)
             grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,

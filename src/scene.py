@@ -266,7 +266,7 @@ class Scene:
                                                    self.active_entries, self.core_distance)
             mde_found = np.where(np.sum(np.abs(mde[self.active_entries]), axis=1) > 0.001)[0]
             self.mde_proc.append(len(mde_found) / np.sum(self.active_entries))
-            print("mde percentage: %.4f" % (sum(self.mde_proc) / len(self.mde_proc)))
+            # print("mde percentage: %.4f" % (sum(self.mde_proc) / len(self.mde_proc)))
             # self.position_array += mde
 
     def correct_for_geometry(self):
