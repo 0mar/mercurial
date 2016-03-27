@@ -2,7 +2,7 @@ __author__ = 'omar'
 
 import networkx as nx
 import numpy as np
-
+import matplotlib.pyplot as plt
 import functions as ft
 from geometry import LineSegment, Path, Point, Interval, Velocity, Coordinate
 from scene import Obstacle
@@ -209,12 +209,13 @@ class GraphPlanner:
         node_colors = []
         draw_graph = nx.Graph(graph)
         if pedestrian:
-            draw_graph.add_node(pedestrian.position)
-            labeling[pedestrian.position] = r'$a$'
+            ped_pos = pedestrian.position
+            draw_graph.add_node(ped_pos)
+            labeling[ped_pos] = r'$a$'
 
-            self._fill_with_required_edges(pedestrian.position, draw_graph)
+            self._fill_with_required_edges(ped_pos, draw_graph)
         for node in draw_graph.nodes():
-            if pedestrian and node == pedestrian.position:
+            if pedestrian and node == ped_pos:
                 node_colors.append('gray')
                 position = node.array
             elif isinstance(node, Coordinate):
