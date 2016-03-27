@@ -2,7 +2,7 @@ __author__ = 'omar'
 
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+
 import functions as ft
 from geometry import LineSegment, Path, Point, Interval, Velocity, Coordinate
 from scene import Obstacle

@@ -53,8 +53,8 @@ class DynamicPlanner:
         self.max_speed = 2
         self.smoothing_length = self.config['dynamic'].getfloat('smoothing_length')
         self.path_length_weight = self.config['dynamic'].getfloat('path_length_weight')
-        self.time_weight = self.config['dynamic'].getfloat('time_weight')
-        self.discomfort_field_weight = self.config['dynamic'].getfloat('discomfort_weight')
+        self.time_weight = 0  # self.config['dynamic'].getfloat('time_weight')
+        self.discomfort_field_weight = 0  # self.config['dynamic'].getfloat('discomfort_weight')
 
         # This is dependent on cell size, because of the discretization
         self.min_density = self.config['dynamic'].getfloat('min_density')

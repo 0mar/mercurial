@@ -113,8 +113,8 @@ class Processor:
         active_arrays = np.ones(self.result.final_positions.shape[0])
         size_x = np.max(self.result.final_positions[:, 0]) + 1
         size_y = np.max(self.result.final_positions[:, 1]) + 1
-        min_dist = 0.2
-        max_dist = 1.8
+        min_dist = 0.05
+        max_dist = 0.8
         resolution = 100
         distances = np.linspace(min_dist, max_dist, resolution)
         vio_amount = np.zeros(distances.shape)
@@ -123,6 +123,9 @@ class Processor:
             mde_found = np.where(np.sum(np.abs(mde), axis=1) > 0)[0]
             vio_amount[i] = len(mde_found)
         plt.plot(distances, vio_amount)
+        plt.xlabel('Range r')
+        plt.ylabel('Number of particles')
+        plt.suptitle('Particles with other particles in range r')
         sio.savemat('vio', {'distances': distances, 'vio': vio_amount})
         plt.show()
 
@@ -135,8 +138,8 @@ if __name__ == '__main__':
             ft.error("Result file %s does not exist"%filename)
     proc = Processor(filename=filename)
     proc.mde_violations()
-    # proc.time_spent_histogram()
+    proc.time_spent_histogram()
     # proc.path_length_histogram()
     # proc.delay_scatter_plot()
     # proc.time_scatter_plot()
-    # proc.density_map()
+    proc.density_map()
