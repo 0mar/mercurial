@@ -20,7 +20,7 @@ Any information on simulation techniques and features is present in the (current
 
 The repository can be cloned using the link above, or with 
 
-`git clone https://github.com/0mar/crowd_simulation.git`
+`git clone https://github.com/0mar/mercurial.git`
 
 Move into the source directory and build the library objects with 
 
