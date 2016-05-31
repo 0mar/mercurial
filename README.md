@@ -57,7 +57,10 @@ This project depends on the following external libraries:
 - `cvxopt`
 - `cython`
 
-Each of these libraries can be installed using python's package installer `pip3` command.
+Each of these libraries can be installed using Python 3's package installer `pip3`.
+However, for new scientific python users, it might be more convenient to use repo versions of above packages, or bundled python version.
+
+Note that in case of using `pip3`, basic requirements may include `liblapack-dev`, `libblas-dev` (for `numpy`, `scipy` and `cvxopt`) and `libfreetype6-dev`, `libpng-dev` for `matplotlib`).
 
 * How to run tests
 
