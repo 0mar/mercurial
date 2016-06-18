@@ -1,16 +1,17 @@
 # README #
 
-This document provides an overview for setting up and running the prototype crowd dynamics simulation Mercurial.
+This document provides an overview for setting up and running the prototype crowd dynamics simulation *Mercurial*.
 
 ### What is this repository for? ###
 
 * Quick summary
 
 This repository is a private repository for a project on Crowd Dynamics simulation, managed by Omar Richardson.
-The simulation is written in Python and relies on some Cython and FORTRAN90 modules to increase computation speed.
+The simulation is written in Python and call some custom libraries written in Fortran90
 
 * Version
-Current version: 3.1
+
+Current version: 3.2.
 This simulation is under active development. 
 Any information on simulation techniques and features is present in the (currently not disclosed) graduation report.
 
@@ -22,7 +23,7 @@ The repository can be cloned using the link above, or with
 
 `git clone https://github.com/0mar/mercurial.git`
 
-Move into the source directory and build the library objects with 
+Move into the source directory and build the Fortran library objects with 
 
 `python3 setup.py install`
 
@@ -60,21 +61,12 @@ This project depends on the following external libraries:
 Each of these libraries can be installed using Python 3's package installer `pip3`.
 However, for new scientific python users, it might be more convenient to use repo versions of above packages, or bundled python version.
 
-Note that in case of using `pip3`, basic requirements may include `liblapack-dev`, `libblas-dev` (for `numpy`, `scipy` and `cvxopt`) and `libfreetype6-dev`, `libpng-dev` for `matplotlib`).
+Note that in case of using `pip3`, basic requirements may include `liblapack-dev`, `libblas-dev` (for `numpy`, `scipy` and `cvxopt`) and `libfreetype6-dev`, `libpng-dev` (for `matplotlib`).
 
 * How to run tests
 
 Unit tests are stored in folder `tests/` and are set up to run using the unittest framework `nosetests`. 
 The coverage of the tests highly varies per module. Feel free to contribute to unittests of any module.
-
-### Changelog ###
-
-- Increased pedestrian capacity
-- Increased computational speed
-- Introduced fortran90 modules
-- Result processing
-- Bug fixes
-
 
 ### Known issues ###
 
