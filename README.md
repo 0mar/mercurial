@@ -13,7 +13,7 @@ The simulation is written in Python and call some custom libraries written in Fo
 
 Current version: 3.2.
 This simulation is under active development. 
-Any information on simulation techniques and features is present in the graduation report.
+Any information on simulation techniques and features is present in the (currently not disclosed) graduation report.
 
 ### How do I get set up? ###
 
