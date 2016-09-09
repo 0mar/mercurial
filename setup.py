@@ -17,11 +17,3 @@ if __name__ == "__main__":
             description="FORTRAN modules for Mercurial",
             author="Omar Richardson",
             ext_modules=[mde, micro_macro,potential_computer, pressure_computer])
-
-    # Cython will be removed in the next version
-    cython_path = 'src/cython_modules'
-    module_list = ["grid_computer_cy.pyx", "mde_cy.pyx", "dynamic_planner_cy.pyx"]
-    setup(name='Cython modules',
-          description="Cython modules for Mercurial (deprecated)",
-          author="Omar Richardson",
-          ext_modules=cythonize(["%s/%s" % (cython_path, module) for module in module_list]))
