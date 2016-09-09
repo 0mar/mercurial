@@ -1,81 +1,91 @@
-!      program debug_cpf
-!      integer (kind=8) , parameter :: n = 5
-!      real (kind=8) :: s_x = 10
-!      real (kind=8) :: s_y = 10
-!      real (kind=8) :: min_dist = 1.5
-!      real (kind=8), dimension(n,2) :: pos,corrects
-!      integer, dimension(n) :: active
-!      data pos / 1, 2.2, 3.4, 4.5, 6.7, 2.2, 2.5, 2, 7.4, 8.4/
-!      active=1
-!      call compute_potential_field(pos,s_x,s_y,active,min_dist,n,corrects)
-!      write(*,*) corrects
-!      end
+program debug_cpf
+integer (kind=8) , parameter :: n = 5
+real (kind=8) :: s_x = 10
+real (kind=8) :: s_y = 10
+real (kind=8) :: min_dist = 1.5
+real (kind=8), dimension(n,2) :: pos,corrects
+integer, dimension(n) :: active
+data pos / 1, 2.2, 3.4, 4.5, 6.7, 2.2, 2.5, 2, 7.4, 8.4/
+active=1
+write(*,*) corrects
+end
 
-subroutine compute_potential_field(cell_x,cell_y,n,pot_field,uf_left,uf_right,uf_up,uf_down,out_pot,inf)
+subroutine compute_potential_field(cell_x,cell_y,n_x,n_y,pot_field,uf_left,uf_right,uf_up,uf_down,out_pot,inf)
 
 !   Compute the potential in a single cell with a first order upwind method
 implicit none
-integer (kind=4) ::  n
+integer (kind=4) ::  n_x,n_y
 !f2py intent(in) cell_x,cell_y,pot_field,uf_left,uf_right,uf_up,uf_down
 !f2py intent(out) pot
-!f2py depend(n) pot_field,uf_left,uf_right,uf_up,uf_down
+!f2py depend(n_x) pot_field,uf_left,uf_right,uf_up,uf_down
+!f2py depend(n_y) pot_field,uf_left,uf_right,uf_up,uf_down
 !
 ! this subroutine uses 0 based indexing
 !
 real (kind=8) :: inf ! Domain size
 real (kind=8) :: a,b,c,D,x_high ! parameters for upwind approximation
-integer (kind=4) :: normal_x,normal_y,face_index_x,face_index_y ! Administration
-integer (kind=4) :: nb_cell_x,nb_cell_y,! neighbour indices
-real (kind=8):: hor_potential,ver_potential_hor_cost,ver_cost
+integer (kind=4) :: normal_x,normal_y,face_index_x,face_index_y, exists ! Administration
+integer (kind=4) :: nb_cell_x,nb_cell_y! neighbour indices
+real (kind=8):: hor_potential,ver_potential,hor_cost,ver_cost
 
 integer (kind=4) :: direction
 integer (kind=4), parameter :: LEFT = 0
 integer (kind=4), parameter :: DOWN = 1
 integer (kind=4), parameter :: RIGHT = 2
 integer (kind=4), parameter :: UP = 3
-real (kind=8), dimension(n,n) :: pot_field
-real (kind=8), dimension(n-1,n) :: uf_left,uf_right
-real (kind=8), dimension(n,n-1) :: uf_up,uf_down
+real (kind=8), dimension(n_x,n_y) :: pot_field
+real (kind=8), dimension(n_x-1,n_y) :: uf_left,uf_right
+real (kind=8), dimension(n_x,n_y-1) :: uf_up,uf_down
 real (kind=8), dimension(4) :: neighbour_pots
 integer (kind=4) :: cell_x,cell_y
-real (kind=8) :: pot, out_pot
+real (kind=8) :: pot, out_pot,cost
 
-data neighbour_pots / inf, inf, inf, inf / 
+neighbour_pots=  (/ inf, inf, inf, inf /) 
+    ! Find the minimal directions along a grid cell.
+    ! Assume left and below are best, then overwrite with right and up if they are better
 do direction=0,3
 
         normal_x = sign(mod(direction,2),direction-2)
         normal_y = sign(mod(direction+1,2),direction-2)
+        ! numerical direction
         nb_cell_x = cell_x + normal_x
         nb_cell_y = cell_y + normal_y
-        if (exists(nb_cell_x,nb_cell_y,n,n) == 0) then
-            continue
-        end if
+        if (exists(nb_cell_x,nb_cell_y,n_x,n_y) == 0) then
+            cycle
+        endif
         pot = pot_field(nb_cell_x,nb_cell_y)
+        ! potential in that neighbour field
         if (direction == RIGHT) then
             face_index_x = nb_cell_x - 1
             face_index_y = nb_cell_y
+            ! Unit cost values are defined w.r.t faces, not cells! So the indexing is different with right and up.
             cost = uf_left(face_index_x,face_index_y)
+            ! Cost to go from there to here
         elseif (direction == UP) then
             face_index_x = nb_cell_x
             face_index_y = nb_cell_y - 1
+            ! Unit cost values are defined w.r.t faces, not cells! So the indexing is different with right and up.
             cost = uf_down(face_index_x,face_index_y)
         elseif (direction == LEFT) then
             face_index_x = nb_cell_x
             face_index_y = nb_cell_y
-            cost = uf_left(face_index_x,face_index_y)
+            cost = uf_right(face_index_x,face_index_y)
         elseif (direction == DOWN) then
             face_index_x = nb_cell_x
             face_index_y = nb_cell_y
             cost = uf_up(face_index_x,face_index_y)
         endif
-        neighbour_pots[direction] + pot + cost
-        if (neighbour_pots[direction] < neighbour_pots[mod(direction+2,4)] then
+        neighbour_pots(direction) = pot + cost
+        ! total potential
+        if (neighbour_pots(direction) < neighbour_pots(mod(direction+2,4))) then
             if (mod(direction,2) == 0) then
                 hor_potential = pot
                 hor_cost = cost
+                ! lowest in horizontal direction
             else
                 ver_potential = pot
                 ver_cost = cost
+                ! lowest in vertical direction
             endif
         endif
 end do
@@ -83,15 +93,15 @@ end do
 if (hor_cost >= inf) then
     a = 1. / (ver_cost * ver_cost)
     b = -2. * ver_potential / (ver_cost * ver_cost)
-    c = (ver_pot / ver_cost) * (ver_pot / ver_cost) -1
+    c = (ver_potential / ver_cost) * (ver_potential / ver_cost) -1
 elseif (ver_cost >=inf) then
     a = 1. / (hor_cost * hor_cost)
     b = -2. * hor_potential / (hor_cost * hor_cost)
-    c = (hor_pot / hor_cost) * (hor_pot / hor_cost) -1
+    c = (hor_potential / hor_cost) * (hor_potential / hor_cost) -1
 else
     a = 1. / (hor_cost * hor_cost) + 1. / (ver_cost * ver_cost)
-    b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_pot / (ver_cost * ver_cost))
-    c = (hor_pot / hor_cost) * (hor_pot / hor_cost) + (ver_pot / ver_cost) * (ver_pot / ver_cost) - 1
+    b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
+    c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (ver_potential / ver_cost) - 1
 endif
 
 D = b*b-4.*a*c
@@ -101,6 +111,7 @@ if (D<0) then
 endif
 
 out_pot = (-b + sqrt(D)) / (2.*a)
+    ! Might not be obvious, but why we take the largest root is found in report.
 return
 end
 
