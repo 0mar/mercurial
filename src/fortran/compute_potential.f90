@@ -10,7 +10,7 @@ active=1
 write(*,*) corrects
 end
 
-subroutine compute_potential_field(cell_x,cell_y,n_x,n_y,pot_field,uf_left,uf_right,uf_up,uf_down,out_pot,inf)
+subroutine compute_potential(cell_x,cell_y,n_x,n_y,pot_field,uf_left,uf_right,uf_up,uf_down,out_pot,inf)
 
 !   Compute the potential in a single cell with a first order upwind method
 implicit none
