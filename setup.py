@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 
 mde = Extension(name='mde', sources=['src/fortran/mde.f90'])
 micro_macro = Extension(name='micro_macro', sources=['src/fortran/micro_macro.f90'])
-potential_computer = Extension(name='micro_macro', sources=['src/fortran/compute_potential.f90'])
+potential_computer = Extension(name='potential_computer', sources=['src/fortran/compute_potential.f90'])
 pressure_computer = Extension(name='pressure_computer', sources=['src/fortran/pressure_modules.f90',
                                                                  'src/fortran/sparse_modules.f90'])
 

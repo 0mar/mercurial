@@ -12,7 +12,7 @@ import functions as ft
 from geometry import Point
 from scalar_field import ScalarField as Field
 from fortran_modules.micro_macro import comp_dens_velo
-from fortran_modules.dynamic_planner_cy import compute_potential_cy
+from fortran_modules.potential_computer import compute_potential
 
 class DynamicPlanner:
     """
@@ -288,7 +288,7 @@ class DynamicPlanner:
                         new_candidate_cells.add(nb_cell)
             return new_candidate_cells
 
-        def compute_potential(cell):
+        def compute_potential_old(cell):
             """
             Computes the potential in one cell, using potential in neighbouring cells.
             """
@@ -339,7 +339,9 @@ class DynamicPlanner:
             # Might not be obvious, but why we take the largest root is found in report.
             return x_high
 
-        candidate_cells = {cell: compute_potential_cy(cell, potential_field, self.unit_field_dict, opposites)
+        candidate_cells = {cell: compute_potential(cell[0],cell[1], self.grid_dimension[0],self.grid_dimension[1], potential_field,
+                                                   self.unit_field_dict['left'].array,self.unit_field_dict['right'].array,
+                                                   self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 9999)
                            for cell in get_new_candidate_cells(known_cells)}
 
         new_candidate_cells = get_new_candidate_cells(known_cells)
@@ -349,7 +351,9 @@ class DynamicPlanner:
                 if False:
                     potential = compute_potential(candidate_cell)
                 else:
-                    potential = compute_potential_cy(candidate_cell, potential_field, self.unit_field_dict, opposites)
+                    potential = compute_potential(candidate_cell[0],candidate_cell[1], self.grid_dimension[0],self.grid_dimension[1], potential_field,
+                                                  self.unit_field_dict['left'].array,self.unit_field_dict['right'].array,
+                                                  self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 9999)
                 candidate_cells[candidate_cell] = potential
             sorted_candidates = sorted(candidate_cells.items(), key=operator.itemgetter(1))  # Todo: Can we reuse this?
             best_cell = sorted_candidates[0][0]
