@@ -1,6 +1,6 @@
 import scene as scene_module
 import functions
-from macro import MacroTransporter
+from macro import PressureTransporter
 from micro import PotentialTransporter
 
 
@@ -16,12 +16,12 @@ class Planner:
             micro_planner = micro_dict[self.config['planner']['micro']]
         self.micro = micro_planner(scene)
 
-        macro_planner = MacroTransporter
-        macro_dict = {'MacroTransporter': MacroTransporter, 'None': None}
+        macro_planner = PressureTransporter
+        macro_dict = {'PressureTransporter': PressureTransporter, 'None': None}
         self.macro = None
-        if 'global' in self.config['planner']:
-            macro_planner = macro_dict[self.config['planner']['global']]
-        if not macro_planner:
+        if 'macro' in self.config['planner']:
+            macro_planner = macro_dict[self.config['planner']['macro']]
+        if macro_planner:
             self.macro = macro_planner(scene)
 
     def step(self):

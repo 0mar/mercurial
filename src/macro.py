@@ -12,7 +12,7 @@ import cvxopt
 import functions as ft
 from geometry import Point
 
-class MacroTransporter:
+class PressureTransporter:
     """
     Class responsible for the macroscopic calculations of the crowd.
     Main tasks:
