@@ -1,3 +1,5 @@
+from planner import Planner
+
 __author__ = 'omar'
 import json
 import configparser
@@ -8,12 +10,7 @@ import scipy.io as sio
 import scene as scene_module
 import functions
 from visualization import VisualScene, NoVisualScene
-from dynamic_planner import DynamicPlanner
-from combi_planner import CombiPlanner
-from grid_computer import GridComputer
 from results import Result
-from static_planner import GraphPlanner
-from exp_planner import ExponentialPlanner
 from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
 
 
@@ -36,6 +33,7 @@ class SimulationManager:
         if args.obstacle_file:
             config['general']['obstacle_file'] = args.obstacle_file
 
+        # Initialization scene
         if args.number >= 0:
             config['general']['number_of_pedestrians'] = str(args.number)
         if args.configuration == 'uniform':
@@ -48,26 +46,11 @@ class SimulationManager:
             self.scene = TwoImpulseScene(impulse_locations=[(0.5, 0.4), (0.4, 0.2)], impulse_size=8, config=config)
         if not self.scene:
             raise ValueError("No scene has been initialized")
+
         # Initialization planner
-        self.step_functions.append(self.scene.step)
-        if args.dynamic:
-            planner = DynamicPlanner(self.scene, show_plot=args.graph)
-            self.step_functions += [planner.step]
-        elif args.combi:
-            planner = CombiPlanner(self.scene)
-            self.step_functions.append(planner.step)
-        elif args.exponential_planner:
-            planner = ExponentialPlanner(self.scene)
-            grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
-                                apply_pressure=args.apply_pressure)
-            self.step_functions += [planner.step, grid.step]
-            self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
-        else:
-            planner = GraphPlanner(self.scene)
-            grid = GridComputer(self.scene, show_plot=args.graph, apply_interpolation=args.apply_interpolation,
-                                apply_pressure=args.apply_pressure)
-            self.step_functions += [planner.step, grid.step]
-            self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
+        planner = Planner(self.scene)
+        self.step_functions.append(planner.step)
+
         if args.store_positions:
             # filename = input('Specify storage file\n')
             import re
@@ -78,9 +61,6 @@ class SimulationManager:
             self.finish_functions.append(self.store_exit_logs)
 
         if args.results:
-            if args.dynamic:
-                planner = GraphPlanner(self.scene)  # Create paths for reference
-                self.on_pedestrian_init_functions.append(planner.on_pedestrian_init)
             results = Result(self.scene)
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)

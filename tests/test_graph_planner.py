@@ -11,7 +11,7 @@ from simulation_manager import SimulationManager
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'
 
-from static_planner import GraphPlanner
+from static_planner import GraphTransporter
 
 
 class TestGraphPlanner:
@@ -22,8 +22,8 @@ class TestGraphPlanner:
         config_2['general']['obstacle_file']=empty_file_name
         self.filled_scene = Scene(config=config_1,initial_pedestrian_number=10)
         self.empty_scene = Scene(config=config_2,initial_pedestrian_number=10)
-        self.gt1 = GraphPlanner(self.filled_scene, config_1)
-        self.gt2 = GraphPlanner(self.empty_scene,config_2)
+        self.gt1 = GraphTransporter(self.filled_scene, config_1)
+        self.gt2 = GraphTransporter(self.empty_scene, config_2)
 
     def test_path_cross_no_obstacles(self):
         ped = self.filled_scene.pedestrian_list[0]
@@ -45,7 +45,7 @@ class TestGraphPlanner:
                 print(exit)
                 distance = np.linalg.norm(pedestrian.position.array -
                                           self.gt1.get_closest_goal_position(pedestrian.position, exit))
-                path_length = GraphPlanner.get_path_length(pedestrian)
+                path_length = GraphTransporter.get_path_length(pedestrian)
                 print("Distance: %.2f " % distance)
                 print("path_length: %.2f " % path_length)
                 distances.append(distance)
@@ -56,5 +56,5 @@ class TestGraphPlanner:
             for exit in self.empty_scene.exit_list:
                 distance = np.linalg.norm(pedestrian.position.array -
                                           self.gt2.get_closest_goal_position(pedestrian.position, exit))
-                path_length = GraphPlanner.get_path_length(pedestrian)
+                path_length = GraphTransporter.get_path_length(pedestrian)
                 assert distance >= path_length

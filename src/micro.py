@@ -1,12 +1,23 @@
+import time
+
+__author__ = 'omar'
+import matplotlib
+
+matplotlib.use('TkAgg')
 import numpy as np
-import math
 import operator
 import functions as ft
 from geometry import Point
 from scalar_field import ScalarField as Field
+from fortran_modules.potential_computer import compute_potential
 
 
-class MicroTransporter:
+class PotentialTransporter:
+    """
+    This should be a combination planner.
+    Same as the dynamic planner, only ignoring the density so the potential field
+    is computed once and we use the pressure computer from Narain
+    """
 
     def __init__(self, scene, show_plot=False):
         """
@@ -38,7 +49,7 @@ class MicroTransporter:
         self.potential_field = Field(shape, Field.Orientation.center, 'potential', (dx, dy))
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
-        self._compute_obstacle_discomfort()
+        self.compute_obstacle_discomfort()
 
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
@@ -59,9 +70,9 @@ class MicroTransporter:
     def obtain_potential_field(self):
         self._compute_initial_interface()
         for direction in ft.DIRECTIONS:
-            self._compute_unit_cost_field(direction)
+            self.compute_unit_cost_field(direction)
         self.compute_potential_field()
-        self._compute_potential_gradient()
+        self.compute_potential_gradient()
         self.grad_x_func = self.pot_grad_x.get_interpolation_function()
         self.grad_y_func = self.pot_grad_y.get_interpolation_function()
 
@@ -93,7 +104,7 @@ class MicroTransporter:
             ft.warn("%s not properly processed" % "/"
                     .join([repr(goal) for goal in self.scene.exit_list if not valid_exits[goal]]))
 
-    def _compute_obstacle_discomfort(self):
+    def compute_obstacle_discomfort(self):
         """
         Create a layer of discomfort around obstacles to repel pedestrians from those locations.
         """
@@ -113,7 +124,7 @@ class MicroTransporter:
             max_index = self.grid_dimension
         return (0 <= index[0] < max_index[0]) and (0 <= index[1] < max_index[1])
 
-    def _compute_unit_cost_field(self, direction):
+    def compute_unit_cost_field(self, direction):
         """
         Compute the unit cost vector field in the provided direction
         Updates the class unit cost scalar field
@@ -152,58 +163,10 @@ class MicroTransporter:
                         new_candidate_cells.add(nb_cell)
             return new_candidate_cells
 
-        def compute_potential(cell):
-            """
-            Computes the potential in one cell, using potential in neighbouring cells.
-            """
-            # Find the minimal directions along a grid cell.
-            # Assume left and below are best, then overwrite with right and up if they are better
-            neighbour_pots = {direction: np.Inf for direction in ft.DIRECTIONS}
 
-            hor_potential = ver_potential = 0
-            hor_cost = ver_cost = np.Inf
-
-            for direction in ft.DIRECTIONS:
-                normal = ft.DIRECTIONS[direction]
-                # numerical direction
-                nb_cell = (cell[0] + normal[0], cell[1] + normal[1])
-                if not self._exists(nb_cell):
-                    continue
-                pot = potential_field[nb_cell]
-                # potential in that neighbour field
-                if direction == 'right':
-                    face_index = (nb_cell[0] - 1, nb_cell[1])
-                elif direction == 'up':
-                    face_index = (nb_cell[0], nb_cell[1] - 1)
-                    # Unit cost values are defined w.r.t faces, not cells!
-                else:
-                    face_index = nb_cell
-                cost = self.unit_field_dict[opposites[direction]].array[face_index]
-                # Cost to go from there to here
-                neighbour_pots[direction] = pot + cost
-                # total potential
-                if neighbour_pots[direction] < neighbour_pots[opposites[direction]]:
-                    if direction in ft.HORIZONTAL_DIRECTIONS:
-                        hor_potential = pot
-                        hor_cost = cost
-                        # lowest in horizontal direction
-                    elif direction in ft.VERTICAL_DIRECTIONS:
-                        ver_potential = pot
-                        ver_cost = cost
-                        # lowest in vertical direction
-                    else:
-                        raise ValueError("Direction unknown")
-            # Coefficients of quadratic equation
-            a = 1 / hor_cost ** 2 + 1 / ver_cost ** 2
-            b = -2 * (hor_potential / hor_cost ** 2 + ver_potential / ver_cost ** 2)
-            c = (hor_potential / hor_cost) ** 2 + (ver_potential / ver_cost) ** 2 - 1
-
-            D = b ** 2 - 4 * a * c
-            x_high = (2 * c) / (-b - math.sqrt(D))
-            # Might not be obvious, but why we take the largest root is found in report.
-            return x_high
-
-        candidate_cells = {cell: compute_potential_cy(cell, potential_field, self.unit_field_dict, opposites)
+        candidate_cells = {cell: compute_potential(cell[0],cell[1], potential_field,
+                                                   self.unit_field_dict['left'],self.unit_field_dict['right'],
+                                                   self.unit_field_dict['up'],self.unit_field_dict['down'], 9999)
                            for cell in get_new_candidate_cells(known_cells)}
 
         new_candidate_cells = get_new_candidate_cells(known_cells)
@@ -212,8 +175,9 @@ class MicroTransporter:
                 if False:
                     potential = compute_potential(candidate_cell)
                 else:
-                    potential = compute_potential_cy(candidate_cell, potential_field, self.unit_field_dict, opposites)
-                    #Todo: Push to fortran or back to python
+                    potential = compute_potential(candidate_cell[0], candidate_cell[1], potential_field,
+                                                  self.unit_field_dict['left'], self.unit_field_dict['right'],
+                                                  self.unit_field_dict['up'], self.unit_field_dict['down'], 9999)
                 candidate_cells[candidate_cell] = potential
             sorted_candidates = sorted(candidate_cells.items(), key=operator.itemgetter(1))  # Todo: Can we reuse this?
             best_cell = sorted_candidates[0][0]
@@ -224,7 +188,7 @@ class MicroTransporter:
             new_candidate_cells = get_new_candidate_cells({best_cell})
         self.potential_field.update(potential_field)
 
-    def _compute_potential_gradient(self):
+    def compute_potential_gradient(self):
         """
         Compute a gradient component approximation of the provided field.
         Only computed for face fields.
@@ -241,7 +205,7 @@ class MicroTransporter:
         self.pot_grad_y.update((up_field - down_field) / self.dy)
         self.pot_grad_y.array[np.logical_not(np.isfinite(self.pot_grad_y.array))] = 0
 
-    def compute_velocities(self):
+    def assign_velocities(self):
         """
         Interpolates the potential gradients for this time step and computes the velocities.
         :return: None
@@ -252,3 +216,22 @@ class MicroTransporter:
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
         self.scene.velocity_array = - self.scene.max_speed_array[:, None] * solved_grad / \
                                     np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
+
+    def step(self):
+        """
+        Computes the scalar fields (in the correct order) necessary for the dynamic planner.
+        If plotting is enables, updates the plot.
+        :return: None
+        """
+
+        self.scene.move_pedestrians()
+        self.scene.correct_for_geometry()
+
+    def nudge_stationary_pedestrians(self):
+        stat_ped_array = self.scene.get_stationary_pedestrians()
+        num_stat = np.sum(stat_ped_array)
+        if num_stat > 0:
+            nudge = np.random.random((num_stat, 2)) - 0.5
+            correction = self.scene.max_speed_array[stat_ped_array][:, None] * nudge * self.scene.dt
+            self.scene.position_array[stat_ped_array] += correction
+            self.scene.correct_for_geometry()

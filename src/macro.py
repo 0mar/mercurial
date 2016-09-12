@@ -22,7 +22,7 @@ class MacroTransporter:
     4. Adapting individual velocity by global velocity field.
     """
 
-    def __init__(self, scene, show_plot, apply_interpolation, apply_pressure):
+    def __init__(self, scene, show_plot=False, apply_interpolation=True, apply_pressure=True):
         """
         Constructs a grid computer, responsible for the continuum calculations.
         The grid computer takes several parameters in its constructor.
@@ -43,7 +43,7 @@ class MacroTransporter:
         self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.scene.core_distance ** 2)
         cvxopt.solvers.options['show_progress'] = False
-        self.smoothing_length = 2 * self.scene.core_distance
+        self.smoothing_length = self.scene.core_distance
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
         self.show_plot = show_plot

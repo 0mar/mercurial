@@ -4,7 +4,6 @@ import numpy as np
 import scipy.io as sio
 
 import functions as ft
-from static_planner import GraphPlanner
 
 
 class Result:
@@ -36,12 +35,7 @@ class Result:
         else:
             self.no_paths = False
             ft.log("Storing results for Graph Planner")
-        self.planned_path_length = np.zeros(len(self.scene.pedestrian_list))
-        self.path_length_ratio = np.zeros(len(self.scene.pedestrian_list))
-        self.avg_path_length_ratio = 0
-        self.paths_list = [[] for _ in range(len(self.scene.pedestrian_list))]
         self.position_list = []
-        self.path_length = np.zeros(len(self.scene.pedestrian_list))
         self.time_spent = np.zeros(len(self.scene.pedestrian_list))
         self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
         self.max_speed = np.zeros(len(self.scene.pedestrian_list))
@@ -67,7 +61,6 @@ class Result:
             array = getattr(self, attr)
             addition = np.zeros(array.shape, dtype=array.dtype)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
-        self.paths_list += [[] for _ in range(len(self.paths_list))]
 
     def on_init(self):
         """
@@ -88,11 +81,9 @@ class Result:
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
         index_list = [self.scene.index_map[index].counter for index in np.where(self.scene.active_entries)[0]]
-        self.path_length[index_list] += distance[np.where(self.scene.active_entries)]
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.active_entries[pedestrian.index]:
                 # Comment out if not needed. Lots of memory
-                self.paths_list[pedestrian.counter].append(self.scene.position_array[pedestrian.index].copy())
                 self.position_list.append(
                     [self.scene.position_array[pedestrian.index, 0], self.scene.position_array[pedestrian.index, 1],
                      self.scene.time])
@@ -108,8 +99,6 @@ class Result:
             self._expand_arrays()
             print("Expanding to %d" % self.origins.shape[0])
         assert self.origins.shape[0] >= self.scene.total_pedestrians
-        if not self.no_paths:
-            self.planned_path_length[pedestrian.counter] = GraphPlanner.get_path_length(pedestrian)
         self.origins[pedestrian.counter] = pedestrian.origin.array
         self.started[pedestrian.counter] = True
 
@@ -121,8 +110,6 @@ class Result:
         """
         self.time_spent[pedestrian.counter] = self.scene.time
         self.finished[pedestrian.counter] = True
-        if not self.no_paths:
-            assert self.path_length[pedestrian.counter] > 0
 
     def on_finish(self):
         """
@@ -134,14 +121,6 @@ class Result:
                                np.where(self.scene.active_entries)[0]]
         for ped_index in unfinished_counters:
             self.time_spent[ped_index] = self.scene.time
-        if not self.no_paths:
-            if np.all(self.scene.active_entries):
-                ft.warn("No pedestrian reached exit. No valid observed path information obtained")
-            else:
-                self.path_length_ratio = self.planned_path_length[self.finished] / \
-                                         self.path_length[self.finished]
-                self.avg_path_length_ratio = np.mean(self.path_length_ratio)
-        self.mean_speed = self.planned_path_length[self.finished] / self.time_spent[self.finished]
         self.paths_list = np.array(self.paths_list)
         self.position_list = np.array(self.position_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
@@ -155,10 +134,6 @@ class Result:
         """
         filename = "hoi.txt"
         with open(filename, 'w') as file:
-            if not self.no_paths:
-                file.write("Planned path length:\n%s\n\n" % self.planned_path_length)
-                file.write("Path ratio:\n%s\n\n" % self.path_length_ratio)
-                file.write("Average path length ratio\n%s\n\n" % self.avg_path_length_ratio)
             file.write("Mean speed\n%s\n\n" % self.mean_speed)
             file.write("Density:\n%s\n\n" % self.density)
 
@@ -169,11 +144,7 @@ class Result:
         """
         ft.log("Started writing results to binary file")
         filename = self.result_dir + 'results' + self.scene.config['general']['number_of_pedestrians']
-        sio.savemat(filename, mdict={"planned_path_length": self.planned_path_length,
-                                     "path_length": self.path_length,
-                                     "path_length_ratio": self.path_length_ratio,
-                                     "avg_path_length_ratio": self.avg_path_length_ratio,
-                                     "max_speed": self.max_speed,
+        sio.savemat(filename, mdict={"max_speed": self.max_speed,
                                      "time_spent": self.time_spent,
                                      "origins": self.origins,
                                      "avg_mean_speed": self.avg_mean_speed,
@@ -183,10 +154,3 @@ class Result:
                                      "finished": self.finished,
                                      "final_positions": self.scene.position_array[self.scene.active_entries]})
         ft.log("Finished writing results to binary file")
-
-    def write_density_results(self, filename):
-        import os
-        if not os.path.exists(filename):
-            raise IOError("file %s not found" % filename)
-        with open(filename, 'a') as o:
-            o.write("%.4f\t%.4f\t%.4f\n" % (self.density, self.avg_path_length_ratio, self.avg_mean_speed))
