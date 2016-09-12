@@ -33,10 +33,10 @@ integer (kind=4), parameter :: DOWN = 1
 integer (kind=4), parameter :: RIGHT = 2
 integer (kind=4), parameter :: UP = 3
 
-real (kind=8), dimension(n_x,n_y) :: pot_field
-real (kind=8), dimension(n_x-1,n_y) :: uf_left,uf_right
-real (kind=8), dimension(n_x,n_y-1) :: uf_up,uf_down
-real (kind=8), dimension(4) :: neighbour_pots
+real (kind=8), dimension(0:n_x-1,0:n_y-1) :: pot_field
+real (kind=8), dimension(0:n_x-2,0:n_y-1) :: uf_left,uf_right
+real (kind=8), dimension(0:n_x-1,0:n_y-2) :: uf_up,uf_down
+real (kind=8), dimension(0:3) :: neighbour_pots
 integer (kind=4) :: cell_x,cell_y
 real (kind=8) :: pot, out_pot,cost
 real (kind=8) :: start, finish
@@ -49,8 +49,8 @@ ver_cost = inf
     ! Assume left and below are best, then over!write with right and up if they are better
 do direction=0,3
 
-        normal_x = sign(mod(direction,2),direction-2)
-        normal_y = sign(mod(direction+1,2),direction-2)
+        normal_x = sign(mod(direction+1,2),direction-2)
+        normal_y = sign(mod(direction,2),direction-2)
         ! numerical direction
         nb_cell_x = cell_x + normal_x
         nb_cell_y = cell_y + normal_y
