@@ -166,7 +166,7 @@ class PotentialTransporter:
 
         candidate_cells = {cell: compute_potential(cell[0],cell[1], self.grid_dimension[0],self.grid_dimension[1], potential_field,
                                                    self.unit_field_dict['left'].array,self.unit_field_dict['right'].array,
-                                                   self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 9999)
+                                                   self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 999999)
                            for cell in get_new_candidate_cells(known_cells)}
 
         new_candidate_cells = get_new_candidate_cells(known_cells)
@@ -177,7 +177,7 @@ class PotentialTransporter:
                 else:
                     potential = compute_potential(candidate_cell[0],candidate_cell[1], self.grid_dimension[0],self.grid_dimension[1], potential_field,
                                                   self.unit_field_dict['left'].array,self.unit_field_dict['right'].array,
-                                                  self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 9999)
+                                                  self.unit_field_dict['up'].array,self.unit_field_dict['down'].array, 999999)
                 candidate_cells[candidate_cell] = potential
             sorted_candidates = sorted(candidate_cells.items(), key=operator.itemgetter(1))  # Todo: Can we reuse this?
             best_cell = sorted_candidates[0][0]
