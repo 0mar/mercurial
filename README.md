@@ -67,7 +67,7 @@ The coverage of the tests highly varies per module. Feel free to contribute to u
 
 ### Known issues ###
 
-This simulation has quite some points for improvement.
+This simulation has quite some points for improvement. The biggest issue is the lack of tests and maintaining thereof.
 
 ### Contribution guidelines ###
 
