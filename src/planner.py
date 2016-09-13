@@ -1,5 +1,5 @@
-from macro import PressureTransporter
-from micro import PotentialTransporter
+from pressure import PressureTransporter
+from potential import PotentialTransporter
 
 
 class Planner:
