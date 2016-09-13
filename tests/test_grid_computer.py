@@ -5,7 +5,7 @@ sys.path.insert(1, '../src')
 
 from simulation_manager import SimulationManager
 from cython_modules.grid_computer import solve_LCP_with_pgs
-from scene import Scene
+from objects.scene import Scene
 import numpy as np
 
 demo_file_name = '../scenes/demo_obstacle_list.json'

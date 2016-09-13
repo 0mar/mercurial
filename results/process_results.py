@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __author__ = 'omar'
-import sys
 import os
+import sys
 
 sys.path.insert(0, '../src')
 sys.path.insert(0, '..')
@@ -10,7 +10,7 @@ import scipy.io as sio
 import numpy as np
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
-import functions as ft
+from math_objects import functions as ft
 from fortran_modules.micro_macro import comp_dens_velo
 from fortran_modules.mde import compute_mde
 

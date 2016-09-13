@@ -1,7 +1,10 @@
 import math
 import random
+
 import numpy as np
-import functions as ft
+
+from math_objects import functions as ft
+
 
 class Coordinate(object):
     """

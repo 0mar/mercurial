@@ -1,12 +1,13 @@
 __author__ = 'omar'
 import sys
+
 import numpy as np
 from nose.tools import raises
 
 sys.path.insert(1, '../src')
 
-from geometry import Point, LineSegment, Path
-import functions as ft
+from math_objects.geometry import Point, LineSegment, Path
+from math_objects import functions as ft
 
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'

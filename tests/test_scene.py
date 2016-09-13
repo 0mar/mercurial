@@ -3,8 +3,7 @@ import sys
 
 sys.path.insert(1, '../src')
 
-from scene import Scene
-from geometry import Size, Point
+from objects.scene import Scene
 from simulation_manager import SimulationManager
 
 demo_file_name = '../scenes/demo_obstacle_list.json'

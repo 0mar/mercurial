@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.io as sio
 
-import functions as ft
+from math_objects import functions as ft
 
 
 class Result:

@@ -3,8 +3,8 @@ import sys
 
 sys.path.insert(1, '../src')
 
-from geometry import Point
-import functions as ft
+from math_objects.geometry import Point
+from math_objects import functions as ft
 
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'

@@ -3,7 +3,7 @@ from enum import Enum
 import numpy as np
 from scipy.interpolate import RectBivariateSpline as Rbs
 
-import functions as ft
+from math_objects import functions as ft
 
 
 class ScalarField:

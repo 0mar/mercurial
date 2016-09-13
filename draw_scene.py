@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import tkinter
-from enum import Enum
 import json
+import tkinter
 import tkinter.simpledialog
+from enum import Enum
 
-import functions as ft
+from math_objects import functions as ft
 
 
 class SceneCreator:

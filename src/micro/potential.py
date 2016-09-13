@@ -3,9 +3,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 import numpy as np
 import operator
-import functions as ft
-from geometry import Point
-from scalar_field import ScalarField as Field
+from math_objects import functions as ft
+from math_objects.geometry import Point
+from math_objects.scalar_field import ScalarField as Field
 from fortran_modules.potential_computer import compute_potential
 
 

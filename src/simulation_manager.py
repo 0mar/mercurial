@@ -1,15 +1,16 @@
-from planner import Planner
-import json
 import configparser
+import json
 
 import numpy as np
 import scipy.io as sio
 
-import scene as scene_module
-import functions
-from visualization import VisualScene, NoVisualScene
-from results import Result
-from scene_cases import ImpulseScene, TwoImpulseScene, TopScene
+from math_objects import functions
+from objects import scene as scene_module
+from objects.scene_cases import ImpulseScene, TwoImpulseScene, TopScene
+from planner import Planner
+from processing.results import Result
+from visualization.simple import VisualScene
+from visualization.none import NoVisualScene
 
 
 class SimulationManager:

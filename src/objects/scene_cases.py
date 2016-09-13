@@ -1,7 +1,7 @@
 import numpy as np
 
-from geometry import Point
-from scene import Scene, Pedestrian
+from math_objects.geometry import Point
+from objects.scene import Scene, Pedestrian
 
 
 class ImpulseScene(Scene):

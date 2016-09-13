@@ -4,12 +4,12 @@ import sys
 import numpy as np
 
 sys.path.insert(1, '../src')
-from scene import Scene
+from objects.scene import Scene
 from simulation_manager import SimulationManager
-from geometry import Size, Point, Velocity
+from math_objects.geometry import Point, Velocity
 from dynamic_planner import DynamicPlanner
-from scalar_field import ScalarField as Field
-import functions as ft
+from math_objects.scalar_field import ScalarField as Field
+from math_objects import functions as ft
 
 empty_scene_file = '../scenes/large_exit.json'
 test_fractions_file = '../scenes/test_fractions.json'

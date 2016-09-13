@@ -1,11 +1,11 @@
+import matplotlib
 import numpy as np
-import functions as ft
-
 from fortran_modules.micro_macro import comp_dens_velo
 from fortran_modules.pressure_computer import compute_pressure
-from scalar_field import ScalarField as Field
-from geometry import Point
-import matplotlib
+
+from math_objects import functions as ft
+from math_objects.geometry import Point
+from math_objects.scalar_field import ScalarField as Field
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt

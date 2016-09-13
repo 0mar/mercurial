@@ -3,8 +3,8 @@ import sys
 
 sys.path.insert(1, '../src')
 
-from scene import Obstacle
-from geometry import Size, Point, LineSegment
+from objects.scene import Obstacle
+from math_objects.geometry import Size, Point, LineSegment
 
 demo_file_name = '../scenes/demo_obstacle_list.json'
 empty_file_name = '../scenes/empty_scene.json'

@@ -2,8 +2,8 @@ import math
 
 import numpy as np
 
-from geometry import Point, Size, Interval
-import functions as ft
+from math_objects import functions as ft
+from math_objects.geometry import Point, Size, Interval
 
 
 class Obstacle:

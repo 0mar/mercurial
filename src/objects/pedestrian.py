@@ -1,7 +1,7 @@
 import numpy as np
 
-import functions as ft
-from geometry import Point, Velocity
+from math_objects import functions as ft
+from math_objects.geometry import Point, Velocity
 
 class Pedestrian(object):
     """

@@ -1,11 +1,12 @@
 import json
 
 import numpy as np
-import functions as ft
-from pedestrian import Pedestrian
-from geometry import Point, Size, Interval
-from obstacles import Obstacle, Entrance, Exit
 from fortran_modules.mde import compute_mde
+
+from math_objects import functions as ft
+from math_objects.geometry import Point, Size, Interval
+from objects.obstacles import Obstacle, Entrance, Exit
+from objects.pedestrian import Pedestrian
 
 class Scene:
     """
