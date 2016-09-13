@@ -1,9 +1,6 @@
-__author__ = 'omar'
-
 import json
 
 import numpy as np
-import time
 import functions as ft
 from pedestrian import Pedestrian
 from geometry import Point, Size, Interval

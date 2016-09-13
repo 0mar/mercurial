@@ -1,4 +1,3 @@
-__author__ = 'omar'
 from enum import Enum
 
 import numpy as np

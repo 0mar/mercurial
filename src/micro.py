@@ -1,6 +1,3 @@
-import time
-
-__author__ = 'omar'
 import matplotlib
 
 matplotlib.use('TkAgg')

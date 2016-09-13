@@ -3,9 +3,6 @@ import numpy as np
 import functions as ft
 from geometry import Point, Velocity
 
-__author__ = 'omar'
-
-
 class Pedestrian(object):
     """
     Class for modeling a pedestrian. Apart from physical properties like position and velocity,

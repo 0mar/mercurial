@@ -1,12 +1,7 @@
 import math
 import random
-
 import numpy as np
-
 import functions as ft
-
-__author__ = 'omar'
-
 
 class Coordinate(object):
     """

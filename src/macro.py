@@ -1,16 +1,15 @@
-__author__ = 'omar'
-import matplotlib
-
-matplotlib.use('TkAgg')
-import time
 import numpy as np
-import matplotlib.pyplot as plt
+import functions as ft
+
 from fortran_modules.micro_macro import comp_dens_velo
 from fortran_modules.pressure_computer import compute_pressure
 from scalar_field import ScalarField as Field
-import cvxopt
-import functions as ft
 from geometry import Point
+import matplotlib
+
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+
 
 class PressureTransporter:
     """
@@ -42,7 +41,6 @@ class PressureTransporter:
         self.packing_factor = scene.config['dynamic'].getfloat('packing_factor')
         self.max_density = 2 * self.packing_factor / \
                            (np.sqrt(3) * self.scene.core_distance ** 2)
-        cvxopt.solvers.options['show_progress'] = False
         self.smoothing_length = self.scene.core_distance
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
@@ -72,7 +70,8 @@ class PressureTransporter:
         :param precision: row number of samples per cell. More samples, more precision.
         :return: an array approximating the inaccessible space in the cells
         """
-        ft.log("Started sampling objects (%d checks)"%(precision**2*self.grid_dimension[0]*self.grid_dimension[1]))
+        ft.log(
+            "Started sampling objects (%d checks)" % (precision ** 2 * self.grid_dimension[0] * self.grid_dimension[1]))
         obstacle_coverage = np.zeros(self.obstacle_correction.shape)
         num_samples = (precision, precision)
         size = Point([self.dx, self.dy])
@@ -82,7 +81,7 @@ class PressureTransporter:
             for i, j in np.ndindex(num_samples):
                 for obstacle in self.scene.obstacle_list:
                     if not obstacle.accessible:
-                        if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples)*size.array) in obstacle:
+                        if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples) * size.array) in obstacle:
                             covered_samples += 1
                             break
             obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
@@ -119,7 +118,6 @@ class PressureTransporter:
         padded_dim_p1 = np.pad(dim_p, (1, 1), 'constant', constant_values=1)
         self.pressure_field.update(padded_dim_p1)
 
-
     def adjust_velocity(self):
         """
         Adjusts the velocity field for the pressure gradient. We pad the pressure with an extra boundary
@@ -127,13 +125,10 @@ class PressureTransporter:
         :return: None
         """
         # Not using the update method.
-        time1 = time.time()
         well_shaped_x_grad = self.pressure_field.gradient('x')[:, 1:-1]
         well_shaped_y_grad = self.pressure_field.gradient('y')[1:-1, :]
         self.v_x.array -= well_shaped_x_grad
         self.v_y.array -= well_shaped_y_grad
-        ft.debug("Step 4: Applying pressure %.4f"%(time.time()-time1))
-
 
     def interpolate_pedestrians(self):
         """
@@ -153,7 +148,7 @@ class PressureTransporter:
                                 self.max_density)
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
         self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / self.max_density * (
-        solved_velocity - self.scene.velocity_array) + ft.EPS
+            solved_velocity - self.scene.velocity_array) + ft.EPS
         self.scene.velocity_array /= \
             np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / (self.scene.max_speed_array[:, None] + ft.EPS)
 
@@ -174,8 +169,8 @@ class PressureTransporter:
             self.density_field.update(self.obstacle_correction * density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
-            ft.debug("Max allowed density: %.4f"%self.max_density)
-            ft.debug("Max observed density: %.4f"%np.max(self.density_field.array))
+            ft.debug("Max allowed density: %.4f" % self.max_density)
+            ft.debug("Max observed density: %.4f" % np.max(self.density_field.array))
 
         if self.apply_interpolation:
 
@@ -184,8 +179,7 @@ class PressureTransporter:
                 self.adjust_velocity()
                 if self.show_plot:
                     self.plot_grid_values()
-                # self.compute_pressure()
-            # print("Time took: %.4f" % (time.time() - time1))
+                    # self.compute_pressure()
             self.interpolate_pedestrians()
 
     @staticmethod

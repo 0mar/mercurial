@@ -1,5 +1,3 @@
-import scene as scene_module
-import functions
 from macro import PressureTransporter
 from micro import PotentialTransporter
 

@@ -1,5 +1,3 @@
-__author__ = 'omar'
-
 import numpy as np
 
 from geometry import Point

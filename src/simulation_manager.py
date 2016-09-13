@@ -1,6 +1,4 @@
 from planner import Planner
-
-__author__ = 'omar'
 import json
 import configparser
 
