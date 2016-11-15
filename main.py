@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from simulation_manager import SimulationManager
 sys.path.insert(1, 'src')
+from simulation_manager import SimulationManager
 
 __author__ = 'Omar Richardson'
 # Command line parameters
