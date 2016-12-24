@@ -25,7 +25,7 @@ Obtain the source code and create the custom modules with
 ```bash 
 git clone https://github.com/0mar/mercurial.git
 cd mercurial
-python3 setup.py install
+python3 setup.py install # Requires gfortran or alternative
 ```
 
 After that, the simulation is ready to be run with the command
