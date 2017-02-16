@@ -1,3 +1,4 @@
 build/
 fortran_modules/
+images/
 **/__pycache__/
