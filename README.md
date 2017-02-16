@@ -6,37 +6,38 @@ This document provides an overview for setting up and running the prototype crow
 
 * Quick summary
 
-This repository is a private repository for a simulation on particle interaction and crowd dynamics, managed by Omar Richardson.
+This repository is a private repository for a simulation framework on particle interaction and crowd dynamics, managed by Omar Richardson.
 The simulation is written in Python 3 and calls some custom libraries written in Fortran90.
 
 * Version
 
 Current version: 3.3.
 This simulation is under active development. 
-Any information on simulation techniques and features is present in the graduation report.
+Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/) and a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/).
+Details and an exhaustive analysis and features is present in the graduation report.
 
 ### How do I get set up? ###
 
 * Summary of setup
 
-The repository can be cloned using the link above, or with 
+Obtain the source code and create the custom modules with
 
-`git clone https://github.com/0mar/mercurial.git`
-
-Move into the cloned directory and build the Fortran library objects with
-
-`python3 setup.py install`
+```bash 
+git clone https://github.com/0mar/mercurial.git
+cd mercurial
+python3 setup.py install # Requires gfortran or alternative
+```
 
 After that, the simulation is ready to be run with the command
 
 `python3 main.py`. 
 
-Additional command line arguments can be inspected by appending `-h`.
+For help, append with `-h`.
 
 * Configuration
 
 All free parameters not provided on the command line can be set in a configuration file.
-An example file with a set of regular parameters is provided in `configs/default.ini`.
+An example file with a set of default parameters is provided in `configs/default.ini`.
 
 * Structure
 
@@ -46,10 +47,9 @@ Example scenes files are stored in `scenes`. Scenes can be created manually or b
 
 Other preset configuration files (corresponding to several test cases in the project) are present in the `configs` folder.
 
-Finally, profiling the code is possible with `get_profile.sh` and `view_profile.sh` provided these scripts are run in a UNIX-environment with `gprof2dot`,`dot`,and `profile_eye` are installed.
 * Dependencies
 
-This project depends on the following external libraries:
+To build the simulation, a Fortran compiler is needed (only once). In addition, the code depends on the following Python libraries:
 
 - `numpy`
 - `scipy`

@@ -2,7 +2,6 @@ from distutils.core import setup
 import os
 from numpy.distutils.core import Extension
 from numpy.distutils.core import setup as npsetup
-from Cython.Build import cythonize
 
 mde = Extension(name='mde', sources=['src/fortran/mde.f90'])
 micro_macro = Extension(name='micro_macro', sources=['src/fortran/micro_macro.f90'])
