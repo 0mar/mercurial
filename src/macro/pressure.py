@@ -50,7 +50,7 @@ class PressureTransporter:
         dx, dy = self.dx, self.dy
         shape = self.grid_dimension
         self.obstacle_correction = np.zeros(shape)
-        self._get_obstacle_coverage()
+        # self._get_obstacle_coverage()
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
@@ -166,7 +166,7 @@ class PressureTransporter:
             dx, dy = self.scene.size.array / self.grid_dimension
             density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
                                                      self.scene.active_entries, n_x, n_y, dx, dy, self.smoothing_length)
-            self.density_field.update(self.obstacle_correction * density_field)
+            self.density_field.update(density_field)
             self.v_x.update(v_x)
             self.v_y.update(v_y)
             ft.debug("Max allowed density: %.4f" % self.max_density)

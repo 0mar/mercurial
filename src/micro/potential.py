@@ -47,6 +47,7 @@ class PotentialTransporter:
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
         self.compute_obstacle_discomfort()
+        self.discomfort_field.array += self.obstacle_discomfort_field/8
 
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
@@ -228,7 +229,7 @@ class PotentialTransporter:
         stat_ped_array = self.scene.get_stationary_pedestrians()
         num_stat = np.sum(stat_ped_array)
         if num_stat > 0:
-            nudge = np.random.random((num_stat, 2)) - 0.5
+            nudge = (np.random.random((num_stat, 2)) - 0.5)*2
             correction = self.scene.max_speed_array[stat_ped_array][:, None] * nudge * self.scene.dt
             self.scene.position_array[stat_ped_array] += correction
             self.scene.correct_for_geometry()
