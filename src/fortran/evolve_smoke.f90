@@ -31,7 +31,7 @@ SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val,
   DO i = 0, nx + 1
     DO j = 0, ny + 1
       el_index = i + j * nx
-      IF (i == 0 .OR. i == nx - 1 .OR. j == 0 .OR. j == ny - 1 .OR. obstacles(i,j)==1) THEN
+      IF (obstacles(i,j)==1) THEN
         out_a(el_counter) = 1.d0
         a_row(el_counter) = el_index
         a_col(el_counter) = el_index
@@ -86,18 +86,21 @@ SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val,
 ! CALL compress_row(nx*ny,nnz,a_row,a_crow) no need, lets compress D^-1 & R
 END SUBROUTINE
 
-SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny)
+SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny,rel_els)
   IMPLICIT NONE
   REAL (kind=8), DIMENSION(0, 5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val, D_inv_val, R_val
   INTEGER (kind=8), DIMENSION(0, 5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) ::a_row, a_col,d_inv_row, d_inv_col,r_row, r_col
   INTEGER (kind=8), DIMENSION(0, nx*ny-1) :: a_crow,d_inv_crow,r_inv_crow
-  REAL (kind=8), DIMENSION(0,nx*ny-1) b,x,x_old,tmp
-  integer (kind=8) nx,ny,nnz
-  integer (kind=8) el_counter_D, el_counter_R, el_counter
-  real tol
+  REAL (kind=8), DIMENSION(0,nx*ny-1) :: b,x,x_old,tmp,rel_els
+  INTEGER (kind=8) nx,ny,nnz, iter, max_iter
+  INTEGER (kind=8) el_counter_D, el_counter_R, el_counter
+  REAL tol, error
 
-  tol = min(dx,dy)**2
+  tol = MIN(dx,dy)**2
   nnz = 5*(nx-2)*(ny-2) + 2*(nx + ny)-4
+  max_iter = 10000
+
+  ! Create the D^-1 and R matrices
   el_counter_D = 0
   el_counter_R = 0
   DO el_counter = 0, nnz - 1
@@ -116,9 +119,16 @@ SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny)
   CALL compress_row(nx*ny, nx*ny, D_inv_row, D_inv_crow)
   CALL compress_row(nx*ny, nnz - nx*ny, R_row, R_crow)
 
-  call sparse_matmul(nx*ny,nnz,r_val,r_crow,r_col,x,tmp)
-  call sparse_matmul(nx*ny,nnz,d_inv_val,d_inv_crow,b-tmp,x)
-
-
+  ! Apply the jacobi iteration
+  x_old = 0
+  DO iter = 0, max_iter
+    iter = iter + 1
+    error = norm2((x - x_old)*rel_els)
+    IF (error < tol) THEN
+      EXIT
+    ENDIF
+    CALL sparse_matmul(nx*ny,nnz,r_val,r_crow,r_col,x,tmp)
+    CALL sparse_matmul(nx*ny,nnz,d_inv_val,d_inv_crow,b-tmp,x)
+  ENDDO
 
 END SUBROUTINE
