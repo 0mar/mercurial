@@ -3,7 +3,7 @@ PROGRAM evolve_smoke
 
 END PROGRAM evolve_smoke
 
-SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_crow,a_col)
+SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col)
   IMPLICIT NONE
   ! Includes one layer for the boundary
   INTEGER nx,ny,nnz
@@ -83,17 +83,42 @@ SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val,
     ENDDO
   ENDDO
 
-CALL compress_row(nx*ny,nnz,a_row,a_crow)
+! CALL compress_row(nx*ny,nnz,a_row,a_crow) no need, lets compress D^-1 & R
 END SUBROUTINE
 
 SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny)
   IMPLICIT NONE
   REAL (kind=8), DIMENSION(0, 5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val, D_inv_val, R_val
-  INTEGER (kind=8), DIMENSION(0, 5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_col, d_inv_col,r_col
-  INTEGER (kind=8), DIMENSION(0, nx*ny-1) :: a_crow,d_inv_col,r_inv_col
-  REAL (kind=8), DIMENSION(0,nx*ny-1) b,x
+  INTEGER (kind=8), DIMENSION(0, 5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) ::a_row, a_col,d_inv_row, d_inv_col,r_row, r_col
+  INTEGER (kind=8), DIMENSION(0, nx*ny-1) :: a_crow,d_inv_crow,r_inv_crow
+  REAL (kind=8), DIMENSION(0,nx*ny-1) b,x,x_old,tmp
   integer (kind=8) nx,ny,nnz
+  integer (kind=8) el_counter_D, el_counter_R, el_counter
   real tol
 
   tol = min(dx,dy)**2
   nnz = 5*(nx-2)*(ny-2) + 2*(nx + ny)-4
+  el_counter_D = 0
+  el_counter_R = 0
+  DO el_counter = 0, nnz - 1
+     IF (A_row(el_counter) == A_col(el_counter)) THEN
+        D_inv_val(el_counter_D) = 1.d0 / A_val(el_counter)
+        D_inv_row(el_counter_D) = A_row(el_counter)
+        D_inv_col(el_counter_D) = A_col(el_counter)
+        el_counter_D = el_counter_D + 1
+     ELSE
+        R_val(el_counter_R) = A_val(el_counter)
+        R_row(el_counter_R) = A_row(el_counter)
+        R_col(el_counter_R) = A_col(el_counter)
+        el_counter_R = el_counter_R + 1
+     END IF
+  END DO
+  CALL compress_row(nx*ny, nx*ny, D_inv_row, D_inv_crow)
+  CALL compress_row(nx*ny, nnz - nx*ny, R_row, R_crow)
+
+  call sparse_matmul(nx*ny,nnz,r_val,r_crow,r_col,x,tmp)
+  call sparse_matmul(nx*ny,nnz,d_inv_val,d_inv_crow,b-tmp,x)
+
+
+
+END SUBROUTINE
