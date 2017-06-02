@@ -1,54 +1,59 @@
 PROGRAM evolve_smoke
   IMPLICIT NONE
-    INTEGER, parameter ::nx=3
-    INTEGER, parameter ::ny=3
+    INTEGER, parameter ::nx=4
+    INTEGER, parameter ::ny=4
+    INTEGER :: nnz
     REAL (kind=8) :: diff,velo_x, velo_y
     REAL (kind=8) dx,dy,dt
   INTEGER, DIMENSION(0:nx-1,0:ny-1):: obstacles
   REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val
   INTEGER (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4) :: a_col,a_row
 
-  diff = 1.0
+  diff = 0.2
   velo_x = 1.0
   velo_y = -2.4
   dx = 0.1
   dy = 0.1
   dt = 0.2
-  obstacles = reshape((/ 0, 0, 0, 0, 0, 0, 0, 0, 0 /), shape(obstacles))
-   call get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col)
+  ! obstacles = reshape((/ 0, 0, 0, 0, 0, 0, 0, 0, 0 /), shape(obstacles))
+  obstacles = 0
+  obstacles(1,2) = 1
+   call get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col, nnz)
 
 END PROGRAM evolve_smoke
 
-SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col)
+SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col,nnz)
   IMPLICIT NONE
   ! Includes one layer for the boundary
-  INTEGER nx,ny,nnz
+  INTEGER nx,ny,max_nnz
   REAL (kind=8) :: diff,velo_x, velo_y
   REAL (kind=8) dx,dy,dt
   REAL (kind=8), dimension(0:nx*ny-1,0:nx*ny-1) :: a_f
-  INTEGER :: i,j,el_counter,el_index, self_el
+  INTEGER :: i,j,el_counter,el_index, self_el,nnz
   REAL (kind=8) :: l_up,l_down,l_left,l_right,l_self
   INTEGER, DIMENSION(0:nx-1,0:ny-1):: obstacles
   ! Number of nonzero elements: 5 for every cell, 1 for every virtual boundary
   REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val
   INTEGER (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4) :: a_col,a_row
   INTEGER (kind=8), DIMENSION(0:nx*ny-1) :: a_crow
-  nnz = 5*(nx-2)*(ny-2) + 2*(nx + ny)-4
+  max_nnz = 5*(nx-2)*(ny-2) + 2*(nx + ny)-4
 
   ! Coefficients
-  l_up = diff*dt/(dy*dy) - velo_y*dt/(2*dy)
-  l_down = diff*dt/(dy*dy) + velo_y*dt/(2*dy)
-  l_left = diff*dt/(dx*dx) + velo_x*dt/(2*dx)
-  l_right = diff*dt/(dx*dx) - velo_x*dt/(2*dx)
-  l_self = -2*diff*dt*(1/(dx*dx) + 1/(dy*dy)) - 1
+  l_up = -diff*dt/(dy*dy) + velo_y*dt/(2*dy)
+  l_down = -diff*dt/(dy*dy) - velo_y*dt/(2*dy)
+  l_left = -diff*dt/(dx*dx) - velo_x*dt/(2*dx)
+  l_right = -diff*dt/(dx*dx) + velo_x*dt/(2*dx)
+  l_self = 2 * diff*dt*(1/(dx*dx) + 1/(dy*dy)) + 1
 
   ! Start filling matrix
   el_counter = 0
   a_val = 0
-  DO i = 0, nx - 1
-    DO j = 0, ny - 1
+  DO j = 0, ny - 1
+    DO i = 0, nx - 1
       el_index = i + j * nx
+      write(*,*) "Index: ",el_index
       IF (i==0 .or. i==nx-1 .or. j==0 .or. j==ny-1 .or. obstacles(i,j)==1) THEN
+        write(*,*) "Obstacle thingie for",i,j
         a_val(el_counter) = 1.d0
         a_row(el_counter) = el_index
         a_col(el_counter) = el_index
@@ -99,29 +104,29 @@ SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val,
       ENDIF
     ENDDO
   ENDDO
+  nnz = el_counter
 
   a_f = 0
   do i=0,nnz-1
       a_f(a_row(i),a_col(i)) = a_val(i)
   enddo
   do i=0,nx*ny-1
-    write(*,"100g15.5") ( a_f(i,j), j=0,nx*ny-1 )
+      write(*, '(*(F7.3))')( a_f(i,j) ,j=0,nx*ny-1)
   enddo
 ! CALL compress_row(nx*ny,nnz,a_row,a_crow) no need, lets compress D^-1 & R
 END SUBROUTINE
 
-SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny,rel_els)
+SUBROUTINE iterate_jacobi(a_val,a_row,a_col,b,x,nx,ny,nnz,rel_els)
   IMPLICIT NONE
   REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val, D_inv_val, R_val
   INTEGER (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) ::a_row, a_col,d_inv_row, d_inv_col,r_row, r_col
-  INTEGER (kind=8), DIMENSION(0:nx*ny-1) :: a_crow,d_inv_crow,r_crow
+  INTEGER (kind=8), DIMENSION(0:nx*ny-1) :: d_inv_crow,r_crow
   REAL (kind=8), DIMENSION(0:nx*ny-1) :: b,x,x_old,tmp,rel_els
   INTEGER (kind=8) nx,ny,nnz, iter, max_iter
   INTEGER (kind=8) el_counter_D, el_counter_R, el_counter
   REAL tol, error
 
   tol = 0.00002
-  nnz = 5*(nx-2)*(ny-2) + 2*(nx + ny)-4
   max_iter = 10000
 
   ! Create the D^-1 and R matrices
@@ -145,9 +150,11 @@ SUBROUTINE iterate_jacobi(a_val,a_crow,a_col,b,x,nx,ny,rel_els)
 
   ! Apply the jacobi iteration
   x_old = 0
+  write(*,*) "Starting Iterations"
   DO iter = 0, max_iter
     error = norm2((x - x_old)*rel_els)
     IF (error < tol) THEN
+        write(*,*) "Reached tolerance of ",tol
       EXIT
     ENDIF
     CALL sparse_matmul(nx*ny,nnz,r_val,r_crow,r_col,x,tmp)
