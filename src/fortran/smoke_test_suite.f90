@@ -5,7 +5,7 @@ PROGRAM evolve_smoke
     INTEGER :: nnz,i,j
     REAL (kind=8) :: diff,velo_x, velo_y
     REAL (kind=8) :: x,y,t,c
-  REAL (kind=8), DIMENSION(0:nx*ny-1) :: b,u,rel_els, f
+  REAL (kind=8), DIMENSION(0:nx*ny-1) :: b,u,rel_els, f,guess
     REAL (kind=8) dx,dy,dt
   INTEGER, DIMENSION(0:nx-1,0:ny-1):: obstacles
   REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val
@@ -30,9 +30,9 @@ PROGRAM evolve_smoke
       enddo
   enddo
    call get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val, a_row,a_col, nnz)
-   rel_els = 1-reshape(obstacles,shape(rel_els))
    u=0
-   call iterate_jacobi(a_val,a_row,a_col,f,u,nx,ny,nnz,rel_els)
+   guess = 0
+   call iterate_jacobi(a_val,a_row,a_col,nnz,b,guess,obstacles,nx,ny,x)
   write(*, '(*(F7.3))')( u(j) ,j=0,nx*ny-1)
 
 END PROGRAM evolve_smoke

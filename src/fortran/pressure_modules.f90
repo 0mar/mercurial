@@ -37,6 +37,8 @@ write(*,*) density
 call cpu_time(finish)
 print '("Time = ",f6.3," seconds.")',finish-start
  end program pressure_modules
+! Todo: Change the pressure module test suite to a different file
+! TODO: Merge and collect the sparse subroutines
 
 subroutine compute_pressure(density,velo_x,velo_y,nx,ny,dx,dy,dt,max_density,out_pressure)
 implicit none
