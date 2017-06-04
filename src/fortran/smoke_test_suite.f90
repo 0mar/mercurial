@@ -19,7 +19,7 @@ PROGRAM evolve_smoke
   dt = 0.2
   ! obstacles = reshape((/ 0, 0, 0, 0, 0, 0, 0, 0, 0 /), shape(obstacles))
   obstacles = 0
-  obstacles(1,2) = 0
+  obstacles(1,2) = 1
 
   c = 2
   do j=0,ny-1
