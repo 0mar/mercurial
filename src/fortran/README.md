@@ -1,9 +1,10 @@
 # About the fortran modules #
 
-This directory contains FORTRAN 90 code used in *Mercurial*. 
+This directory contains FORTRAN90 code used in *Mercurial*. 
 Compiling happens using the command `python3 setup.py install`.
 Alternatively, for debugging or extending the modules, any FORTRAN compiler should work.
 However, these modules have been tested using `f2py` (included in `numpy`) and `gfortran`.
+The sparse modules are based on [SPARSEKIT][sk], a FORTRAN90 library published by John Burkardt.
 
 ## Syntax ##
 
@@ -16,3 +17,4 @@ Portability could be improved (see [Fortran standards][fs]), and might be in the
 
 
 [fs]: (http://www.fortran90.org/src/best-practices.html#floating-point-numbers)
+[sk]: (http://people.sc.fsu.edu/~jburkardt/f_src/sparsekit/sparsekit.html)
