@@ -144,7 +144,6 @@ SUBROUTINE iterate_jacobi(a_val,a_row,a_col,nnz,b,guess,obstacles,nx,ny,x)
   ! Apply the jacobi iteration
   x = guess
   x_old = guess - 1
-  write(*,*) "Starting Iterations"
   DO iter = 0, max_iter
     error = norm2((x - x_old)*rel_els)
     IF (error < tol) THEN
@@ -154,6 +153,5 @@ SUBROUTINE iterate_jacobi(a_val,a_row,a_col,nnz,b,guess,obstacles,nx,ny,x)
     CALL sparse_matmul(nx*ny,nnz,r_val,r_crow,r_col,x,tmp)
     CALL sparse_matmul(nx*ny,nnz,d_inv_val,d_inv_crow,d_inv_col,b-tmp,x)
   ENDDO
-    write(*,*) "Reached tolerance of ",error, " in ",iter," iterations"
 
 END SUBROUTINE
