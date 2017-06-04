@@ -104,6 +104,26 @@ class Scene:
                 [func(new_pedestrian) for func in self.on_pedestrian_init_functions]
                 new_number -= 1
 
+    def get_obstacles_coverage(self):
+        """
+        Compute which obstacles are occupied. For accurate results, obstacles must have been snapped
+        ergo, self.snap_obstacles == True
+        :return: Array with ones for cells under obstacles.
+        """
+        if not self.snap_obstacles:
+            ft.warn("Computing obstacle coverage: Snapping is turned off, so this is only an estimation")
+        dx, dy = self.config['general'].getfloat('cell_size_x'), self.config['general'].getfloat('cell_size_y')
+        nx = int(self.config['general'].getint('scene_size_x') / dx)
+        ny = int(self.config['general'].getint('scene_size_y') / dy)
+        obstacle_coverage = np.zeros((nx, ny), dtype=int)
+        for row, col in np.ndindex((nx, ny)):
+            center = Point([(row + 0.5) * dx, (col + 0.5) * dy])
+            for obstacle in self.obstacle_list:
+                if not obstacle.accessible:
+                    if center in obstacle:
+                        obstacle_coverage[row, col] = 1
+        return obstacle_coverage
+
     def load_config(self):
         """
         Interpret the ConfigParser object to read the parameters from
