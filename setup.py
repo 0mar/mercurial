@@ -8,7 +8,9 @@ micro_macro = Extension(name='micro_macro', sources=['src/fortran/micro_macro.f9
 potential_computer = Extension(name='potential_computer', sources=['src/fortran/compute_potential.f90'])
 pressure_computer = Extension(name='pressure_computer', sources=['src/fortran/pressure_modules.f90',
                                                                  'src/fortran/sparse_modules.f90'])
-smoke_machine = Extension(name='smoke_machine', sources['src/fortran/sparse_modules.f90'])
+smoke_machine = Extension(name='smoke_machine', sources=['src/fortran/evolve_smoke.f90',
+                                                         'src/fortran/sparse_modules.f90'],
+                          f2py_options=["only: get_sparse_matrix : "])
 
 if __name__ == "__main__":
     if not os.path.exists('images'):
@@ -16,4 +18,4 @@ if __name__ == "__main__":
     npsetup(name='FORTRAN modules',
             description="FORTRAN modules for Mercurial",
             author="Omar Richardson",
-            ext_modules=[mde, micro_macro,potential_computer, pressure_computer, smoke_machine])
+            ext_modules=[mde, micro_macro, potential_computer, pressure_computer, smoke_machine])
