@@ -11,6 +11,8 @@ SUBROUTINE get_sparse_matrix(diff,velo_x,velo_y,nx,ny,dx,dy,dt,obstacles, a_val,
   REAL (kind=8) :: l_up,l_down,l_left,l_right,l_self
   INTEGER, DIMENSION(0:nx-1,0:ny-1):: obstacles
   ! Number of nonzero elements: 5 for every cell, 1 for every virtual boundary
+  ! Todo: Compute the nnz before this method
+  ! The sparse matrices now are adapted for in the Jacobi method
   REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val
   INTEGER , DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_col,a_row
 !f2py intent(in) diff,velo_x,velo_y,dx,dy,dt,obstacles
@@ -100,8 +102,10 @@ SUBROUTINE iterate_jacobi(a_val,a_row,a_col,nnz,b,guess,obstacles,nx,ny,x)
   ! Perform jacobi iterations to solve the sparce system Ax=b
   ! with relevant elements coded in rel_els
   IMPLICIT NONE
-  REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val, D_inv_val, R_val
-  INTEGER , DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) ::a_row, a_col,d_inv_row, d_inv_col,r_row, r_col
+  REAL (kind=8), DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) :: a_val
+  REAL (kind=8), DIMENSION(0:nnz-1) :: D_inv_val, R_val
+  INTEGER , DIMENSION(0:5*(nx-2)*(ny-2) + 2*(nx + ny)-4-1) ::a_row, a_col
+  INTEGER , DIMENSION(0:nnz-1) :: d_inv_row, d_inv_col,r_row, r_col
   INTEGER , DIMENSION(0:nx*ny-1) :: d_inv_crow,r_crow
   INTEGER, DIMENSION(0:nx-1,0:ny-1) :: obstacles
   INTEGER, DIMENSION(0:nx*ny-1) :: rel_els
