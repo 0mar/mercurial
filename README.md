@@ -1,20 +1,20 @@
 # README #
 
-This document provides an overview for setting up and running the prototype crowd dynamics simulation *Mercurial*.
+Multiscale crowd dynamics simulation *Mercurial*
 
 ### What is this repository for? ###
 
 * Quick summary
 
-This repository is a private repository for a simulation framework on particle interaction and crowd dynamics, managed by Omar Richardson.
-The simulation is written in Python 3 and calls some custom libraries written in Fortran90.
+This repository contains simulation framework on particle interaction and crowd dynamics, managed by Omar Richardson.
+The simulation is written in Python 3 and calls some custom Fortran libraries.
 
 * Version
 
 Current version: 3.3.
 This simulation is under active development. 
 Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/) and a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/).
-Details and an exhaustive analysis and features is present in the graduation report.
+Details and a detailed analysis and features is present in the graduation report.
 
 ### How do I get set up? ###
 
@@ -25,7 +25,7 @@ Obtain the source code and create the custom modules with
 ```bash 
 git clone https://github.com/0mar/mercurial.git
 cd mercurial
-python3 setup.py install # Requires gfortran or alternative
+python3 setup.py install
 ```
 
 After that, the simulation is ready to be run with the command
@@ -43,7 +43,7 @@ An example file with a set of default parameters is provided in `configs/default
 
 The simulation source files are located in `src`. Simulation results are stored in `results` and can be processed by running `process_results.py`.
 
-Example scenes files are stored in `scenes`. Scenes can be created manually or by using the (simple) tool `create_scene.py`.
+Example scenes files are stored in `scenes`. Scenes can be created manually or by using the simple tool `create_scene.py`.
 
 Other preset configuration files (corresponding to several test cases in the project) are present in the `configs` folder.
 
@@ -56,7 +56,7 @@ To build the simulation, a Fortran compiler is needed (only once). In addition, 
 - `matplotlib`
 
 Each of these libraries can be installed using Python 3's package installer `pip3`.
-However, it might be more convenient to use OS-specific repository versions of above packages, or bundled python version.
+However, it might be more convenient to use OS-specific repository versions of above packages, or bundled Python version.
 
 Note that in case of using `pip3`, basic requirements may include `liblapack-dev`, `libblas-dev` (for `numpy` and `scipy`) and `libfreetype6-dev`, `libpng-dev` (for `matplotlib`).
 
@@ -67,7 +67,7 @@ The coverage of the tests highly varies per module. Feel free to contribute to u
 
 ### Known issues ###
 
-This simulation has quite some points for improvement. The biggest issue is the lack of tests and maintaining thereof.
+This simulation has points for improvement. The biggest issue is the lack of tests and maintaining thereof.
 
 ### Contribution guidelines ###
 
