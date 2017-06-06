@@ -64,14 +64,16 @@ class PressureTransporter:
 
     def _get_obstacle_coverage(self, precision=2):
         """
+        Todo: Merge with the one in scene.py 
         Compute the fraction of the cells covered with obstacles
         Since an exact computation involves either big shot linear algebra
         or too much case distinctions, we sample the cell space.
         :param precision: row number of samples per cell. More samples, more precision.
         :return: an array approximating the inaccessible space in the cells
         """
-        ft.log(
-            "Started sampling objects (%d checks)" % (precision ** 2 * self.grid_dimension[0] * self.grid_dimension[1]))
+        if self.scene.snap_obstacles:
+            precision = 1
+        ft.log("Indexing scenario")
         obstacle_coverage = np.zeros(self.obstacle_correction.shape)
         num_samples = (precision, precision)
         size = Point([self.dx, self.dy])
@@ -86,9 +88,8 @@ class PressureTransporter:
                             break
             obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
         # Correct the fully covered entries
-        obstacle_coverage[obstacle_coverage == 1] = 0.8
+        obstacle_coverage[obstacle_coverage >= 0.99] = 0.8
         self.obstacle_correction = 1 / (1 - obstacle_coverage)
-        ft.log("Finished sampling objects")
 
     def plot_grid_values(self):
         """

@@ -7,7 +7,7 @@ from math_objects import functions as ft
 from math_objects.geometry import Point
 from math_objects.scalar_field import ScalarField as Field
 from fortran_modules.potential_computer import compute_potential
-
+import matplotlib.pyplot as plt
 
 class PotentialTransporter:
     """
@@ -47,8 +47,8 @@ class PotentialTransporter:
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
         self.compute_obstacle_discomfort()
-        self.discomfort_field.array += self.obstacle_discomfort_field/8
-
+        self.obstacle_discomfort_field += self._get_fire_effects()
+        self.discomfort_field.update(self.obstacle_discomfort_field)
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
         self.grad_x_func = self.grad_y_func = None
@@ -65,12 +65,25 @@ class PotentialTransporter:
             np.seterr(invalid='ignore')
         self.obtain_potential_field()
 
+    def _get_fire_effects(self):
+        fire_effects = np.zeros(self.grid_dimension)
+        for i,j in np.ndindex(self.grid_dimension):
+            cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
+            for fire in [self.scene.fire]:
+                fire_effects[i,j] += fire.get_fire_intensity(cell_center)
+        # plt.imshow(np.rot90(fire_effects))
+        # plt.colorbar()
+        # plt.show()
+        return fire_effects
+
     def obtain_potential_field(self):
         self._compute_initial_interface()
         for direction in ft.DIRECTIONS:
             self.compute_unit_cost_field(direction)
         self.compute_potential_field()
         self.compute_potential_gradient()
+        # plt.imshow(np.rot90(self.potential_field.array))
+        # plt.show()
         self.grad_x_func = self.pot_grad_x.get_interpolation_function()
         self.grad_y_func = self.pot_grad_y.get_interpolation_function()
 
@@ -160,7 +173,6 @@ class PotentialTransporter:
                     if self._exists(nb_cell) and nb_cell not in known_cells and nb_cell not in self.obstacle_cell_set:
                         new_candidate_cells.add(nb_cell)
             return new_candidate_cells
-
 
         candidate_cells = {cell: compute_potential(cell[0],cell[1], self.grid_dimension[0],self.grid_dimension[1], potential_field,
                                                    self.unit_field_dict['left'].array,self.unit_field_dict['right'].array,

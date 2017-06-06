@@ -6,7 +6,9 @@ from fortran_modules.mde import compute_mde
 from math_objects import functions as ft
 from math_objects.geometry import Point, Size, Interval
 from objects.obstacles import Obstacle, Entrance, Exit
+from objects.fire import Fire
 from objects.pedestrian import Pedestrian
+
 
 class Scene:
     """
@@ -37,7 +39,10 @@ class Scene:
 
         self.config = config
         self.load_config()
-        self.core_distance = self.minimal_distance +self.pedestrian_size[0] # Distance between ped centers
+        self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
+        # Add the fire todo: Move to config
+        self.fire = Fire(self.size * Point([0.3, 0.5]), 20, 3)
+        self.obstacle_list.append(self.fire)
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
@@ -98,6 +103,26 @@ class Scene:
                 self.index_map[new_index] = new_pedestrian
                 [func(new_pedestrian) for func in self.on_pedestrian_init_functions]
                 new_number -= 1
+
+    def get_obstacles_coverage(self):
+        """
+        Compute which obstacles are occupied. For accurate results, obstacles must have been snapped
+        ergo, self.snap_obstacles == True
+        :return: Array with ones for cells under obstacles.
+        """
+        if not self.snap_obstacles:
+            ft.warn("Computing obstacle coverage: Snapping is turned off, so this is only an estimation")
+        dx, dy = self.config['general'].getfloat('cell_size_x'), self.config['general'].getfloat('cell_size_y')
+        nx = int(self.config['general'].getint('scene_size_x') / dx)
+        ny = int(self.config['general'].getint('scene_size_y') / dy)
+        obstacle_coverage = np.zeros((nx, ny), dtype=int)
+        for row, col in np.ndindex((nx, ny)):
+            center = Point([(row + 0.5) * dx, (col + 0.5) * dy])
+            for obstacle in self.obstacle_list:
+                if not obstacle.accessible:
+                    if center in obstacle:
+                        obstacle_coverage[row, col] = 1
+        return obstacle_coverage
 
     def load_config(self):
         """
@@ -170,7 +195,7 @@ class Scene:
             for dim in range(2):
                 if size[dim] == 0.:
                     size[dim] = 1.
-            entrance_obs = Entrance(begin=begin, size=Size(size), name=name, margin=margin,spawn_rate=spawn_rate,
+            entrance_obs = Entrance(begin=begin, size=Size(size), name=name, margin=margin, spawn_rate=spawn_rate,
                                     max_pedestrians=max_pedestrians, start_time=start_time, cell_size=cell_size)
             self.entrance_list.append(entrance_obs)
             self.obstacle_list.append(entrance_obs)
@@ -189,7 +214,7 @@ class Scene:
                      "max_speed_array", "active_entries"]
         for attr in attr_list:
             array = getattr(self, attr)
-            addition = np.zeros(array.shape,dtype=array.dtype)
+            addition = np.zeros(array.shape, dtype=array.dtype)
             setattr(self, attr, np.concatenate((array, addition), axis=0))
         self.index_map.update({len(self.index_map) + i: None for i in range(len(self.index_map))})
 
@@ -261,7 +286,7 @@ class Scene:
         self.position_array += self.velocity_array * self.dt
         if self.mde:
             mde = compute_mde(self.position_array, self.size[0], self.size[1],
-                                                   self.active_entries, self.core_distance)
+                              self.active_entries, self.core_distance)
             mde_found = np.where(np.sum(np.abs(mde[self.active_entries]), axis=1) > 0.001)[0]
             self.mde_proc.append(len(mde_found) / np.sum(self.active_entries))
             # print("mde percentage: %.4f" % (sum(self.mde_proc) / len(self.mde_proc)))

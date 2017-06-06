@@ -1,4 +1,5 @@
 from macro.pressure import PressureTransporter
+from macro.smoke import Smoker
 from micro.potential import PotentialTransporter
 
 
@@ -21,6 +22,8 @@ class Planner:
             macro_planner = macro_dict[self.config['planner']['macro']]
         if macro_planner:
             self.macro = macro_planner(scene)
+
+        smoke = Smoker(self.scene)
 
     def step(self):
         self.micro.assign_velocities()
