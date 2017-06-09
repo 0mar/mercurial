@@ -41,7 +41,7 @@ class Smoker:
         self.smoke_2d = np.zeros(self.obstacles.shape)
         self.show_plot = show_plot
         if self.show_plot:
-            f, self.graphs = plt.subplots(2, 2)
+            self.fig, self.graph = plt.subplots()
             plt.show(block=False)
 
     def _get_source(self, fire):
@@ -85,8 +85,8 @@ class Smoker:
         Plots are opened in a separate window and automatically updated.
         :return:
         """
-        for graph in self.graphs.flatten():
-            graph.cla()
-        self.graphs[0, 0].imshow(np.rot90(self.smoke_2d))
-        self.graphs[0, 0].set_title('Smoke')
+        self.graph.cla()
+        g = self.graph.imshow(np.rot90(self.smoke_2d))
+        self.graph.set_title('Smoke')
+        self.fig.colorbar(g)
         plt.show(block=False)
