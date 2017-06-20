@@ -1,4 +1,4 @@
-length!      program debug_mde
+!      program debug_mde
 !      integer (kind=8) , parameter :: n = 5
 !      real (kind=8) :: s_x = 10
 !      real (kind=8) :: s_y = 10
@@ -23,9 +23,12 @@ integer (kind=8) ::  n
 !
 integer (kind=8) :: i,j,k,k2,l,max_val ! Looping variables
 real (kind=8) :: s_x,s_y ! Domain size
+real (kind=8), external :: weight_function
+
 integer (kind=8) :: n_x,n_y ! binning stuff
 integer (kind=8) :: nb_i,nb_j ! neighbour indices
-real (kind=8):: length,dist
+real (kind=8):: length,dist,weight
+integer (kind=8) :: num_in_radius ! number of neighbours in the radius
 
 integer, dimension(n) :: active ! Whether pedestrian is active
 real (kind=8), parameter :: eps = 0.0001
@@ -64,6 +67,7 @@ end do
 av_velos = 0
 do k=1,n
     if (active(k)==1) then
+        num_in_radius = 0
         do nb_i=-1,1
             i = nb_i + cell_pos(k,1)
             if (1<= i .and. i <=n_x) then
@@ -81,28 +85,33 @@ do k=1,n
                                 dist = sqrt(diff_x*diff_x + diff_y*diff_y)
                                 weight = weight_function(dist,length)
                                 av_velos(k,1) = av_velos(k,1) +&
-                                velos(k2,1)*weight ! Divide!
+                                velos(k2,1)*weight
                                 av_velos(k,2) = av_velos(k,2) +&
                                 velos(k2,2)*weight
+                                num_in_radius = num_in_radius + 1
                             end if
                         end do
                     end if
                 end do
             end if
         end do
+        if (num_in_radius > 0) then
+            av_velos(k,1) = av_velos(k,1)/num_in_radius
+            av_velos(k,2) = av_velos(k,2)/num_in_radius
+        end if
     end if
 end do
 return
 end
 
 real(kind=8) function weight_function(distance,length)
-  ! Compute weight
+  ! Compute weight. Support of function is {distance < length}
   implicit none
 
-  real (kind=8),parameter :: pi =3.141592654
-  real (kind=8) h ! smoothing length
-  real (kind=8) :: norm,weight,length
-  norm = 7.0/(4*pi*h*h)
-  weight = max(1-length/(2*h),0.)**4*(1+2*length/h)
+  real (kind=8),parameter :: pi = 3.141592654
+  real (kind=8) length ! smoothing distance
+  real (kind=8) :: norm,weight,distance
+  norm = 7.0/(pi*length*length)
+  weight = max(1-distance/length,0.)**4*(1+distance/length)
   weight_function = norm*weight
 end function
