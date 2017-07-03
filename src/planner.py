@@ -23,10 +23,11 @@ class Planner:
         if macro_planner:
             self.macro = macro_planner(scene)
 
-        smoke = Smoker(self.scene)
+        self.smoke = Smoker(self.scene)
 
     def step(self):
         self.micro.assign_velocities()
         self.macro.step()
+        self.smoke.step()
         self.micro.step()
         self.scene.find_finished_pedestrians()

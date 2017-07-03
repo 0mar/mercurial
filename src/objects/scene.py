@@ -49,6 +49,7 @@ class Scene:
         self.velocity_array = np.zeros([self.total_pedestrians, 2])
         self.max_speed_array = np.empty(self.total_pedestrians)
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
+        self.aware_pedestrians = np.ones(self.total_pedestrians,dtype=bool)
         # self.max_speed_array = self.max_speed_interval.begin + \
         #                        np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.max_speed_array = np.maximum(np.random.randn(self.position_array.shape[0]) * 0.15 + 1.4,
@@ -211,7 +212,7 @@ class Scene:
         # I don't like [gs]etattr, but this is pretty explicit
         # Todo: Is it possible to to make one method that expands all arrays application-wide?
         attr_list = ["position_array", "last_position_array", "velocity_array",
-                     "max_speed_array", "active_entries"]
+                     "max_speed_array", "active_entries", "aware_pedestrians"]
         for attr in attr_list:
             array = getattr(self, attr)
             addition = np.zeros(array.shape, dtype=array.dtype)

@@ -27,12 +27,16 @@ class Smoker:
         obstacles_without_boundary = self.scene.get_obstacles_coverage()
         self.obstacles = np.ones((self.nx + 2, self.ny + 2), dtype=int)
         self.obstacles[1:self.nx + 1, 1:self.ny + 1] = obstacles_without_boundary
-        self.smoke = np.zeros(self.obstacles.shape)
-        # self.new_smoke = np.zeros(self.obstacles.shape)
+        self.speed_ref = self.scene.max_speed_array
+        self.smoke = np.zeros(np.prod(self.obstacles.shape))
+        self.smoke_2d = np.ones((self.nx, self.ny))
         self.sparse_disc_matrix = get_sparse_matrix(self.diff_coef, *self.smoke_velo, self.dx, self.dy, self.scene.dt,
                                                     self.obstacles)
         # Ready for use per time step
         self.source = self._get_source(self.scene.fire) * self.scene.dt
+
+        self.velo_unaware_lb = 0.6
+        self.velo_aware_ub = 2.5
 
     def _get_source(self, fire):
         """
@@ -52,4 +56,13 @@ class Smoker:
         :return: None
         """
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
+        print(np.max(self.smoke))
+        # self.modify_speed_by_smoke()
+
+    def modify_speed_by_smoke(self):
+        smoke_upper_bound = 3
+        velo_modifier = self.smoke/smoke_upper_bound
+        # Positive for all aware, negative for all unaware
+        self.scene.max_speed_array = self.speed_ref + self.scene.aware_pedestrians*velo_modifier*self.velo_aware_ub
+        + (self.scene.aware_pedestrians - 1)*velo_modifier*self.velo_unaware_lb
 
