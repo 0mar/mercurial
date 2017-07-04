@@ -35,15 +35,16 @@ class Scene:
         # Parameter initialization (will be overwritten by _load_parameters)
         self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
+        self.fire_center = self.fire_intensity = self.fire_radius = None
         self.aware_percentage = 0
         self.snap_obstacles = None
 
         self.config = config
         self.load_config()
         self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
-        # Add the fire todo: Move to config
-        self.fire = Fire(self.size * Point([0.3, 0.2]), 20, 3)
-        self.obstacle_list.append(self.fire)
+        if self.fire_center:
+            self.fire = Fire(self.size * Point(self.fire_center), self.size[0]*self.fire_radius, self.fire_intensity)
+            self.obstacle_list.append(self.fire)
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
@@ -143,6 +144,11 @@ class Scene:
         self.max_speed_interval = Interval([section.getfloat('max_speed_begin'), section.getfloat('max_speed_end')])
         self.snap_obstacles = section.getboolean('snap_obstacles')
         self.aware_percentage = self.config['aware'].getfloat('percentage', fallback=1.0)
+        if self.config.has_section('fire'):
+            fire_config = self.config['fire']
+            self.fire_center = (fire_config.getfloat('center_x'),fire_config.getfloat('center_y'))
+            self.fire_intensity = fire_config.getfloat('intensity')
+            self.fire_radius = fire_config.getfloat('radius')
         self.load_obstacle_file(obstacle_file)
 
     def load_obstacle_file(self, file_name: str):
