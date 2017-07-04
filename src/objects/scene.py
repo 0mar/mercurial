@@ -35,6 +35,7 @@ class Scene:
         # Parameter initialization (will be overwritten by _load_parameters)
         self.mde = self.use_exit_logs = self.minimal_distance = self.dt = self.size = None
         self.number_of_cells = self.pedestrian_size = self.max_speed_interval = None
+        self.aware_percentage = 0
         self.snap_obstacles = None
 
         self.config = config
@@ -49,7 +50,8 @@ class Scene:
         self.velocity_array = np.zeros([self.total_pedestrians, 2])
         self.max_speed_array = np.empty(self.total_pedestrians)
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
-        self.aware_pedestrians = np.ones(self.total_pedestrians,dtype=bool)
+
+        self.aware_pedestrians = np.random.random(self.total_pedestrians) < self.aware_percentage
         # self.max_speed_array = self.max_speed_interval.begin + \
         #                        np.random.random(self.position_array.shape[0]) * self.max_speed_interval.length
         self.max_speed_array = np.maximum(np.random.randn(self.position_array.shape[0]) * 0.15 + 1.4,
@@ -140,6 +142,7 @@ class Scene:
         self.size = Size([section.getfloat('scene_size_x'), section.getfloat('scene_size_y')])
         self.max_speed_interval = Interval([section.getfloat('max_speed_begin'), section.getfloat('max_speed_end')])
         self.snap_obstacles = section.getboolean('snap_obstacles')
+        self.aware_percentage = self.config['aware'].getfloat('percentage', fallback=1.0)
         self.load_obstacle_file(obstacle_file)
 
     def load_obstacle_file(self, file_name: str):

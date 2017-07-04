@@ -8,6 +8,7 @@ class Smoker:
     """
     Class for modelling the propagation of smoke as a function of fire, as well the effects on the pedestrians
     """
+
     def __init__(self, scene):
         """
         Creates a smoke evolver for the given scene
@@ -30,7 +31,8 @@ class Smoker:
         self.obstacles[1:-1, 1:-1] = obstacles_without_boundary
         self.speed_ref = self.scene.max_speed_array
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
-        self.smoke_field = Field(obstacles_without_boundary.shape,Field.Orientation.center, 'smoke', (self.dx,self.dy))
+        self.smoke_field = Field(obstacles_without_boundary.shape, Field.Orientation.center, 'smoke',
+                                 (self.dx, self.dy))
         self.sparse_disc_matrix = get_sparse_matrix(self.diff_coef, *self.smoke_velo, self.dx, self.dy, self.scene.dt,
                                                     self.obstacles)
         # Ready for use per time step
@@ -58,17 +60,18 @@ class Smoker:
         :return: None
         """
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
-        self.smoke_field.update(np.reshape(self.smoke,self.obstacles.shape)[1:-1,1:-1])
+        self.smoke_field.update(np.reshape(self.smoke, self.obstacles.shape)[1:-1, 1:-1])
         if self.scene.counter > 1000:
             import matplotlib.pyplot as plt
-            plt.imshow(np.rot90(self.smoke_field))
+            plt.imshow(np.rot90(self.smoke_field.array))
             plt.show()
         print(np.max(self.smoke))
-        # self.modify_speed_by_smoke()
+        self.modify_speed_by_smoke()
 
     def modify_speed_by_smoke(self):
-        # Wrong. This should be done with bilinear interpolation/evaluation
-        velo_modifier = self.smoke/self.smoke_ub
+        smoke_function = self.smoke_field.get_interpolation_function()
+        smoke_on_positions = smoke_function.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
+        velo_modifier = np.clip(smoke_on_positions / self.smoke_ub, 0, 1)
         # Positive for all aware, negative for all unaware
-        self.scene.max_speed_array = self.speed_ref + self.scene.aware_pedestrians*velo_modifier*self.velo_aware_ub
-        + (self.scene.aware_pedestrians - 1)*velo_modifier*self.velo_unaware_lb
+        self.scene.max_speed_array = self.speed_ref + self.scene.aware_pedestrians * velo_modifier * self.velo_aware_ub
+        + (self.scene.aware_pedestrians - 1) * velo_modifier * self.velo_unaware_lb

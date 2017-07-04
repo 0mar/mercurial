@@ -3,6 +3,7 @@ import numpy as np
 from math_objects import functions as ft
 from math_objects.geometry import Point, Velocity
 
+
 class Pedestrian(object):
     """
     Class for modeling a pedestrian. Apart from physical properties like position and velocity,
@@ -14,11 +15,10 @@ class Pedestrian(object):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
-        :param counter: number of the pedestrian in the scene list. Not relied upon currently
-        :param goal: Goal obstacle (Exit instance)
+        :param counter: Number of pedestrians spawned before.
+        :param goals: Goal obstacles (Exit instance)
         :param position: Current position of the pedestrian. Position [0,0] will create a randomized position
-        :param color: Color the pedestrian should be drawn with. Currently random, can be changed to
-        observe effect of social forces.
+        :param index: index in the arrays (index <= counter)
         :return: Pedestrian instance
         """
         self.scene = scene
@@ -28,7 +28,7 @@ class Pedestrian(object):
         else:
             self.index = index
         self.position = position
-        self.color = self._convert_speed_to_color()
+        self.color = self._convert_awareness_to_color()
         self.goals = goals
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
@@ -68,6 +68,17 @@ class Pedestrian(object):
         blue = int(max_val * (speed - end) / (start - end))
         return "#%02x%02x%02x" % (red, green, blue)
 
+    def _convert_awareness_to_color(self):
+        """
+        Gives pedestrians aware of their surroundings a blue color
+        Gives pedestrians unaware of their environment a red color
+        """
+        red = (200, 50, 50)
+        blue = (50, 50, 200)
+        if self.scene.aware_pedestrians[self.index]:
+            return "#%02x%02x%02x" % blue
+        else:
+            return "#%02x%02x%02x" % red
 
     def move_to_position(self, position: Point, dt):
         """
