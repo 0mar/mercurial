@@ -60,6 +60,7 @@ class ScalarField:
             assert self.array.shape == new_field.shape
 
         self.array = new_field.copy()
+        # TODO: How about deleting this copy step?
         self.time_step += 1
 
     def __repr__(self):

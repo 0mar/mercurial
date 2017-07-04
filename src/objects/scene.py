@@ -41,7 +41,7 @@ class Scene:
         self.load_config()
         self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
         # Add the fire todo: Move to config
-        self.fire = Fire(self.size * Point([0.3, 0.5]), 20, 3)
+        self.fire = Fire(self.size * Point([0.3, 0.2]), 20, 3)
         self.obstacle_list.append(self.fire)
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
