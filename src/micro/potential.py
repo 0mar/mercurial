@@ -18,7 +18,7 @@ class PotentialTransporter:
 
     def __init__(self, scene, show_plot=False):
         """
-        Initializes a dynamic planner object. Takes a scene as argument.
+        Initializes a static planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
         :param scene: scene object to impose planner on
         :return: dynamic planner object
@@ -230,7 +230,7 @@ class PotentialTransporter:
     def step(self):
         """
         Computes the scalar fields (in the correct order) necessary for the dynamic planner.
-        If plotting is enables, updates the plot.
+        If plotting is enabled, updates the plot.
         :return: None
         """
 

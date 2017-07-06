@@ -13,6 +13,8 @@
 
 subroutine average_velocity(pos,velos,s_x,s_y,active,length,n,av_velos)
 ! Find average velocity of neigbouring particles
+! \dv_i/dt = \sum_j w_ij*v_j with w_ij 'gaussian' kernel based on distance
+
 implicit none
 integer (kind=8) ::  n
 !f2py intent(in) pos,s_x,s_y,active,length
