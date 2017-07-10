@@ -4,10 +4,11 @@ matplotlib.use('TkAgg')
 import numpy as np
 import operator
 from math_objects import functions as ft
-from math_objects.geometry import Point
 from math_objects.scalar_field import ScalarField as Field
-from fortran_modules.velocity_averager import average_velocity
+from fortran_modules.local_swarm import get_swarm_force
 import matplotlib.pyplot as plt
+from micro.potential import PotentialTransporter
+
 
 class PotentialInterpolator:
     """
@@ -32,7 +33,7 @@ class PotentialInterpolator:
         self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.show_plot = show_plot
-        self.averaging_length = 10*self.pedestrians.size
+        self.averaging_length = 10 * self.config['general'].getfloat('pedestrian_size')
 
         # Initialize classic potential transporter
         # to obtain potential field
@@ -61,12 +62,14 @@ class PotentialInterpolator:
         pot_descent = np.hstack([pot_descent_x[:, None], pot_descent_y[:, None]])
         self.scene.velocity_array[self.scene.aware_pedestrians] = - pot_descent[self.scene.aware_pedestrians]
         # Unaware velocities
-        swarm_force = get_swarm_force(self.scene.positions, self.scene.velocities,self.scene.size.x,self.scene.size.y,self.averaging_length)
-        self.velocities[np.logical_not(self.scene.aware_pedestrians)] = swarm_force[np.logical_not(self.scene.aware_pedestrians)]*self.dt
+        swarm_force = get_swarm_force(self.scene.position_array, self.scene.velocity_array, self.scene.size[0],
+                                      self.scene.size[1], self.scene.active_entries, self.averaging_length)
+        self.scene.velocity_array[np.logical_not(self.scene.aware_pedestrians)] = swarm_force[np.logical_not(
+            self.scene.aware_pedestrians)] * self.scene.dt
         # Normalizing velocities
-        self.velocities *= self.max_speed_array[:,None] / np.linalg.norm(self.velocities+ft.EPS,axis=1)[:,None]
-        #TODO: Check sign in this function
-        #TODO: Insert a boolean array in fortran code to avoid unnecessary comps
+        self.scene.velocity_array *= self.scene.max_speed_array[:, None] / np.linalg.norm(
+            self.scene.velocity_array + ft.EPS, axis=1)[:, None]
+        # TODO: Insert a boolean array in fortran code to avoid unnecessary comps
 
     def step(self):
         """
@@ -82,7 +85,7 @@ class PotentialInterpolator:
         stat_ped_array = self.scene.get_stationary_pedestrians()
         num_stat = np.sum(stat_ped_array)
         if num_stat > 0:
-            nudge = (np.random.random((num_stat, 2)) - 0.5)*2
+            nudge = (np.random.random((num_stat, 2)) - 0.5) * 2
             correction = self.scene.max_speed_array[stat_ped_array][:, None] * nudge * self.scene.dt
             self.scene.position_array[stat_ped_array] += correction
             self.scene.correct_for_geometry()

@@ -3,23 +3,23 @@
 !      real (kind=8) :: s_x = 10
 !      real (kind=8) :: s_y = 10
 !      real (kind=8) :: length = 1.5
-!      real (kind=8), dimension(n,2) :: pos,av_velos
+!      real (kind=8), dimension(n,2) :: pos,swarm_force
 !      integer, dimension(n) :: active
 !      data pos / 1, 2.2, 3.4, 4.5, 6.7, 2.2, 2.5, 2, 7.4, 8.4/
 !      active=1
-!      call compute_mde(pos,s_x,s_y,active,length,n,av_velos)
-!      write(*,*) av_velos
+!      call compute_mde(pos,s_x,s_y,active,length,n,swarm_force)
+!      write(*,*) swarm_force
 !      end
 
-subroutine get_swarm_force(pos,velos,s_x,s_y,active,length,n,av_velos)
+subroutine get_swarm_force(pos,velos,s_x,s_y,active,length,n,swarm_force)
 ! Adjust velocity to swarm by computing a correction force based on difference in velocities
 ! \da_i/dt = \sum_j w_ij*(v_j -v_i) ((check sign)) with w_ij 'gaussian' kernel based on distance
 
 implicit none
 integer (kind=8) ::  n
 !f2py intent(in) pos,s_x,s_y,active,length
-!f2py intent(out) av_velos
-!f2py depend(n) av_velos
+!f2py intent(out) swarm_force
+!f2py depend(n) swarm_force
 !
 ! this subroutine uses 1 based indexing
 !

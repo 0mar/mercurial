@@ -1,6 +1,7 @@
 from macro.pressure import PressureTransporter
 from macro.smoke import Smoker
 from micro.potential import PotentialTransporter
+from micro.potential_and_awareness import PotentialInterpolator
 
 
 class Planner:
@@ -9,7 +10,8 @@ class Planner:
         self.config = scene.config
         self.step_functions = []
         micro_planner = PotentialTransporter  # Name will be changed
-        micro_dict = {'PotentialTransporter': PotentialTransporter}  # Remember boys: eval is evil!
+        micro_dict = {'PotentialTransporter': PotentialTransporter,
+                      'PotentialInterpolator': PotentialInterpolator }  # Remember boys: eval is evil!
         # dictionary with values of the local planners
         if 'micro' in self.config['planner']:
             micro_planner = micro_dict[self.config['planner']['micro']]
