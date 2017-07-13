@@ -80,10 +80,12 @@ class PotentialInterpolator:
         """
         self.scene.move_pedestrians()
         self.scene.correct_for_geometry()
+        self.nudge_stationary_pedestrians()
 
     def nudge_stationary_pedestrians(self):
         stat_ped_array = self.scene.get_stationary_pedestrians()
         num_stat = np.sum(stat_ped_array)
         if num_stat > 0:
+            # Does not make me happy... bouncing effects
             self.scene.position_array[stat_ped_array] -= self.scene.velocity_array[stat_ped_array] * self.scene.dt
             self.scene.correct_for_geometry()

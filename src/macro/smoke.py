@@ -40,7 +40,7 @@ class Smoker:
 
         self.velo_unaware_lb = 0.6
         self.velo_aware_ub = 2.5
-        self.smoke_ub = 600
+        self.smoke_ub = 30
 
     def _get_source(self, fire):
         """
