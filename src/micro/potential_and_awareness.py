@@ -62,10 +62,11 @@ class PotentialInterpolator:
         pot_descent = np.hstack([pot_descent_x[:, None], pot_descent_y[:, None]])
         self.scene.velocity_array[self.scene.aware_pedestrians] = - pot_descent[self.scene.aware_pedestrians]
         # Unaware velocities
+        unawares = np.logical_not(self.scene.aware_pedestrians)
         swarm_force = get_swarm_force(self.scene.position_array, self.scene.velocity_array, self.scene.size[0],
                                       self.scene.size[1], self.scene.active_entries, self.averaging_length)
-        self.scene.velocity_array[np.logical_not(self.scene.aware_pedestrians)] = swarm_force[np.logical_not(
-            self.scene.aware_pedestrians)] * self.scene.dt
+        random_force = np.random.randn(*self.scene.position_array.shape)
+        self.scene.velocity_array[unawares] += (swarm_force[unawares] + random_force[unawares]) * self.scene.dt
         # Normalizing velocities
         self.scene.velocity_array *= self.scene.max_speed_array[:, None] / np.linalg.norm(
             self.scene.velocity_array + ft.EPS, axis=1)[:, None]
@@ -77,7 +78,6 @@ class PotentialInterpolator:
         If plotting is enabled, updates the plot.
         :return: None
         """
-        self.assign_velocities()
         self.scene.move_pedestrians()
         self.scene.correct_for_geometry()
 
