@@ -38,16 +38,16 @@ class PotentialInterpolator:
         self.show_plot = show_plot
         self.averaging_length = 10 * self.config['general'].getfloat('pedestrian_size')
 
-        # Initialize waypoints
-        self.waypoints = []
-        self.waypoint_positions = self.waypoint_velocities = None
-        self._load_waypoints()
-
         # Initialize classic potential transporter
         # to obtain potential field
         potential = PotentialTransporter(self.scene)
         self.potential_x = potential.grad_x_func
         self.potential_y = potential.grad_y_func
+
+        # Initialize waypoints
+        self.waypoints = []
+        self.waypoint_positions = self.waypoint_velocities = None
+        self._load_waypoints()
 
     def _load_waypoints(self):
         section = self.config['waypoints']
@@ -56,7 +56,7 @@ class PotentialInterpolator:
             data = json.loads(wp_file.read())
         for entry in data['waypoints']:
             position = Point(self.scene.size * entry['position'])
-            direction = Velocity(entry['direction'])
+            direction = Velocity([self.potential_x.ev(*position.array), self.potential_y.ev(*position.array)]) * -1
             waypoint = Waypoint(self.scene, position, direction)
             self.waypoints.append(waypoint)
             self.scene.drawables.append(waypoint)
@@ -86,6 +86,7 @@ class PotentialInterpolator:
         pot_descent_y = self.potential_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         pot_descent = np.hstack([pot_descent_x[:, None], pot_descent_y[:, None]])
         self.scene.velocity_array[self.scene.aware_pedestrians] = - pot_descent[self.scene.aware_pedestrians]
+
         # Unaware velocities
         # Waypoints
         if self.waypoints:
