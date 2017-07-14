@@ -4,7 +4,7 @@ import tkinter
 import tkinter.simpledialog
 from enum import Enum
 
-from math_objects import functions as ft
+from src.math_objects import functions as ft
 
 
 class SceneCreator:
@@ -16,6 +16,7 @@ class SceneCreator:
         obstacle = 0
         exit = 1
         entrance = 2
+        waypoint = 3
 
     def __init__(self):
         self.window = tkinter.Tk()
@@ -35,7 +36,7 @@ class SceneCreator:
         self.menu.add_radiobutton(label='Obstacles', variable=self.object_status, value=0)
         self.menu.add_radiobutton(label='Exits', variable=self.object_status, value=1)
         self.menu.add_radiobutton(label='Entrances', variable=self.object_status, value=2)
-
+        self.menu.add_radiobutton(label='Waypoints', variable=self.object_status, value=3)
         self.window.config(menu=self.menu)
 
         ft.debug("Started creating scenes.")
@@ -43,6 +44,7 @@ class SceneCreator:
         self.obstacle_list = []
         self.exit_list = []
         self.entrance_list = []
+        self.waypoint_list = []
         self.new_object_holder = 0
         self.draw_start = self.draw_end = None
 
@@ -53,6 +55,7 @@ class SceneCreator:
     @size.setter
     def size(self, value):
         self.window.geometry("%dx%d" % tuple(value))
+
     def start_drawing(self, event):
         ft.debug(self.object_status.get())
         self.draw_status = SceneCreator.DrawStatus.drawing
@@ -60,6 +63,9 @@ class SceneCreator:
         self.window.bind('<Motion>', self.motion)
         self.window.bind('<Button-1>', self.stop_drawing)
         ft.debug("Started drawing. Start location of obstacle: %s" % str(self.draw_start))
+        enum = SceneCreator.ObjectStatus(self.object_status.get())
+        if enum == SceneCreator.ObjectStatus.waypoint:
+            self.stop_drawing(event)
 
     def stop_drawing(self, event):
         ft.debug("stopped drawing")
@@ -86,6 +92,8 @@ class SceneCreator:
             color = 'red'
         elif enum == SceneCreator.ObjectStatus.entrance:
             color = 'green'
+        elif enum == SceneCreator.ObjectStatus.waypoint:
+            color = 'black'
         else:
             raise ValueError("Bug in enums ObjectStatus")
         self.canvas.create_rectangle(draw_coords, fill=color)
@@ -125,6 +133,10 @@ class SceneCreator:
             new_entrance = Entrance((begin_x, begin_y), (end_x - begin_x, end_y - begin_y))
             self.entrance_list.append(new_entrance)
             return new_entrance
+        elif enum == SceneCreator.ObjectStatus.waypoint:
+            new_waypoint = Waypoint((begin_x, begin_y))
+            self.waypoint_list.append(new_waypoint)
+            return new_waypoint
 
     def ask_save(self):
         save_name = tkinter.simpledialog.askstring("Save file", "Scene file name")
@@ -134,7 +146,7 @@ class SceneCreator:
         self.save(save_name)
 
     def save(self, save_name):
-        obstacle_data = {"obstacles": [], "exits": [], "entrances": []}
+        obstacle_data = {"obstacles": [], "exits": [], "entrances": [], "waypoints": []}
         for number, obstacle in enumerate(self.obstacle_list):
             name = "obstacle%d" % number
             obstacle_data["obstacles"].append({"name": name, "begin": obstacle.start, "size": obstacle.size})
@@ -145,7 +157,9 @@ class SceneCreator:
             name = "entrance%d" % number
             obstacle_data["entrances"].append(
                 {"name": name, "begin": entrance_obstacle.start, "size": entrance_obstacle.size})
-        with open('../scenes/%s.json' % save_name, 'w') as object_file:
+        for number, waypoint in enumerate(self.waypoint_list):
+            obstacle_data["waypoints"].append({'position': waypoint.start})
+        with open('scenes/%s.json' % save_name, 'w') as object_file:
             object_file.write(json.dumps(obstacle_data, indent=4, sort_keys=True))
 
     def convert_relative_coordinate(self, coord):
@@ -171,6 +185,15 @@ class Exit(Obstacle):
 class Entrance(Obstacle):
     def __repr__(self):
         return "Entrance#(%d,%d)-(%d,%d)" % (self.start[0], self.start[1], self.end[0], self.end[1])
+
+
+class Waypoint(Obstacle):
+    def __init__(self, center):
+        super().__init__(center, [0, 0])
+
+    def __repr__(self):
+        return "Waypoint#(%d,%d)" % (self.start[0], self.start[1])
+
 
 sc = SceneCreator()
 sc.window.mainloop()
