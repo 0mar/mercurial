@@ -28,6 +28,8 @@ class Scene:
         self.obstacle_list = []
         self.exit_list = []
         self.entrance_list = []
+        # Other drawable items than pedestrians and obstacles.
+        self.drawables = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_pedestrian_init_functions = []
@@ -44,7 +46,7 @@ class Scene:
         self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
         if self.fire_center:
             self.fire = Fire(self.size * Point(self.fire_center), self.size[0]*self.fire_radius, self.fire_intensity)
-            self.obstacle_list.append(self.fire)
+            self.drawables.append(self.fire)
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])

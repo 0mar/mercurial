@@ -93,11 +93,11 @@ class VisualScene:
         self.canvas.delete('all')
         if self.draws_cells:
             self.draw_grid(self.nx, self.ny)
-        for obstacle in self.scene.obstacle_list:
+        for obstacle in self.scene.obstacle_list + self.scene.drawables:
             if hasattr(obstacle,"radius"):
-                self.draw_fire(obstacle)
+                self.draw_circ_obstacle(obstacle)
             else:
-                self.draw_obstacle(obstacle)
+                self.draw_rect_obstacle(obstacle)
         # for pedestrian in self.scene.pedestrian_list:
         #     self.draw_line_segment(pedestrian.line)
         #     self.draw_path(pedestrian.path)
@@ -168,7 +168,7 @@ class VisualScene:
         x_1 = self.convert_relative_coordinate((cell.begin + cell.size) / self.scene.size)
         self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), outline='blue')
 
-    def draw_obstacle(self, obstacle):
+    def draw_rect_obstacle(self, obstacle):
         """
         Draws a rectangular obstacle on its relative location in the screen
         :param obstacle: obstacle to be drawn. Obstacles are black by default, exits are red, entrances are blue.
@@ -178,18 +178,19 @@ class VisualScene:
         x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
         self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
 
-    def draw_fire(self,fire):
+    def draw_circ_obstacle(self, circ_object):
         """
-        Draw a circular fire in the middle of the scene
-        :param fire: fire object to be drawn
+        Draw a circular object in the middle of the scene
+        :param circ_object: object object to be drawn. Needs a center, radius and color
         :return: None
         """
-        rel_pos_array = fire.center.array / self.scene.size.array
-        rel_size_array = fire.radius / self.scene.size.array * self.size.array
+        rel_pos_array = circ_object.center.array / self.scene.size.array
+        rel_size_array = circ_object.radius / self.scene.size.array * self.size.array
         vis_pos_array = np.array([rel_pos_array[0], 1 - rel_pos_array[1]]) * self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array
-        self.canvas.create_oval(start_pos_array[0], start_pos_array[1],end_pos_array[0], end_pos_array[1],fill=fire.color)
+        self.canvas.create_oval(start_pos_array[0], start_pos_array[1], end_pos_array[0], end_pos_array[1],
+                                fill=circ_object.color)
 
     def draw_line_segment(self, line_segment: LineSegment):
         """

@@ -1,13 +1,16 @@
 import matplotlib
 
+from math_objects.geometry import Point, Velocity
+from objects.waypoints import Waypoint
+
 matplotlib.use('TkAgg')
 import numpy as np
-import operator
 from math_objects import functions as ft
 from math_objects.scalar_field import ScalarField as Field
 from fortran_modules.local_swarm import get_swarm_force
 import matplotlib.pyplot as plt
 from micro.potential import PotentialTransporter
+import json
 
 
 class PotentialInterpolator:
@@ -35,11 +38,33 @@ class PotentialInterpolator:
         self.show_plot = show_plot
         self.averaging_length = 10 * self.config['general'].getfloat('pedestrian_size')
 
+        # Initialize waypoints
+        self.waypoints = []
+        self.waypoint_positions = self.waypoint_velocities = None
+        self._load_waypoints()
+
         # Initialize classic potential transporter
         # to obtain potential field
         potential = PotentialTransporter(self.scene)
         self.potential_x = potential.grad_x_func
         self.potential_y = potential.grad_y_func
+
+    def _load_waypoints(self):
+        section = self.config['waypoints']
+        file_name = section['filename']
+        with open(file_name, 'r') as wp_file:
+            data = json.loads(wp_file.read())
+        for entry in data['waypoints']:
+            position = Point(self.scene.size * entry['position'])
+            direction = Velocity(entry['direction'])
+            waypoint = Waypoint(self.scene, position, direction)
+            self.waypoints.append(waypoint)
+            self.scene.drawables.append(waypoint)
+        self.waypoint_positions = np.zeros([len(self.waypoints), 2])
+        self.waypoint_velocities = np.zeros([len(self.waypoints), 2])
+        for i, waypoint in enumerate(self.waypoints):
+            self.waypoint_positions[i, :] = waypoint.position.array  # Waypoints are immutable, so no copy worries
+            self.waypoint_velocities[i, :] = waypoint.direction.array
 
     def assign_velocities(self):
         """
@@ -62,9 +87,19 @@ class PotentialInterpolator:
         pot_descent = np.hstack([pot_descent_x[:, None], pot_descent_y[:, None]])
         self.scene.velocity_array[self.scene.aware_pedestrians] = - pot_descent[self.scene.aware_pedestrians]
         # Unaware velocities
+        # Waypoints
+        if self.waypoints:
+            positions = np.vstack((self.scene.position_array, self.waypoint_positions))
+            velocities = np.vstack((self.scene.velocity_array, self.waypoint_velocities))
+            actives = np.hstack((self.scene.active_entries, np.ones(len(self.waypoints), dtype=bool)))
+        else:
+            positions = self.scene.position_array
+            velocities = self.scene.velocity_array
+            actives = self.scene.active_entries
         unawares = np.logical_not(self.scene.aware_pedestrians)
-        swarm_force = get_swarm_force(self.scene.position_array, self.scene.velocity_array, self.scene.size[0],
-                                      self.scene.size[1], self.scene.active_entries, self.averaging_length)
+        swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
+                                      self.scene.size[1], actives, self.averaging_length
+                                      )[0:self.scene.position_array.shape[0], :]
         random_force = np.random.randn(*self.scene.position_array.shape)
         self.scene.velocity_array[unawares] += (swarm_force[unawares] + random_force[unawares]) * self.scene.dt
         # Normalizing velocities

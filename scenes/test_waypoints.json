@@ -1,0 +1,104 @@
+{
+  "obstacles": [
+    {
+      "name": "Fontein",
+      "begin": [
+        0.425,
+        0.125
+      ],
+      "size": [
+        0.2,
+        0.4
+      ]
+    },
+    {
+      "name": "Hotdogstand",
+      "begin": [
+        0.7,
+        0.2
+      ],
+      "size": [
+        0.2,
+        0.4
+      ]
+    },
+    {
+      "name": "Tent",
+      "begin": [
+        0.1125,
+        0.65
+      ],
+      "size": [
+        0.3,
+        0.30
+      ]
+    }
+  ],
+  "exits": [
+    {
+      "name": "Exit1",
+      "begin": [
+        0.3,
+        0
+      ],
+      "size": [
+        0.4,
+        0.025
+      ]
+    },
+    {
+      "name": "Exit2",
+      "begin": [
+        0,
+        0.3
+      ],
+      "size": [
+        0.025,
+        0.4
+      ]
+    }
+  ],
+  "entrances": [],
+  "waypoints": [
+    {
+      "position": [
+        0.2,
+        0.4
+      ],
+      "direction": [
+        30.1,
+        30.2
+      ]
+    },
+    {
+      "position": [
+        0.3,
+        0.2
+      ],
+      "direction": [
+        -30.1,
+        30.5
+      ]
+    },
+    {
+      "position": [
+        0.0,
+        0.3
+      ],
+      "direction": [
+        30.4,
+        -30.2
+      ]
+    },
+    {
+      "position": [
+        0.2,
+        0.5
+      ],
+      "direction": [
+        -30.1,
+        -30.2
+      ]
+    }
+  ]
+}
