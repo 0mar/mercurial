@@ -49,6 +49,17 @@ class PotentialInterpolator:
         self.waypoint_positions = self.waypoint_velocities = None
         self._load_waypoints()
 
+        # Fire repelling for the unaware pedestrians
+        fire_force_constant = 0.1
+        fire_force = fire_force_constant* potential.fire_effects
+        fire_force_field = Field(fire_force.shape,Field.Orientation.center,'fire_force',(self.dx,self.dy))
+        fire_force_field.update(fire_force)
+        fire_force_grad_x = Field(np.pad(fire_force_field.gradient('x'), ((1, 1), (0, 0)), 'edge')
+        fire_force_grad_y = np.pad(fire_force_field.gradient('y'), ((0,0 ), (1,1)), 'edge')
+        self.fire_force_x =
+        fire_for
+
+
     def _load_waypoints(self):
         section = self.config['waypoints']
         file_name = section['filename']
@@ -98,6 +109,7 @@ class PotentialInterpolator:
             velocities = self.scene.velocity_array
             actives = self.scene.active_entries
         unawares = np.logical_not(self.scene.aware_pedestrians)
+        fire_force =
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.averaging_length
                                       )[0:self.scene.position_array.shape[0], :]

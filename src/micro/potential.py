@@ -47,7 +47,8 @@ class PotentialTransporter:
         self.discomfort_field = Field(shape, Field.Orientation.center, 'discomfort', (dx, dy))
         self.obstacle_discomfort_field = np.zeros(shape)
         self.compute_obstacle_discomfort()
-        self.obstacle_discomfort_field += self._get_fire_effects()
+        self.fire_effects = self._get_fire_effects()
+        self.obstacle_discomfort_field += self.fire_effects
         self.discomfort_field.update(self.obstacle_discomfort_field)
         self.pot_grad_x = Field(shape, Field.Orientation.vertical_face, 'pot_grad_x', (dx, dy))
         self.pot_grad_y = Field(shape, Field.Orientation.horizontal_face, 'pot_grad_y', (dx, dy))
