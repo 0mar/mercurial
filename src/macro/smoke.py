@@ -61,7 +61,6 @@ class Smoker:
         """
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
         self.smoke_field.update(np.reshape(self.smoke, self.obstacles.shape)[1:-1, 1:-1])
-        print(np.max(self.smoke))
         self.modify_speed_by_smoke()
 
     def modify_speed_by_smoke(self):
