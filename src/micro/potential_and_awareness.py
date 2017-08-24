@@ -1,14 +1,12 @@
-import matplotlib
 
 from math_objects.geometry import Point, Velocity
 from objects.waypoints import Waypoint
 
-matplotlib.use('TkAgg')
 import numpy as np
+import math_objects.functions as ft
 from math_objects import functions as ft
 from math_objects.scalar_field import ScalarField as Field
 from fortran_modules.local_swarm import get_swarm_force
-import matplotlib.pyplot as plt
 from micro.potential import PotentialTransporter
 import json
 
@@ -48,17 +46,29 @@ class PotentialInterpolator:
         self.waypoints = []
         self.waypoint_positions = self.waypoint_velocities = None
         self._load_waypoints()
+        self.fire_force_field_x,self.fire_force_field_y = self._get_fire_force_field(self.scene.fire,potential.fire_effects)
 
-        # Fire repelling for the unaware pedestrians
+    def _get_fire_force_field(self,fire,fire_effects):
+        """
+        Compute the fire effects for the unaware pedestrians
+        from the fire intensity.
+        The computation is a repelling force proportional to the fire intensity
+        in the direction away from the fire.
+        """
+        # Compute fire repellant magnitude
         fire_force_constant = 0.1
-        fire_force = fire_force_constant* potential.fire_effects
-        fire_force_field = Field(fire_force.shape,Field.Orientation.center,'fire_force',(self.dx,self.dy))
-        fire_force_field.update(fire_force)
-        fire_force_grad_x = Field(np.pad(fire_force_field.gradient('x'), ((1, 1), (0, 0)), 'edge')
-        fire_force_grad_y = np.pad(fire_force_field.gradient('y'), ((0,0 ), (1,1)), 'edge')
-        self.fire_force_x =
-        fire_for
-
+        fire_force = fire_force_constant * fire_effects
+        fire_force_field_x = Field(fire_effects.shape,Field.Orientation.center,'fire_force_x',(self.dx,self.dy))
+        fire_force_field_y = Field(fire_effects.shape,Field.Orientation.center,'fire_force_y',(self.dx,self.dy))
+        # Obtain the vector field
+        dir_to_fire_x = fire_force_field_x.mesh_grid[0] - fire.center.array[0]
+        dir_to_fire_y = fire_force_field_x.mesh_grid[1] - fire.center.array[1]
+        dir_norm = np.sqrt(dir_to_fire_x**2 + dir_to_fire_y**2)
+        force_x = fire_force * dir_to_fire_x/(dir_norm + ft.EPS)
+        force_y = fire_force * dir_to_fire_y/(dir_norm + ft.EPS)
+        fire_force_field_x.update(force_x)
+        fire_force_field_y.update(force_y)
+        return fire_force_field_x.get_interpolation_function(),fire_force_field_y.get_interpolation_function()
 
     def _load_waypoints(self):
         section = self.config['waypoints']
@@ -108,13 +118,15 @@ class PotentialInterpolator:
             positions = self.scene.position_array
             velocities = self.scene.velocity_array
             actives = self.scene.active_entries
+        fire_rep_x = self.fire_force_field_x.ev(positions)
+        fire_rep_y = self.fire_force_field_y.ev(positions)
+        fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
         unawares = np.logical_not(self.scene.aware_pedestrians)
-        fire_force =
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.averaging_length
                                       )[0:self.scene.position_array.shape[0], :]
         random_force = np.random.randn(*self.scene.position_array.shape)
-        self.scene.velocity_array[unawares] += (swarm_force[unawares] + random_force[unawares]) * self.scene.dt
+        self.scene.velocity_array[unawares] += (swarm_force[unawares] + fire_repulsion[unawares] + random_force[unawares]) * self.scene.dt
         # Normalizing velocities
         self.scene.velocity_array *= self.scene.max_speed_array[:, None] / np.linalg.norm(
             self.scene.velocity_array + ft.EPS, axis=1)[:, None]
