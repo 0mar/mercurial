@@ -56,7 +56,7 @@ class PotentialInterpolator:
         in the direction away from the fire.
         """
         # Compute fire repellant magnitude
-        fire_force_constant = 0.1
+        fire_force_constant = 0.04
         fire_force = fire_force_constant * fire_effects
         fire_force_field_x = Field(fire_effects.shape,Field.Orientation.center,'fire_force_x',(self.dx,self.dy))
         fire_force_field_y = Field(fire_effects.shape,Field.Orientation.center,'fire_force_y',(self.dx,self.dy))
@@ -72,9 +72,11 @@ class PotentialInterpolator:
 
     def _load_waypoints(self):
         section = self.config['waypoints']
-        file_name = section['filename']
+        file_name = self.config['general']['obstacle_file']
         with open(file_name, 'r') as wp_file:
             data = json.loads(wp_file.read())
+            if not 'waypoints' in data:
+                return
         for entry in data['waypoints']:
             position = Point(self.scene.size * entry['position'])
             direction = Velocity([self.potential_x.ev(*position.array), self.potential_y.ev(*position.array)]) * -1
