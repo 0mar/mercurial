@@ -118,8 +118,8 @@ class PotentialInterpolator:
             positions = self.scene.position_array
             velocities = self.scene.velocity_array
             actives = self.scene.active_entries
-        fire_rep_x = self.fire_force_field_x.ev(positions)
-        fire_rep_y = self.fire_force_field_y.ev(positions)
+        fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
         unawares = np.logical_not(self.scene.aware_pedestrians)
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
