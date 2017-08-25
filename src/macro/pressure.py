@@ -64,7 +64,7 @@ class PressureTransporter:
 
     def _get_obstacle_coverage(self, precision=2):
         """
-        Todo: Merge with the one in scene.py 
+        Todo: Merge with the one in scene.py
         Compute the fraction of the cells covered with obstacles
         Since an exact computation involves either big shot linear algebra
         or too much case distinctions, we sample the cell space.
@@ -113,16 +113,21 @@ class PressureTransporter:
         plt.show(block=False)
 
     def compute_pressure(self):
+        """
+        Compute the pressure term
+        We pad the pressure with an extra boundary
+        so that the gradient is defined everywhere.
+        """
+
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
                                     self.dx, self.dy, self.dt, self.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
-        padded_dim_p1 = np.pad(dim_p, (1, 1), 'constant', constant_values=1)
+        padded_dim_p1 = np.pad(dim_p, (1, 1), 'constant', constant_values=4) # TODO: Useful tool! What value/relation to scene?
         self.pressure_field.update(padded_dim_p1)
 
     def adjust_velocity(self):
         """
-        Adjusts the velocity field for the pressure gradient. We pad the pressure with an extra boundary
-        so that the gradient is defined everywhere.
+        Adjusts the velocity field for the pressure gradient.
         :return: None
         """
         # Not using the update method.
