@@ -55,7 +55,7 @@ class PressureTransporter:
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
         self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
-        self.pressure_pad = 4.0 # Tool to keep pedestrians away from obstacles/walls. #TODO: Get verified parameter value/relation to scene.
+        self.pressure_pad = 1.0 # Tool to keep pedestrians away from obstacles/walls. #TODO: Get verified parameter value/relation to scene. Linear to size?
         # If beneficial, we could employ a staggered grid
 
         if self.show_plot:
