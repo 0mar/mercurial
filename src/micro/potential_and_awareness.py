@@ -72,7 +72,7 @@ class PotentialInterpolator:
 
     def _load_waypoints(self):
         section = self.config['waypoints']
-        file_name = self.config['general']['obstacle_file']
+        file_name = section['filename']
         with open(file_name, 'r') as wp_file:
             data = json.loads(wp_file.read())
             if not 'waypoints' in data:
