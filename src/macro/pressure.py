@@ -55,6 +55,7 @@ class PressureTransporter:
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
         self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
+        self.pressure_pad = 4.0 # Tool to keep pedestrians away from obstacles/walls. #TODO: Get verified parameter value/relation to scene.
         # If beneficial, we could employ a staggered grid
 
         if self.show_plot:
@@ -62,34 +63,35 @@ class PressureTransporter:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    def _get_obstacle_coverage(self, precision=2):
-        """
-        Todo: Merge with the one in scene.py
-        Compute the fraction of the cells covered with obstacles
-        Since an exact computation involves either big shot linear algebra
-        or too much case distinctions, we sample the cell space.
-        :param precision: row number of samples per cell. More samples, more precision.
-        :return: an array approximating the inaccessible space in the cells
-        """
-        if self.scene.snap_obstacles:
-            precision = 1
-        ft.log("Indexing scenario")
-        obstacle_coverage = np.zeros(self.obstacle_correction.shape)
-        num_samples = (precision, precision)
-        size = Point([self.dx, self.dy])
-        for row, col in np.ndindex(obstacle_coverage.shape):
-            covered_samples = 0
-            begin = Point([row * self.dx, col * self.dy])
-            for i, j in np.ndindex(num_samples):
-                for obstacle in self.scene.obstacle_list:
-                    if not obstacle.accessible:
-                        if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples) * size.array) in obstacle:
-                            covered_samples += 1
-                            break
-            obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
-        # Correct the fully covered entries
-        obstacle_coverage[obstacle_coverage >= 0.99] = 0.8
-        self.obstacle_correction = 1 / (1 - obstacle_coverage)
+    # # Largely obsolete
+    # def _get_obstacle_coverage(self, precision=2):
+    #     """
+    #     Todo: Merge with the one in scene.py
+    #     Compute the fraction of the cells covered with obstacles
+    #     Since an exact computation involves either big shot linear algebra
+    #     or too much case distinctions, we sample the cell space.
+    #     :param precision: row number of samples per cell. More samples, more precision.
+    #     :return: an array approximating the inaccessible space in the cells
+    #     """
+    #     if self.scene.snap_obstacles:
+    #         precision = 1
+    #     ft.log("Indexing scenario")
+    #     obstacle_coverage = np.zeros(self.obstacle_correction.shape)
+    #     num_samples = (precision, precision)
+    #     size = Point([self.dx, self.dy])
+    #     for row, col in np.ndindex(obstacle_coverage.shape):
+    #         covered_samples = 0
+    #         begin = Point([row * self.dx, col * self.dy])
+    #         for i, j in np.ndindex(num_samples):
+    #             for obstacle in self.scene.obstacle_list:
+    #                 if not obstacle.accessible:
+    #                     if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples) * size.array) in obstacle:
+    #                         covered_samples += 1
+    #                         break
+    #         obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
+    #     # Correct the fully covered entries
+    #     obstacle_coverage[obstacle_coverage >= 0.99] = 0.8
+    #     self.obstacle_correction = 1 / (1 - obstacle_coverage)
 
     def plot_grid_values(self):
         """
@@ -122,8 +124,10 @@ class PressureTransporter:
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
                                     self.dx, self.dy, self.dt, self.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
-        padded_dim_p1 = np.pad(dim_p, (1, 1), 'constant', constant_values=4) # TODO: Useful tool! What value/relation to scene?
-        self.pressure_field.update(padded_dim_p1)
+        dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
+
+        padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.pressure_pad)
+        self.pressure_field.update(padded_dim_p)
 
     def adjust_velocity(self):
         """
