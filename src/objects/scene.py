@@ -47,6 +47,7 @@ class Scene:
         if self.fire_center:
             self.fire = Fire(self.size * Point(self.fire_center), self.size[0]*self.fire_radius, self.fire_intensity)
             self.drawables.append(self.fire)
+        self.obstacle_coverage = self.get_obstacles_coverage()
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])

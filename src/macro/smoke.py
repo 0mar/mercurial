@@ -26,12 +26,12 @@ class Smoker:
         self.dx, self.dy = self.scene.size.array / (self.nx, self.ny)
         self.diff_coef = config.getfloat('diffusion')
         self.smoke_velo = (config.getfloat('velocity_x'), config.getfloat('velocity_y'))
-        obstacles_without_boundary = self.scene.get_obstacles_coverage()
+
         self.obstacles = np.ones((self.nx + 2, self.ny + 2), dtype=int)
-        self.obstacles[1:-1, 1:-1] = obstacles_without_boundary
+        self.obstacles[1:-1, 1:-1] = self.scene.obstacle_coverage
         self.speed_ref = self.scene.max_speed_array
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
-        self.smoke_field = Field(obstacles_without_boundary.shape, Field.Orientation.center, 'smoke',
+        self.smoke_field = Field(self.scene.obstacle_coverage.shape, Field.Orientation.center, 'smoke',
                                  (self.dx, self.dy))
         self.sparse_disc_matrix = get_sparse_matrix(self.diff_coef, *self.smoke_velo, self.dx, self.dy, self.scene.dt,
                                                     self.obstacles)
