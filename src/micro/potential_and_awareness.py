@@ -120,14 +120,14 @@ class PotentialInterpolator:
             positions = self.scene.position_array
             velocities = self.scene.velocity_array
             actives = self.scene.active_entries
-        fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
         unawares = np.logical_not(self.scene.aware_pedestrians)
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.averaging_length
                                       )[0:self.scene.position_array.shape[0], :]
         random_force = np.random.randn(*self.scene.position_array.shape)
+        fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
         self.scene.velocity_array[unawares] += (swarm_force[unawares] + fire_repulsion[unawares] + random_force[unawares]) * self.scene.dt
         # Normalizing velocities
         self.scene.velocity_array *= self.scene.max_speed_array[:, None] / np.linalg.norm(
@@ -136,8 +136,7 @@ class PotentialInterpolator:
 
     def step(self):
         """
-        Computes the scalar fields (in the correct order) necessary for the dynamic planner.
-        If plotting is enabled, updates the plot.
+        Performs a planner step
         :return: None
         """
         self.scene.move_pedestrians()
@@ -147,7 +146,8 @@ class PotentialInterpolator:
     def nudge_stationary_pedestrians(self):
         stat_ped_array = self.scene.get_stationary_pedestrians()
         num_stat = np.sum(stat_ped_array)
+        # Don't think this really does something...
         if num_stat > 0:
-            # Does not make me happy... bouncing effects
+            # Does not make me happy... bouncing effects for awares
             self.scene.position_array[stat_ped_array] -= self.scene.velocity_array[stat_ped_array] * self.scene.dt
             self.scene.correct_for_geometry()
