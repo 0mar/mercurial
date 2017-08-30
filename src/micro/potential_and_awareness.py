@@ -34,7 +34,8 @@ class PotentialInterpolator:
         self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.show_plot = show_plot
-        self.averaging_length = 10 * self.config['general'].getfloat('pedestrian_size')
+        self.radius = 15 * self.config['general'].getfloat('pedestrian_size')
+        self.min_radius_ratio = 0.2
 
         # Initialize classic potential transporter
         # to obtain potential field
@@ -110,6 +111,8 @@ class PotentialInterpolator:
         pot_descent = np.hstack([pot_descent_x[:, None], pot_descent_y[:, None]])
         self.scene.velocity_array[self.scene.aware_pedestrians] = - pot_descent[self.scene.aware_pedestrians]
 
+        smoke_on_positions = self.scene.smoke_field.get_interpolation_function().ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
+        sight_radii = self.radius*(1-(1-self.min_radius_ratio)*np.minimum(np.maximum(smoke_on_positions,0)/self.scene.smoke_ub,1))
         # Unaware velocities
         # Waypoints
         if self.waypoints:
@@ -122,7 +125,7 @@ class PotentialInterpolator:
             actives = self.scene.active_entries
         unawares = np.logical_not(self.scene.aware_pedestrians)
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
-                                      self.scene.size[1], actives, self.averaging_length
+                                      self.scene.size[1], actives, sight_radii
                                       )[0:self.scene.position_array.shape[0], :]
         random_force = np.random.randn(*self.scene.position_array.shape)
         fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
@@ -147,7 +150,7 @@ class PotentialInterpolator:
         stat_ped_array = self.scene.get_stationary_pedestrians()
         num_stat = np.sum(stat_ped_array)
         # Don't think this really does something...
-        if num_stat > 0:
-            # Does not make me happy... bouncing effects for awares
-            self.scene.position_array[stat_ped_array] -= self.scene.velocity_array[stat_ped_array] * self.scene.dt
-            self.scene.correct_for_geometry()
+        # if num_stat > 0:
+        #     # Does not make me happy... bouncing effects for awares
+        #     self.scene.position_array[stat_ped_array] -= self.scene.velocity_array[stat_ped_array] * self.scene.dt
+        #     self.scene.correct_for_geometry()

@@ -33,6 +33,7 @@ class Smoker:
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
         self.smoke_field = Field(self.scene.obstacle_coverage.shape, Field.Orientation.center, 'smoke',
                                  (self.dx, self.dy))
+        self.scene.smoke_field = self.smoke_field # TODO: resolve monkey patching
         self.sparse_disc_matrix = get_sparse_matrix(self.diff_coef, *self.smoke_velo, self.dx, self.dy, self.scene.dt,
                                                     self.obstacles)
         # Ready for use per time step
@@ -40,7 +41,7 @@ class Smoker:
 
         self.velo_unaware_lb = 0.6
         self.velo_aware_ub = 2.5
-        self.smoke_ub = 30
+        self.smoke_ub = self.scene.smoke_ub = 30 # TODO: resolve monkey patching
 
     def _get_source(self, fire):
         """
