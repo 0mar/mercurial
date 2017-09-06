@@ -24,12 +24,13 @@ class Planner:
             macro_planner = macro_dict[self.config['planner']['macro']]
         if macro_planner:
             self.macro = macro_planner(scene)
-
-        self.smoke = Smoker(self.scene)
+        if self.scene.fire:
+            self.smoke = Smoker(self.scene)
 
     def step(self):
         self.micro.assign_velocities()
         self.macro.step()
-        self.smoke.step()
+        if self.scene.fire:
+            self.smoke.step()
         self.micro.step()
         self.scene.find_finished_pedestrians()

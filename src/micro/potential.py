@@ -70,8 +70,8 @@ class PotentialTransporter:
         fire_effects = np.zeros(self.grid_dimension)
         for i,j in np.ndindex(self.grid_dimension):
             cell_center = Point([(i + 0.5) * self.dx, (j + 0.5) * self.dy])
-            for fire in [self.scene.fire]:
-                fire_effects[i,j] += fire.get_fire_intensity(cell_center)
+            if self.scene.fire:
+                fire_effects[i,j] += self.scene.fire.get_fire_intensity(cell_center)
         # plt.imshow(np.rot90(fire_effects))
         # plt.colorbar()
         # plt.show()

@@ -44,6 +44,7 @@ class Scene:
         self.config = config
         self.load_config()
         self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
+        self.fire = None
         if self.fire_center:
             self.fire = Fire(self.size * Point(self.fire_center), self.size[0]*self.fire_radius, self.fire_intensity)
             self.drawables.append(self.fire)
