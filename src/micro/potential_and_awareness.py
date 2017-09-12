@@ -127,7 +127,7 @@ class PotentialInterpolator:
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, sight_radii
                                       )[0:self.scene.position_array.shape[0], :]
-        random_force = np.random.randn(*self.scene.position_array.shape)
+        random_force = np.random.randn(*self.scene.position_array.shape)/10
         fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])

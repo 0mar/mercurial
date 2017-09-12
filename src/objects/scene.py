@@ -46,9 +46,10 @@ class Scene:
         self.core_distance = self.minimal_distance + self.pedestrian_size[0]  # Distance between ped centers
         self.fire = None
         if self.fire_center:
-            self.fire = Fire(self.size * Point(self.fire_center), self.size[0]*self.fire_radius, self.fire_intensity)
+            self.fire = Fire(self.size * Point(self.fire_center), self.size[0] * self.fire_radius, self.fire_intensity)
             self.drawables.append(self.fire)
         self.obstacle_coverage = self.get_obstacles_coverage()
+        self.gutter_cells = self.get_obstacle_gutter_cells()
         # Array initialization
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
@@ -132,6 +133,28 @@ class Scene:
                         obstacle_coverage[row, col] = 1
         return obstacle_coverage
 
+    def get_obstacle_gutter_cells(self, radius=2):
+        """
+        Compute all the cells which lie of distance `radius` from an obstacle.
+        Used in the pressure determination, in case we want to repel/attract pedestrians from/to specific zones.
+        :param radius: distance in cells to the obstacles
+        :return: array of nx,ny with 1 on gutter cells and obstacle cells and 0 on rest
+        """
+        if not self.snap_obstacles:
+            ft.warn("Computing obstacle coverage: Snapping is turned off, so this is only an estimation")
+        dx, dy = self.config['general'].getfloat('cell_size_x'), self.config['general'].getfloat('cell_size_y')
+        nx = int(self.config['general'].getint('scene_size_x') / dx)
+        ny = int(self.config['general'].getint('scene_size_y') / dy)
+        obstacle_gutter = np.zeros(self.obstacle_coverage.shape)
+
+        for row, col in np.ndindex((nx, ny)):
+            if not self.obstacle_coverage[row, col]:
+                right, up = min(row + radius + 1, nx - 1), min(col + radius + 1, ny - 1)
+                left, down = max(row - radius, 0), max(col - radius, 0)
+                if np.any(self.obstacle_coverage[left:right, down:up]):
+                    obstacle_gutter[row, col] = 1
+        return obstacle_gutter
+
     def load_config(self):
         """
         Interpret the ConfigParser object to read the parameters from
@@ -150,7 +173,7 @@ class Scene:
         self.aware_percentage = self.config['aware'].getfloat('percentage', fallback=1.0)
         if self.config.has_section('fire'):
             fire_config = self.config['fire']
-            self.fire_center = (fire_config.getfloat('center_x'),fire_config.getfloat('center_y'))
+            self.fire_center = (fire_config.getfloat('center_x'), fire_config.getfloat('center_y'))
             self.fire_intensity = fire_config.getfloat('intensity')
             self.fire_radius = fire_config.getfloat('radius')
         self.load_obstacle_file(obstacle_file)

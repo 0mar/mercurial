@@ -4,7 +4,6 @@ from fortran_modules.micro_macro import comp_dens_velo
 from fortran_modules.pressure_computer import compute_pressure
 
 from math_objects import functions as ft
-from math_objects.geometry import Point
 from math_objects.scalar_field import ScalarField as Field
 
 matplotlib.use('TkAgg')
@@ -55,7 +54,10 @@ class PressureTransporter:
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
         self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
         self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
-        self.pressure_pad = 1.0 # Tool to keep pedestrians away from obstacles/walls. #TODO: Get verified parameter value/relation to scene. Linear to size?
+
+        # Tools to relate pedestrians to obstacles/walls
+        self.pressure_pad = 0.6 # TODO: Get verified parameter value/relation to scene. Linear to size?
+        self.gutter_pressure = -self.pressure_pad/3
         # If beneficial, we could employ a staggered grid
 
         if self.show_plot:
@@ -125,7 +127,7 @@ class PressureTransporter:
                                     self.dx, self.dy, self.dt, self.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
         dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
-
+        dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
         padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.pressure_pad)
         self.pressure_field.update(padded_dim_p)
 
