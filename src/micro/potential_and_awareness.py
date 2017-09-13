@@ -34,7 +34,7 @@ class PotentialInterpolator:
         self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
         self.show_plot = show_plot
-        self.radius = 15 * self.config['general'].getfloat('pedestrian_size')
+        self.radius = 30 * self.config['general'].getfloat('pedestrian_size')
         self.min_radius_ratio = 0.2
 
         # Initialize classic potential transporter
@@ -117,7 +117,7 @@ class PotentialInterpolator:
         # Waypoints
         if self.waypoints:
             positions = np.vstack((self.scene.position_array, self.waypoint_positions))
-            velocities = np.vstack((self.scene.velocity_array, self.waypoint_velocities))
+            velocities = np.vstack((self.scene.velocity_array, self.waypoint_velocities*20))
             actives = np.hstack((self.scene.active_entries, np.ones(len(self.waypoints), dtype=bool)))
         else:
             positions = self.scene.position_array

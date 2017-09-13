@@ -33,15 +33,15 @@ class Smoker:
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
         self.smoke_field = Field(self.scene.obstacle_coverage.shape, Field.Orientation.center, 'smoke',
                                  (self.dx, self.dy))
-        self.scene.smoke_field = self.smoke_field # TODO: resolve monkey patching
+        self.scene.smoke_field = self.smoke_field  # TODO: resolve monkey patching
         self.sparse_disc_matrix = get_sparse_matrix(self.diff_coef, *self.smoke_velo, self.dx, self.dy, self.scene.dt,
                                                     self.obstacles)
         # Ready for use per time step
         self.source = self._get_source(self.scene.fire).flatten() * self.scene.dt
 
-        self.velo_unaware_lb = 0.6
+        self.velo_unaware_lb = 0.3
         self.velo_aware_ub = 2.5
-        self.smoke_ub = self.scene.smoke_ub = 30 # TODO: resolve monkey patching
+        self.smoke_ub = self.scene.smoke_ub = 30  # TODO: resolve monkey patching
 
     def _get_source(self, fire):
         """
@@ -65,9 +65,12 @@ class Smoker:
         self.modify_speed_by_smoke()
 
     def modify_speed_by_smoke(self):
+        """
+        Choosing velocity parameters as given by the Japanese paper
+        :return:
+        """
         smoke_function = self.smoke_field.get_interpolation_function()
-        smoke_on_positions = smoke_function.ev(self.scene.position_array[:,0],self.scene.position_array[:,1])
+        smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         velo_modifier = np.clip(smoke_on_positions / self.smoke_ub, 0, 1)
         # Positive for all aware, negative for all unaware
-        self.scene.max_speed_array = self.speed_ref + self.scene.aware_pedestrians * velo_modifier * self.velo_aware_ub
-        + (self.scene.aware_pedestrians - 1) * velo_modifier * self.velo_unaware_lb
+        self.scene.max_speed_array = self.speed_ref - velo_modifier * self.velo_unaware_lb
