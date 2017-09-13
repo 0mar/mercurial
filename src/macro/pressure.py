@@ -26,7 +26,7 @@ class PressureTransporter:
         The grid computer takes several parameters in its constructor.
         Numerical parameters are specified in the parameters file.
         :param scene: Scene on which we make the computations
-        :param show_plot: enable matplotlib plotting of discrete fields
+        :param show_plot: enable matplotlib plotting of discretized fields
         :param apply_interpolation: impose group velocity on pedestrians
         :param apply_pressure: impose pressure on velocity field (and on pedestrians)
         :return: Grid computer object.
@@ -46,6 +46,7 @@ class PressureTransporter:
         self.show_plot = show_plot
         self.apply_interpolation = apply_interpolation or apply_pressure
         self.apply_pressure = apply_pressure
+
         dx, dy = self.dx, self.dy
         shape = self.grid_dimension
         self.obstacle_correction = np.zeros(shape)
@@ -57,8 +58,10 @@ class PressureTransporter:
 
         # Tools to relate pedestrians to obstacles/walls
         self.pressure_pad = 0.6 # TODO: Get verified parameter value/relation to scene. Linear to size?
-        self.gutter_pressure = -self.pressure_pad/3
-        # If beneficial, we could employ a staggered grid
+        self.gutter_pressure = 0
+        apply_gutter = scene.config['general'].getboolean('obstacle_gutter')
+        if apply_gutter:
+            self.gutter_pressure = -self.pressure_pad/3
 
         if self.show_plot:
             # Plotting hooks
