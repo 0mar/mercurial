@@ -93,6 +93,9 @@ class Processor:
         plt.ylabel("Number of evacuees left in geometry")
         plt.show()
 
+    def average_time(self):
+        print(np.mean(self.result.time_spent))
+
     def path_length_histogram(self):
         if self.result.path_length.size > 1:
             # Consistent with time histogram
@@ -158,8 +161,10 @@ if __name__ == '__main__':
             ft.error("Result file %s does not exist" % filename)
     proc = Processor(filename=filename)
     # proc.mde_violations()
-    proc.time_spent_histogram()
+    # proc.time_spent_histogram()
     proc.pressure_plot()
+    proc.exit_times_plot()
+    proc.average_time()
     # proc.path_length_histogram()
     # proc.delay_scatter_plot()
     # proc.time_scatter_plot()
