@@ -137,9 +137,9 @@ if __name__ == '__main__':
         if not os.path.exists(filename):
             ft.error("Result file %s does not exist"%filename)
     proc = Processor(filename=filename)
-    proc.mde_violations()
+    # proc.mde_violations()
     proc.time_spent_histogram()
     # proc.path_length_histogram()
-    # proc.delay_scatter_plot()
-    # proc.time_scatter_plot()
+    proc.delay_scatter_plot()
+    proc.time_scatter_plot()
     proc.density_map()
