@@ -53,11 +53,11 @@ class PressureTransporter:
         # self._get_obstacle_coverage()
         self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
         self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
-        self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy))
+        self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy)) # Todo: We can probably easily stagger this
         self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
 
         # Tools to relate pedestrians to obstacles/walls
-        self.pressure_pad = 0.6 # TODO: Get verified parameter value/relation to scene. Linear to size?
+        self.pressure_pad = 1 # TODO: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
         self.gutter_pressure = 0
         apply_gutter = scene.config['general'].getboolean('obstacle_gutter')
         if apply_gutter:

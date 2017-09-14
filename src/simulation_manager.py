@@ -35,6 +35,9 @@ class SimulationManager:
         # Initialization scene
         if args.number >= 0:
             config['general']['number_of_pedestrians'] = str(args.number)
+        if args.aware >= 0:
+            config['aware']['percentage'] = str("%.2f" % (args.aware / 100))
+            print("Performing simulation with %d%% familiar pedestrians" % args.aware)
         if args.configuration == 'uniform':
             self.scene = scene_module.Scene(config=config)
         elif args.configuration == 'top':
@@ -60,7 +63,7 @@ class SimulationManager:
             self.finish_functions.append(self.store_exit_logs)
 
         if args.results:
-            results = Result(self.scene)
+            results = Result(self.scene, planner, str(args.aware))  # Parameter, subject to change.
             self.step_functions.append(results.on_step)
             self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
             self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)

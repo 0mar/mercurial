@@ -172,6 +172,7 @@ class Scene:
         self.snap_obstacles = section.getboolean('snap_obstacles')
         self.aware_percentage = self.config['aware'].getfloat('percentage', fallback=1.0)
         if self.config.has_section('fire'):
+            # TODO: Move fire location from config to scene
             fire_config = self.config['fire']
             self.fire_center = (fire_config.getfloat('center_x'), fire_config.getfloat('center_y'))
             self.fire_intensity = fire_config.getfloat('intensity')
@@ -327,7 +328,7 @@ class Scene:
             mde_found = np.where(np.sum(np.abs(mde[self.active_entries]), axis=1) > 0.001)[0]
             self.mde_proc.append(len(mde_found) / np.sum(self.active_entries))
             # print("mde percentage: %.4f" % (sum(self.mde_proc) / len(self.mde_proc)))
-            # self.position_array += mde
+            self.position_array += mde
 
     def correct_for_geometry(self):
         """

@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.io as sio
-
+import time
 from math_objects import functions as ft
 
 
 class Result:
-    def __init__(self, scene):
+    def __init__(self, scene, planner, identifier):
         """
         Results processed in this class:
         - Path length (measuring the distance between all successive points pedestrians visit).
@@ -25,6 +25,7 @@ class Result:
         """
         self.result_dir = scene.config['general']['result_dir']
         self.scene = scene
+        self.planner = planner
 
         ft.log("Simulations results are processed and stored in folder '%s'" % self.result_dir)
         if not hasattr(scene.pedestrian_list[0], "line"):
@@ -34,6 +35,8 @@ class Result:
             self.no_paths = False
             ft.log("Storing results for Graph Planner")
         self.position_list = []
+
+        # Microscopic measures
         self.time_spent = np.zeros(len(self.scene.pedestrian_list))
         self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
         self.max_speed = np.zeros(len(self.scene.pedestrian_list))
@@ -44,7 +47,11 @@ class Result:
         self.density = len(self.scene.pedestrian_list) / (self.scene.size[0] * self.scene.size[1])
         self.origins = np.zeros([len(self.scene.pedestrian_list), 2])
 
+        # Macroscopic measures
+        self.shape = self.planner.macro.pressure_field.array.shape
+        self.pressure_sum = np.zeros(self.shape)
         self.on_init()
+        self.id = identifier
 
     def _expand_arrays(self):
         """
@@ -75,10 +82,12 @@ class Result:
         All data that should be gathered on each time step:
         Currently used:
         - Distance walked per pedestrian
+        - Pressure
         :return: None
         """
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
         index_list = [self.scene.index_map[index].counter for index in np.where(self.scene.active_entries)[0]]
+        self.pressure_sum += self.planner.macro.pressure_field.array
         for pedestrian in self.scene.pedestrian_list:
             if self.scene.active_entries[pedestrian.index]:
                 # Comment out if not needed. Lots of memory
@@ -119,7 +128,7 @@ class Result:
                                np.where(self.scene.active_entries)[0]]
         for ped_index in unfinished_counters:
             self.time_spent[ped_index] = self.scene.time
-        self.paths_list = np.array(self.paths_list)
+        # self.paths_list = np.array(self.paths_list)
         self.position_list = np.array(self.position_list)
         self.avg_mean_speed = np.mean(self.mean_speed)
         self.write_matlab_results()
@@ -141,14 +150,15 @@ class Result:
         :return: None
         """
         ft.log("Started writing results to binary file")
-        filename = self.result_dir + 'results' + self.scene.config['general']['number_of_pedestrians']
+        filename = "%s/%s_%s" % (self.result_dir, 'results', self.id)
         sio.savemat(filename, mdict={"max_speed": self.max_speed,
                                      "time_spent": self.time_spent,
                                      "origins": self.origins,
                                      "avg_mean_speed": self.avg_mean_speed,
-                                     "paths_list": self.paths_list,
+                                     # "paths_list": self.paths_list,
                                      "mean_speed": self.mean_speed,
                                      "position_list": self.position_list,
                                      "finished": self.finished,
-                                     "final_positions": self.scene.position_array[self.scene.active_entries]})
+                                     "final_positions": self.scene.position_array[self.scene.active_entries],
+                                     "pressure_sum": self.pressure_sum})
         ft.log("Finished writing results to binary file")
