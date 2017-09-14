@@ -380,4 +380,5 @@ class Scene:
         checking if all entrances are depleted.
         :return: True if all pedestrians are done, False otherwise
         """
-        return not np.any(self.active_entries) and all([entrance.depleted for entrance in self.entrance_list])
+        return not np.any(self.active_entries) and all(
+            [entrance.depleted for entrance in self.entrance_list]) or self.counter > 5000 # TODO: move to config

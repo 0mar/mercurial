@@ -91,7 +91,7 @@ class SimulationManager:
         [step() for step in self.step_functions]
 
     def finish(self):
-        functions.log("Finishing simulation")
+        functions.log("Finishing simulation. %d iterations of %.2f seconds" % (self.scene.counter, self.scene.time))
         [finish() for finish in self.finish_functions]
 
     def on_pedestrian_exit(self, pedestrian):

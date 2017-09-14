@@ -15,8 +15,8 @@ class NoVisualScene(VisualScene):
         while not self.scene.status == 'DONE':
             try:
                 self.step_callback()
-                ft.log("Iteration took %.4f seconds" % (time.time() - self.time))
-                ft.log("Time step %d" % self.scene.counter)
+                # ft.log("Iteration took %.4f seconds" % (time.time() - self.time))
+                # ft.log("Time step %d" % self.scene.counter)
                 self.time = time.time()
             except KeyboardInterrupt:
                 ft.log("\nUser interrupted simulation")
