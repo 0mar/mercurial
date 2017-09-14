@@ -373,6 +373,8 @@ class Scene:
                 finished_pedestrian = self.index_map[index]
                 goal.log_pedestrian(finished_pedestrian, self.time)
                 self.remove_pedestrian(finished_pedestrian)
+        if self.counter > 5000:
+            self.status = 'DONE'  # TODO: Move to config
 
     def is_done(self):
         """
@@ -380,5 +382,4 @@ class Scene:
         checking if all entrances are depleted.
         :return: True if all pedestrians are done, False otherwise
         """
-        return not np.any(self.active_entries) and all(
-            [entrance.depleted for entrance in self.entrance_list]) or self.counter > 5000 # TODO: move to config
+        return not np.any(self.active_entries) and all([entrance.depleted for entrance in self.entrance_list])

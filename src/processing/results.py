@@ -37,21 +37,23 @@ class Result:
         self.position_list = []
 
         # Microscopic measures
-        self.time_spent = np.zeros(len(self.scene.pedestrian_list))
-        self.mean_speed = np.zeros(len(self.scene.pedestrian_list))
-        self.max_speed = np.zeros(len(self.scene.pedestrian_list))
-        self.finished = np.zeros(len(self.scene.pedestrian_list), dtype=bool)
-        self.started = np.zeros(len(self.scene.pedestrian_list), dtype=bool)
-
+        init_number = len(self.scene.pedestrian_list)
+        self.time_spent = np.zeros(init_number)
+        self.mean_speed = np.zeros(init_number)
+        self.max_speed = np.zeros(init_number)
+        self.finished = np.zeros(init_number, dtype=bool)
+        self.started = np.zeros(init_number, dtype=bool)
+        self.exit_times = np.zeros((init_number, 2))
         self.avg_mean_speed = 0
-        self.density = len(self.scene.pedestrian_list) / (self.scene.size[0] * self.scene.size[1])
-        self.origins = np.zeros([len(self.scene.pedestrian_list), 2])
+        self.density = init_number / (self.scene.size[0] * self.scene.size[1])
+        self.origins = np.zeros([init_number, 2])
 
         # Macroscopic measures
         self.shape = self.planner.macro.pressure_field.array.shape
         self.pressure_sum = np.zeros(self.shape)
         self.on_init()
         self.id = identifier
+        self.number_of_peds_left = 0
 
     def _expand_arrays(self):
         """
@@ -88,13 +90,13 @@ class Result:
         distance = np.linalg.norm(self.scene.position_array - self.scene.last_position_array, axis=1)
         index_list = [self.scene.index_map[index].counter for index in np.where(self.scene.active_entries)[0]]
         self.pressure_sum += self.planner.macro.pressure_field.array
-        for pedestrian in self.scene.pedestrian_list:
-            if self.scene.active_entries[pedestrian.index]:
-                # Comment out if not needed. Lots of memory
-                self.position_list.append(
-                    [self.scene.position_array[pedestrian.index, 0], self.scene.position_array[pedestrian.index, 1],
-                     self.scene.time])
-                # Without copy(), we get a reference (even though we slice the array...)
+        # for pedestrian in self.scene.pedestrian_list:
+        #     if self.scene.active_entries[pedestrian.index]:
+        #         # Comment out if not needed. Lots of memory
+        #         self.position_list.append(
+        #             [self.scene.position_array[pedestrian.index, 0], self.scene.position_array[pedestrian.index, 1],
+        #              self.scene.time])
+        #         # Without copy(), we get a reference (even though we slice the array...)
 
     def on_pedestrian_entrance(self, pedestrian):
         """
@@ -117,6 +119,9 @@ class Result:
         """
         self.time_spent[pedestrian.counter] = self.scene.time
         self.finished[pedestrian.counter] = True
+        self.exit_times[self.number_of_peds_left, 0] = self.scene.time
+        self.exit_times[self.number_of_peds_left, 1] = self.exit_times.shape[0] - self.number_of_peds_left - 1
+        self.number_of_peds_left += 1
 
     def on_finish(self):
         """
@@ -160,5 +165,6 @@ class Result:
                                      "position_list": self.position_list,
                                      "finished": self.finished,
                                      "final_positions": self.scene.position_array[self.scene.active_entries],
+                                     "exit_times": self.exit_times[:self.number_of_peds_left, :],
                                      "pressure_sum": self.pressure_sum})
         ft.log("Finished writing results to binary file")

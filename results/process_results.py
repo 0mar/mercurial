@@ -14,8 +14,9 @@ from math_objects import functions as ft
 from fortran_modules.micro_macro import comp_dens_velo
 from fortran_modules.mde import compute_mde
 
+
 class Processor:
-    def __init__(self, result=None,filename=None):
+    def __init__(self, result=None, filename=None):
         if not result:
             if not filename:
                 filename = "results.mat"
@@ -27,6 +28,7 @@ class Processor:
             self.clip = False
             ft.log("Reading from %s" % filename)
             result_dict = sio.loadmat(filename)
+            self.filename = filename
 
             class MockResult:
                 def __init__(self, res_dict):
@@ -71,15 +73,25 @@ class Processor:
         plt.show()
 
     def time_spent_histogram(self):
+        # Cutoff is 2500
+        cutoff = 2500
         if self.result.time_spent.size > 1:
             time = (self.result.time_spent.flatten()[self.result.finished] / self.dt).T
-            plt.hist(time, bins=50)
+            plt.hist(time[time < 2500], bins=50)
             plt.xlabel('Time steps to reach exit')
             plt.ylabel('Number of pedestrians')
             plt.suptitle('Histogram of pedestrian walking time')
+            print(len(time[time < 2500]) / len(time))
             plt.show()
         else:
             ft.warn("No histogram made, insufficient data set (size %d)" % len(self.result.time_spent))
+
+    def exit_times_plot(self):
+        plt.plot(self.result.exit_times[:, 0], self.result.exit_times[:, 1])
+        plt.title("Evacuee times")
+        plt.xlabel("Time")
+        plt.ylabel("Number of evacuees left in geometry")
+        plt.show()
 
     def path_length_histogram(self):
         if self.result.path_length.size > 1:
@@ -129,17 +141,26 @@ class Processor:
         sio.savemat('vio', {'distances': distances, 'vio': vio_amount})
         plt.show()
 
+    def pressure_plot(self):
+        inside_pressure = self.result.pressure_sum
+        # inside_pressure[inside_pressure > np.max(inside_pressure)/2]=0
+        plt.imshow(np.rot90(inside_pressure), norm=mc.LogNorm(vmax=np.max(inside_pressure) / 2))
+        plt.title('Logarithmic pressure plot')
+        plt.colorbar()
+        plt.show()
+
 
 if __name__ == '__main__':
     filename = None
-    if len(sys.argv)>1:
+    if len(sys.argv) > 1:
         filename = sys.argv[1]
         if not os.path.exists(filename):
-            ft.error("Result file %s does not exist"%filename)
+            ft.error("Result file %s does not exist" % filename)
     proc = Processor(filename=filename)
-    proc.mde_violations()
+    # proc.mde_violations()
     proc.time_spent_histogram()
+    proc.pressure_plot()
     # proc.path_length_histogram()
     # proc.delay_scatter_plot()
     # proc.time_scatter_plot()
-    proc.density_map()
+    # proc.density_map()
