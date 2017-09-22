@@ -88,9 +88,10 @@ class Processor:
 
     def exit_times_plot(self):
         plt.plot(self.result.exit_times[:, 0], self.result.exit_times[:, 1])
-        plt.title("Evacuee times")
+        plt.title("Evacuee times, alpha=0.05")
+        plt.xlim([0,250])
         plt.xlabel("Time")
-        plt.ylabel("Number of evacuees left in geometry")
+        plt.ylabel("Number of evacuees present")
         plt.show()
 
     def average_time(self):
@@ -148,7 +149,9 @@ class Processor:
         inside_pressure = self.result.pressure_sum
         # inside_pressure[inside_pressure > np.max(inside_pressure)/2]=0
         plt.imshow(np.rot90(inside_pressure), norm=mc.LogNorm(vmax=np.max(inside_pressure) / 2))
-        plt.title('Logarithmic pressure plot')
+        plt.xticks([])
+        plt.yticks([])
+        plt.title('Logarithmic pressure plot, alpha=0.05')
         plt.colorbar()
         plt.show()
 
