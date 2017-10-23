@@ -11,13 +11,9 @@ A list of Scene extensions where the pedestrians have a special initial distribu
 class ImpulseScene(Scene):
     def __init__(self, impulse_location, impulse_size, *args, **kwargs):
         """
-        Initializes an impulse scene
-        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
-        :param obstacle_file: name of the file containing the obstacles.
+        Initializes scene with an initial dense circular pedestrian distribution.
         :param impulse_location: Center of the pedestrians impulse
         :param impulse_size: (Ellipse-like) radius of the impulse
-        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
-        :param cache: 'read' or 'write' the cell cache to increase init speed.
         :return: scene instance.
         """
         self.impulse_location = impulse_location
@@ -40,13 +36,9 @@ class ImpulseScene(Scene):
 class TwoImpulseScene(Scene):
     def __init__(self, impulse_size, impulse_locations, *args, **kwargs):
         """
-        Initializes an impulse scene
-        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
-        :param obstacle_file: name of the file containing the obstacles.
+        Initializes an scene with two initial circles of pedestrians
         :param impulse_locations: Center of the pedestrians impulses
         :param impulse_size: (Ellipse-like) radius of the impulses
-        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
-        :param cache: 'read' or 'write' the cell cache to increase init speed.
         :return: scene instance.
         """
         self.impulse_size = impulse_size
@@ -73,17 +65,19 @@ class TwoImpulseScene(Scene):
 class LoopScene(Scene):
     def __init__(self, *args, **kwargs):
         """
-        Initializes an impulse scene
-        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
-        :param obstacle_file: name of the file containing the obstacles.
-        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
-        :param cache: 'read' or 'write' the cell cache to increase init speed.
+        Initializes a scene where pedestrians that leave the scene at one side,
+        return on the other side
         :return: scene instance.
         """
 
         super().__init__(*args, **kwargs)
 
     def remove_pedestrian(self, pedestrian):
+        """
+        Removing a pedestrian now puts him in a new position in the scene
+        :param pedestrian: Unremoved pedestrian
+        :return:
+        """
         new_point = Point([pedestrian.position.x, self.size.height - 1])
         pedestrian.position = new_point
 
@@ -91,12 +85,8 @@ class LoopScene(Scene):
 class TopScene(Scene):
     def __init__(self, barrier, *args, **kwargs):
         """
-        Initializes an impulse scene
-        :param initial_pedestrian_number: Number of pedestrians on initialization in the scene
-        :param obstacle_file: name of the file containing the obstacles.
-        :param barrier: Relative y coordinate from which the pedestrians should be spawned.
-        :param mde: Boolean flag for enforcing minimal distance between pedestrians.
-        :param cache: 'read' or 'write' the cell cache to increase init speed.
+        Initializes a scene where initially pedestrians are only present above a certain barrier
+        :param barrier: Relative y coordinate (between 0 and 1) that indicates the lowest pedestrian position
         :return: scene instance.
         """
         if not 0 <= barrier < 1:

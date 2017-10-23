@@ -136,9 +136,9 @@ class Scene:
     def get_obstacle_gutter_cells(self, radius=2):
         """
         Compute all the cells which lie of distance `radius` from an obstacle.
-        Used in the pressure determination, in case we want to repel/attract pedestrians from/to specific zones.
+        Used in the macroscopic pressure, in case we want to repel/attract pedestrians from/to specific zones.
         :param radius: distance in cells to the obstacles
-        :return: array of nx,ny with 1 on gutter cells and obstacle cells and 0 on rest
+        :return: array of nx,ny with 1 on gutter cells and obstacle cells and 0 on rest.
         """
         if not self.snap_obstacles:
             ft.warn("Computing obstacle coverage: Snapping is turned off, so this is only an estimation")
@@ -276,8 +276,8 @@ class Scene:
         self.pedestrian_list.remove(pedestrian)
 
         self.active_entries[index] = False
-        for function in self.on_pedestrian_exit_functions:
-            function(pedestrian)
+        for func in self.on_pedestrian_exit_functions:
+            func(pedestrian)
         if self.is_done():
             self.status = 'DONE'
 
@@ -293,7 +293,8 @@ class Scene:
     def is_accessible(self, coord: Point, at_start=False):
         """
         Checking whether the coordinate present is an accessible coordinate on the scene.
-        When evaluated at the start, the exit is not an accessible object. That would be weird.
+        When evaluated at the start, the exit is not an accessible object,
+        to prevent pedestrians from being spawned there.
         :param coord: Coordinates to be checked
         :param at_start: Whether to be evaluated at the start
         :return: True if accessible, False otherwise.
