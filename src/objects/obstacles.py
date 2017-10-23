@@ -85,6 +85,9 @@ class Entrance(Obstacle):
         self.color = 'green'
 
     def _init_exit_data(self):
+        """
+        Converting the pedestrian exit data to the entrance data
+        """
         full_data = np.zeros([0, 2])
         for exit_array in self.exit_data:
             if exit_array.size:
@@ -97,7 +100,7 @@ class Entrance(Obstacle):
 
     def convert_angle_to_vector(self, angle):
         """
-        Converts an angle into a vector on the boundary of the cube.
+        Converts an angle into a vector on the boundary of the rectangle.
         Uses some basic linear algebra; extended on in report.
         """
         # Possible: Vectorize for exit_log implementation
@@ -113,6 +116,9 @@ class Entrance(Obstacle):
         return np.array([x, y]) * correction
 
     def get_new_number_of_pedestrians(self, time):
+        """
+        Poll for a new number of pedestrians entering from this entrance during {time}
+        """
         if self.depleted or time < self.start_time:
             return 0
         total_number = 0

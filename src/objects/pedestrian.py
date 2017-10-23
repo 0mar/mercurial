@@ -55,7 +55,7 @@ class Pedestrian(object):
         """
         Computes a color between red and blue based on pedestrian max velocity.
         Red is fast, blue is slow.
-        :return: tkinter RGB code for color
+        :return: tkinter RGB color code string
         """
         start = np.min(self.scene.max_speed_array)
         end = np.max(self.scene.max_speed_array)
@@ -72,6 +72,7 @@ class Pedestrian(object):
         """
         Gives pedestrians aware of their surroundings a blue color
         Gives pedestrians unaware of their environment a red color
+        :return: tkinter RGB color code string
         """
         red = (200, 50, 50)
         blue = (50, 50, 200)
@@ -79,22 +80,6 @@ class Pedestrian(object):
             return "#%02x%02x%02x" % blue
         else:
             return "#%02x%02x%02x" % red
-
-    def move_to_position(self, position: Point, dt):
-        """
-        Higher level updating of the pedestrian. Checks whether the position is reachable this time step.
-        If so, moves to that position. Directly attaining the position within the current radius enables us
-        to be less numerically accurate with the velocity directing to the goal.
-        :param position: Position that should be attained
-        :param dt: time step
-        :return: True when position is attained, false otherwise
-        """
-        distance = position - self.position
-        if ft.norm(distance.array[0], distance.array[1]) < self.scene.max_speed_array[self.index] * dt:
-            # should be enough to avoid small numerical error
-            if self.scene.is_accessible(position):
-                self.position = position
-        return False
 
     @property
     def velocity(self):
@@ -108,7 +93,7 @@ class Pedestrian(object):
     def velocity(self, value):
         """
         Sets velocity value and automatically rescales it to maximum speed.
-        This is an assumption that can be dropped when we implement the UIC
+        This is an assumption that can be dropped when we implement density dependent speeds
         :param value: 2D velocity with the correct direction
         :return: None
         """
@@ -128,9 +113,7 @@ class Pedestrian(object):
     @position.setter
     def position(self, point):
         """
-        Position setter. Eases checks and debugging.
-        Note that setting a point this way does not update the scene position array.
-        Use manual_move() for that.
+        Position setter.
         :param point: New position
         :return: None
         """

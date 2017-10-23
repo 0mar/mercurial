@@ -7,7 +7,8 @@ from math_objects.geometry import Point, Velocity
 class Waypoint(Pedestrian):
     """
     Class for modelling waypoints that help follower pedestrians to reach their goals.
-    Because of their similarity to pedestrian objects, implemented as an extension of the Pedestrian class.
+    They represent exit signs, lighting, etcetera
+    Because of their model similarity to stationary pedestrian, implemented as an extension of the Pedestrian class.
     """
 
     def __init__(self, scene, position, direction):

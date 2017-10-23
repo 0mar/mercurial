@@ -88,7 +88,7 @@ class Scene:
         for entrance in self.entrance_list:
             new_number = entrance.get_new_number_of_pedestrians(self.time)
             max_tries = 100 * new_number
-            tries = 0  # when this becomes large, chances are the entrance can produce no valid new position.
+            tries = 0  # when this becomes large, chances are the entrance can't produce a valid new position.
             while new_number > 0:
                 tries += 1
                 new_position = entrance.get_spawn_location()
@@ -290,7 +290,7 @@ class Scene:
         within_boundaries = all(np.array([0, 0]) < coord.array) and all(coord.array < self.size.array)
         return within_boundaries
 
-    def is_accessible(self, coord: Point, at_start=False) -> bool:
+    def is_accessible(self, coord: Point, at_start=False):
         """
         Checking whether the coordinate present is an accessible coordinate on the scene.
         When evaluated at the start, the exit is not an accessible object. That would be weird.

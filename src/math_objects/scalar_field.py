@@ -8,10 +8,10 @@ from math_objects import functions as ft
 
 class ScalarField:
     """
-    Wrapper class around 2D numpy arrays.
-    Implements several convenience functions.
-
-    Can be used for logging the values.
+    Wrapper class around 2D numpy arrays used as discrete scalar fields.
+    Implements several convenience functions, like interpolation,
+    obtaining the underlying mesh, computing a gradient approximation
+    and normalizing. Also prints in the right orientation.
     """
 
     class Orientation(Enum):
@@ -51,7 +51,7 @@ class ScalarField:
 
     def update(self, new_field):
         """
-        Preferred way of updating a field.
+        Preferred way of updating the array from this field.
         :param new_field: np.array (must be same size) to update the Scalar field with
         :return:
         """
@@ -64,9 +64,17 @@ class ScalarField:
         self.time_step += 1
 
     def __repr__(self):
+        """
+        repr override
+        return: identifying string representing the scalar field
+        """
         return "%s%s#%d" % (self.name, self.array.shape, self.time_step)
 
     def __str__(self):
+        """
+        str override
+        return: Contents of the scalar field in the current time step.
+        """
         field_repr = ""
         for row in np.rot90(self.array):
             field_repr += " [%s]\n" % "\t".join(["%4.2e" % val for val in row])
@@ -78,7 +86,7 @@ class ScalarField:
         So, offset 'top' returns a center field slice omitting the bottom row.
         Example present in one of the ipython notebooks.
         :param direction: any of the 4 directions
-        :return: slice of center field with almost the same dimensions
+        :return: slice of center field in indicated direction
         """
         if self.orientation != ScalarField.Orientation.center:
             raise NotImplementedError("We only take offset fields of center fields.")
@@ -86,12 +94,21 @@ class ScalarField:
 
     @staticmethod
     def get_with_offset(array, direction, cutoff=1):
+        """
+        Creates a subarray cutting values in a certain direction.
+        See: ScalarField.with_offset
+        return: slice of array in indicated direction
+        """
         size = array.shape
         normal = ft.DIRECTIONS[direction]
         return array[max(0, normal[0] * cutoff):size[0] + normal[0] * cutoff,
                max(0, normal[1] * cutoff):size[1] + normal[1] * cutoff]
 
     def without_boundary(self, cutoff=1):
+        """
+        Slice array in every direction with {cutoff}
+        return: slice of array
+        """
         return self.array[cutoff:-cutoff, cutoff:-cutoff]
 
     def gradient(self, axis):
