@@ -6,7 +6,7 @@ import scipy.io as sio
 
 from math_objects import functions
 from objects import scene as scene_module
-from objects.scene_cases import ImpulseScene, TwoImpulseScene, TopScene
+from objects.initial_distributions import ImpulseScene, TwoImpulseScene, TopScene
 from planner import Planner
 from processing.results import Result
 from visualization.simple import VisualScene

@@ -8,7 +8,7 @@ from math_objects.geometry import Point, Size, Interval
 
 class Obstacle:
     """
-    Models an rectangular obstacle within the domain. The obstacle has a starting point, a size,
+    {Obstacle} models an rectangular obstacle within the domain. The obstacle has a starting point, a size,
     and a permeability factor.
     """
 
@@ -43,19 +43,34 @@ class Obstacle:
     def __contains__(self, coord: Point):
         """
         Check whether a point lies in the obstacle.
+        Allows for ` if point in obstacle:` constructions.
         :param coord: Point under consideration
         :return: True if point in obstacle, false otherwise
         """
 
         return all([self.begin[dim] <= coord[dim] <= self.begin[dim] + self.size[dim] for dim in range(2)])
 
-    def __getitem__(self, item):
-        return [self.begin, self.end][item]
+    def __getitem__(self, index):
+        """
+        Index the obstacles as a list of two points.
+        Allows for `for point in obstacle:` obstructions
+        :param index: index, must be 0 or 1
+        :return: begin if 0, end if 1
+        """
+        return [self.begin, self.end][index]
 
     def __repr__(self):
+        """
+        Unique identifier
+        :return: String identifier
+        """
         return "%s#%s" % (self.__class__.__name__, self.name)
 
     def __str__(self):
+        """
+        Readable representation
+        :return: String representation
+        """
         return "Obstacle %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)
 
 
@@ -65,7 +80,17 @@ class Entrance(Obstacle):
     """
 
     def __init__(self, spawn_rate=0.3, max_pedestrians=8000, start_time=0, exit_data=[], *args, **kwargs):
-        super(Entrance,self).__init__(accessible=False, *args, **kwargs)
+        """
+        Creates a new entrance with specified parameters.
+        :param spawn_rate: The number of new pedestrians per second
+        :param max_pedestrians: The total number of pedestrians entering from this entrance
+        :param start_time: Number of seconds from t=0 until the entrance activates
+        :param exit_data: Pedestrian exit times gathered from an earlier simulation.
+        If given, pedestrians enter this simulation at the specified times, allowing for a simulation chain.
+        :param args: Obstacle parameters
+        :param kwargs: Obstacle parameters
+        """
+        super(Entrance, self).__init__(accessible=False, *args, **kwargs)
         self.spawn_rate = spawn_rate
         self.spawned_pedestrian_number = 0
         self.depleted = False
@@ -100,7 +125,7 @@ class Entrance(Obstacle):
 
     def convert_angle_to_vector(self, angle):
         """
-        Converts an angle into a vector on the boundary of the rectangle.
+        Converts an {angle} into a vector on the boundary of the rectangle.
         Uses some basic linear algebra; extended on in report.
         """
         # Possible: Vectorize for exit_log implementation
@@ -144,7 +169,6 @@ class Entrance(Obstacle):
         """
         :return Position if time for new pedestrian, zero otherwise
         """
-
         angle = self.angle_interval.random()
         # This angle should be coming from the data, not implemented.
         boundary_vector = self.convert_angle_to_vector(angle)
@@ -153,12 +177,21 @@ class Entrance(Obstacle):
 
     def __str__(self):
         return "Entrance %s. Bottom left: %s, Top right: %s" % (self.name, self.begin, self.end)
+
+
 class Exit(Obstacle):
     """
-    Model an exit obstacle. This is, unlike other obstacles, accessible and has no dodge margin.
+    Model an exit obstacle. This is, unlike other obstacles, accessible and has no repulsive effect.
     """
 
     def __init__(self, cap=0, *args, **kwargs):
+        """
+        Create a new exit with specified parameters
+        :param cap: A limit to the number of pedestrians that can exit each second.
+        If {cap}=0, there is no limit
+        :param args: Obstacle parameters
+        :param kwargs: Obstacle parameters
+        """
         super(Exit, self).__init__(accessible=True, *args, **kwargs)
         self.color = 'red'
         self.in_interior = False

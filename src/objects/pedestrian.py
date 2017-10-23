@@ -84,7 +84,7 @@ class Pedestrian(object):
     @property
     def velocity(self):
         """
-        Velocity getter
+        Velocity getter. For efficiency, this is not an object-oriented object.
         :return:
         """
         return Velocity(self.scene.velocity_array[self.index])
@@ -92,7 +92,7 @@ class Pedestrian(object):
     @velocity.setter
     def velocity(self, value):
         """
-        Sets velocity value and automatically rescales it to maximum speed.
+        Velocity setter. When velocity is set, it is automatically rescaled to maximum speed.
         This is an assumption that can be dropped when we implement density dependent speeds
         :param value: 2D velocity with the correct direction
         :return: None
@@ -105,7 +105,7 @@ class Pedestrian(object):
     @property
     def position(self):
         """
-        Position getter
+        Position getter. Similar to velocity
         :return: Current position
         """
         return Point(self.scene.position_array[self.index])
@@ -113,7 +113,7 @@ class Pedestrian(object):
     @position.setter
     def position(self, point):
         """
-        Position setter.
+        Position setter. This is not a safe operation; there is no check if the position is occupied.
         :param point: New position
         :return: None
         """

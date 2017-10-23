@@ -28,16 +28,25 @@ class Fire:
         self.in_interior = True
 
     def __contains__(self, coord):
+        """
+        Check whether a point lies in the fire.
+        Allows for ` if point in fire:` constructions.
+        :param coord: Point under consideration
+        :return: True if point in obstacle, false otherwise
+        """
         return (coord[0] - self.center[0]) ** 2 + (coord[1] - self.center[1]) ** 2 < self.radius ** 2
 
     def __repr__(self):
+        return "Fire:B(%s,%.2f)" % (self.center, self.radius)
+
+    def __str__(self):
         return "Fire with center: %s, radius %.2f" % (self.center, self.radius)
 
     def get_fire_intensity(self, point):
         """
         Compute the intensity for the fire for both repelling of pedestrian as for the creation of smoke
         :param point: Point for which the intensity is computed
-        :return: The intensity of the fire as a double, based on the distance to the center
+        :return: The intensity of the fire as a scalar, based on the distance to the center
         """
         distance = np.sqrt((point[0] - self.center[0]) ** 2 + (point[1] - self.center[1]) ** 2) - self.radius
         return self.intensity * np.exp(-distance / self.radius)

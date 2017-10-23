@@ -3,6 +3,10 @@ import numpy as np
 from math_objects.geometry import Point
 from objects.scene import Scene, Pedestrian
 
+"""
+A list of Scene extensions where the pedestrians have a special initial distribution
+"""
+
 
 class ImpulseScene(Scene):
     def __init__(self, impulse_location, impulse_size, *args, **kwargs):
@@ -31,7 +35,6 @@ class ImpulseScene(Scene):
                 if x ** 2 + y ** 2 > self.impulse_size ** 2 or not self.is_accessible(ped_loc):
                     ped_loc = None
             self.pedestrian_list.append(Pedestrian(self, counter, self.exit_list, position=ped_loc))
-
 
 
 class TwoImpulseScene(Scene):
