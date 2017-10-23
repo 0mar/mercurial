@@ -59,8 +59,7 @@ class ScalarField:
             ft.debug((self.name, self.array.shape, new_field.shape))
             assert self.array.shape == new_field.shape
 
-        self.array = new_field.copy()
-        # TODO: How about deleting this copy step?
+        self.array = new_field
         self.time_step += 1
 
     def __repr__(self):
