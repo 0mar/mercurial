@@ -1,5 +1,7 @@
 build/
 fortran_modules/
 images/
-results/*.mat
+results/
+scenes/
+configs/
 **/__pycache__/
