@@ -8,13 +8,19 @@ from math_objects.geometry import Point, Size, LineSegment, Path
 
 
 class VisualScene:
+    """
+    Simple visual interface based on TKinter. Please replace with awesome visual interface.
+    """
     color_list = ["yellow", "green", "cyan", "magenta"]
     directed_polygon = np.array([[0, -1], [1, 1], [-1, 1]])
 
     def __init__(self, scene):
         """
         Initializes a visual interface for the simulation. Updates every fixed amount of seconds.
-        Represents the scene on a canvas
+        Represents the scene on a canvas.
+        Important: this class progresses the simulation. After each drawing and potential delay,
+        the visualisation calls for the progression to the next time step.
+        Although it might be cleaner to move that to the simulation manager.
         :param scene: Scene to be drawn. The size of the scene is independent of the size of the visualization
         :return: None
         """
@@ -28,7 +34,7 @@ class VisualScene:
         self.nx = int(self.config['general'].getfloat('scene_size_x') / self.config['general'].getfloat('cell_size_x'))
         self.ny = int(self.config['general'].getfloat('scene_size_y') / self.config['general'].getfloat('cell_size_y'))
         self.window = tkinter.Tk()
-        self.window.title("Prototype implementation of a Hybrid Crowd Dynamics model for dense crowds")
+        self.window.title("Mercurial: Hybrid simulation for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
         self.window.bind("<Button-3>", self.store_scene)
         self.canvas = tkinter.Canvas(self.window, width=init_size[0], height=init_size[1])
@@ -49,6 +55,11 @@ class VisualScene:
         self.window.mainloop()
 
     def disable_loop(self):
+        """
+        Stop automatically redrawing.
+        Enables space and Left-mouse click as progressing simulation.
+        :return: None
+        """
         self.autoloop = False
         self.window.bind("<Button-1>", self.loop)
         self.window.bind("<space>", self.loop)
@@ -209,7 +220,8 @@ class VisualScene:
 
     def draw_path(self, path: Path):
         """
-        Draws a path in the scene on its relative location. Wrapper function for drawing multiple line segments
+        Draws a path in the scene on its relative location. Wrapper function for drawing multiple line segments.
+        Not really used except for demonstrations
         :param path:
         :return: None
         """
@@ -220,7 +232,7 @@ class VisualScene:
         """
         Converts relative coordinates (from [0,1]x[0,1]) to screen size coordinates.
         Should raise an error when coordinates fall from scene,
-        but method is so frequently used I'd rather not make the computation
+        but this method is used so frequently I'd rather not make the computation
         Also changes the orientation to a Carthesian coordinate system
         :param coord: coordinates (fractions to be converted)
         :return: a Size with the coordinates of screen
