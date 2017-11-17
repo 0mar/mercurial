@@ -11,7 +11,7 @@ class ScalarField:
     Wrapper class around 2D numpy arrays used as discrete scalar fields.
     Implements several convenience functions, like interpolation,
     obtaining the underlying mesh, computing a gradient approximation
-    and normalizing. Also prints in the right orientation.
+    and normalizing. Also prints in the right orientation ((0,0) is bottom left).
     """
 
     class Orientation(Enum):
@@ -20,6 +20,14 @@ class ScalarField:
         center = (0, 0)
 
     def __init__(self, grid_shape, orientation, name, cell_size=(1, 1), time_step=0):
+        """
+        Initialize a new field
+        :param grid_shape: shape of the grid
+        :param orientation: Center of cell or edge of cell (allowing for staggered grids)
+        :param name: human readable name
+        :param cell_size: (dx,dy) of one cell
+        :param time_step: Current time of field: timestep*dt
+        """
         try:
             shape = (grid_shape[0] + orientation.value[0], grid_shape[1] + orientation.value[1])
         except TypeError:
@@ -116,7 +124,6 @@ class ScalarField:
         :param axis: 'x' or 'y'
         :return:gradient of same shape except -2 in the axis direction
         """
-
         if axis == 'x':
             left_field = self.with_offset('left', 2)
             right_field = self.with_offset('right', 2)
@@ -127,7 +134,6 @@ class ScalarField:
             return (up_field - down_field) / (2 * self.dy)
         else:
             raise AttributeError("Axis %s not known" % axis)
-
 
     def normalized(self, min_value=0, max_value=1):
         """

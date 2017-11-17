@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 
 class PotentialTransporter:
     """
-    This should be a combination planner.
-    Same as the dynamic planner, only ignoring the density so the potential field
-    is computed once and we use the pressure computer from Narain
+    A potential field transporter that computes the weighted distance transform
+    of the scene and uses the steepest gradient to move the pedestrians towards their goal.
+    Combine with a macroscopic planner for interaction
     """
 
     def __init__(self, scene, show_plot=False):

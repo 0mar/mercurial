@@ -68,36 +68,6 @@ class PressureTransporter:
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
 
-    # # Largely obsolete
-    # def _get_obstacle_coverage(self, precision=2):
-    #     """
-    #     Todo: Merge with the one in scene.py
-    #     Compute the fraction of the cells covered with obstacles
-    #     Since an exact computation involves either big shot linear algebra
-    #     or too much case distinctions, we sample the cell space.
-    #     :param precision: row number of samples per cell. More samples, more precision.
-    #     :return: an array approximating the inaccessible space in the cells
-    #     """
-    #     if self.scene.snap_obstacles:
-    #         precision = 1
-    #     ft.log("Indexing scenario")
-    #     obstacle_coverage = np.zeros(self.obstacle_correction.shape)
-    #     num_samples = (precision, precision)
-    #     size = Point([self.dx, self.dy])
-    #     for row, col in np.ndindex(obstacle_coverage.shape):
-    #         covered_samples = 0
-    #         begin = Point([row * self.dx, col * self.dy])
-    #         for i, j in np.ndindex(num_samples):
-    #             for obstacle in self.scene.obstacle_list:
-    #                 if not obstacle.accessible:
-    #                     if Point(begin.array + [i + 0.5, j + 0.5] / np.array(num_samples) * size.array) in obstacle:
-    #                         covered_samples += 1
-    #                         break
-    #         obstacle_coverage[row, col] = covered_samples / (num_samples[0] * num_samples[1])
-    #     # Correct the fully covered entries
-    #     obstacle_coverage[obstacle_coverage >= 0.99] = 0.8
-    #     self.obstacle_correction = 1 / (1 - obstacle_coverage)
-
     def plot_grid_values(self):
         """
         Plot the density, velocity field, pressure, and pressure gradient.
