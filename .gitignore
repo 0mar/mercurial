@@ -4,4 +4,5 @@ images/
 results/
 scenes/
 configs/
+*.idea.md
 **/__pycache__/
