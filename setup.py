@@ -12,6 +12,7 @@ smoke_machine = Extension(name='smoke_machine', sources=['src/fortran/evolve_smo
                                                          'src/fortran/smoke_modules.f90'])
 velocity_averager = Extension(name='velocity_averager', sources=['src/fortran/average_velocity.f90'])
 local_swarm = Extension(name='local_swarm', sources=['src/fortran/local_swarm.f90'])
+wdt_module = Extension(name='wdt_module', sources=['src/fortran/wdt_module.f90','src/fortran/mheap.f90'])
 if __name__ == "__main__":
     if not os.path.exists('images'):
         os.makedirs('images')
@@ -20,4 +21,4 @@ if __name__ == "__main__":
             author="Omar Richardson",
             ext_modules=[mde, micro_macro, potential_computer,
                          pressure_computer, smoke_machine,
-                         velocity_averager, local_swarm])
+                         velocity_averager, local_swarm, wdt_module])
