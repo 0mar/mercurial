@@ -1,5 +1,6 @@
 build/
-fortran_modules/
+*.so
+*.egg-info
 images/
 results/
 scenes/

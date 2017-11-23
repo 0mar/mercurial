@@ -11,8 +11,8 @@ import numpy as np
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 from math_objects import functions as ft
-from fortran_modules.micro_macro import comp_dens_velo
-from fortran_modules.mde import compute_mde
+from lib.micro_macro import comp_dens_velo
+from lib.mde import compute_mde
 
 
 class Processor:

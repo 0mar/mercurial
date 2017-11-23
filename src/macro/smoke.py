@@ -1,5 +1,5 @@
 from math_objects.geometry import Point
-from fortran_modules.smoke_machine import get_sparse_matrix, iterate_jacobi
+from lib.smoke_machine import get_sparse_matrix, iterate_jacobi
 import numpy as np
 from math_objects.scalar_field import ScalarField as Field
 

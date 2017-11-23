@@ -11,12 +11,11 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, goals, position=Point([0, 0]), index=-1):
+    def __init__(self, scene, counter, position=Point([0, 0]), index=-1):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
         :param counter: Number of pedestrians spawned before.
-        :param goals: Goal obstacles (Exit instance)
         :param position: Current position of the pedestrian. Position [0,0] will create a randomized position
         :param index: index in the arrays (index <= counter)
         :return: Pedestrian instance
@@ -29,7 +28,6 @@ class Pedestrian(object):
             self.index = index
         self.position = position
         self.color = self._convert_awareness_to_color()
-        self.goals = goals
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
             if scene.is_accessible(new_position, at_start=True):

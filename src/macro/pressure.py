@@ -1,7 +1,7 @@
 import matplotlib
 import numpy as np
-from fortran_modules.micro_macro import comp_dens_velo
-from fortran_modules.pressure_computer import compute_pressure
+from lib.micro_macro import comp_dens_velo
+from lib.pressure_computer import compute_pressure
 
 from math_objects import functions as ft
 from math_objects.scalar_field import ScalarField as Field
@@ -99,8 +99,8 @@ class PressureTransporter:
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
                                     self.dx, self.dy, self.dt, self.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
-        dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
-        dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
+        # dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
+        # dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
         padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.pressure_pad)
         self.pressure_field.update(padded_dim_p)
 

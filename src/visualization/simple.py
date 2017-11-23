@@ -1,6 +1,5 @@
 import time
 import tkinter
-
 import numpy as np
 
 from math_objects import functions as ft
@@ -31,15 +30,15 @@ class VisualScene:
         self.autoloop = True
         self.draws_cells = self.config['visual'].getboolean('draw_grid')
         self.delay = self.config['visual'].getint('time_delay')
-        self.nx = int(self.config['general'].getfloat('scene_size_x') / self.config['general'].getfloat('cell_size_x'))
-        self.ny = int(self.config['general'].getfloat('scene_size_y') / self.config['general'].getfloat('cell_size_y'))
         self.window = tkinter.Tk()
         self.window.title("Mercurial: Hybrid simulation for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
         self.window.bind("<Button-3>", self.store_scene)
+        env_image = self.config['general']['scene']
+        env = tkinter.PhotoImage(file=env_image)
         self.canvas = tkinter.Canvas(self.window, width=init_size[0], height=init_size[1])
         self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.canvas.delete('all')
+        self.canvas.create_image(init_size[0]/2,init_size[1]/2, image=env)
         self.step_callback = None  # set in manager
 
     @property
@@ -106,17 +105,7 @@ class VisualScene:
         All objects are removed prior to the drawing step.
         :return: None
         """
-        self.canvas.delete('all')
-        if self.draws_cells:
-            self.draw_grid(self.nx, self.ny)
-        for obstacle in self.scene.obstacle_list + self.scene.drawables:
-            if hasattr(obstacle, "radius"):
-                self.draw_circ_obstacle(obstacle)
-            else:
-                self.draw_rect_obstacle(obstacle)
-        # for pedestrian in self.scene.pedestrian_list:
-        #     self.draw_line_segment(pedestrian.line)
-        #     self.draw_path(pedestrian.path)
+        # self.canvas.delete('all')
         self.draw_pedestrians()
 
     def store_scene(self, _, filename=None):
@@ -173,26 +162,26 @@ class VisualScene:
             y_coord = (j + 1) * screen_dy
             self.canvas.create_line(0, y_coord, self.size[0], y_coord)
 
-    def draw_cell(self, cell):
-        """
-        Draws a cell as a rectangle within the window.
-        Only use for debugging purposes, since drawing is very inefficient.
-        :param cell: Cell object to be drawn
-        :return: None
-        """
-        x_0 = self.convert_relative_coordinate(cell.begin / self.scene.size)
-        x_1 = self.convert_relative_coordinate((cell.begin + cell.size) / self.scene.size)
-        self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), outline='blue')
+    # def draw_cell(self, cell):
+    #     """
+    #     Draws a cell as a rectangle within the window.
+    #     Only use for debugging purposes, since drawing is very inefficient.
+    #     :param cell: Cell object to be drawn
+    #     :return: None
+    #     """
+    #     x_0 = self.convert_relative_coordinate(cell.begin / self.scene.size)
+    #     x_1 = self.convert_relative_coordinate((cell.begin + cell.size) / self.scene.size)
+    #     self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), outline='blue')
 
-    def draw_rect_obstacle(self, obstacle):
-        """
-        Draws a rectangular obstacle on its relative location in the screen
-        :param obstacle: obstacle to be drawn. Obstacles are black by default, exits are red, entrances are blue.
-        :return: None
-        """
-        x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
-        x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
-        self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
+    # def draw_rect_obstacle(self, obstacle):
+    #     """
+    #     Draws a rectangular obstacle on its relative location in the screen
+    #     :param obstacle: obstacle to be drawn. Obstacles are black by default, exits are red, entrances are blue.
+    #     :return: None
+    #     """
+    #     x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
+    #     x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
+    #     self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
 
     def draw_circ_obstacle(self, circ_object):
         """
