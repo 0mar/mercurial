@@ -1,5 +1,6 @@
 import time
 import tkinter
+from PIL import Image,ImageTk
 import numpy as np
 
 from math_objects import functions as ft
@@ -34,12 +35,18 @@ class VisualScene:
         self.window.title("Mercurial: Hybrid simulation for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
         self.window.bind("<Button-3>", self.store_scene)
+        self.window.grid()
         env_image = self.config['general']['scene']
-        env = tkinter.PhotoImage(file=env_image)
-        self.canvas = tkinter.Canvas(self.window, width=init_size[0], height=init_size[1])
-        self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.canvas.create_image(init_size[0]/2,init_size[1]/2, image=env)
+        self.original_env = Image.open(env_image)
+        self.env = ImageTk.PhotoImage(self.original_env)
+        self.display = tkinter.Canvas(self, bd=0, highlightthickness=0)
+        self.display.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
+        self.display.grid(row=0, sticky=tkinter.W + tkinter.E + tkinter.N + tkinter.S)
+        # self.canvas.pack(fill=tkinter.BOTH, expand=1)
+        self.window.pack(fill=tkinter.BOTH,expand=1)
+        self.window.bind("<Configure>",self.resize)
         self.step_callback = None  # set in manager
+
 
     @property
     def size(self):
@@ -52,6 +59,13 @@ class VisualScene:
     def start(self):
         self.loop()
         self.window.mainloop()
+
+    def resize(self,event):
+        size = (event.width, event.height)
+        resized = self.original_env.resize(size, Image.ANTIALIAS)
+        self.env = ImageTk.PhotoImage(resized)
+        self.display.delete("IMG")
+        self.display.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
 
     def disable_loop(self):
         """
