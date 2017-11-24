@@ -1,6 +1,6 @@
 import time
 import tkinter
-from PIL import Image,ImageTk
+from PIL import Image, ImageTk
 import numpy as np
 
 from math_objects import functions as ft
@@ -39,14 +39,13 @@ class VisualScene:
         env_image = self.config['general']['scene']
         self.original_env = Image.open(env_image)
         self.env = ImageTk.PhotoImage(self.original_env)
-        self.display = tkinter.Canvas(self, bd=0, highlightthickness=0)
-        self.display.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
-        self.display.grid(row=0, sticky=tkinter.W + tkinter.E + tkinter.N + tkinter.S)
-        # self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        self.window.pack(fill=tkinter.BOTH,expand=1)
-        self.window.bind("<Configure>",self.resize)
+        self.canvas = tkinter.Canvas(self.window, bd=0, highlightthickness=0)
+        self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
+        self.canvas.grid(row=0, sticky=tkinter.W + tkinter.E + tkinter.N + tkinter.S)
+        self.canvas.pack(fill=tkinter.BOTH, expand=1)
+        # self.window.pack(fill=tkinter.BOTH,expand=1)
+        self.window.bind("<Configure>", self.resize)
         self.step_callback = None  # set in manager
-
 
     @property
     def size(self):
@@ -60,12 +59,12 @@ class VisualScene:
         self.loop()
         self.window.mainloop()
 
-    def resize(self,event):
+    def resize(self, event):
         size = (event.width, event.height)
         resized = self.original_env.resize(size, Image.ANTIALIAS)
         self.env = ImageTk.PhotoImage(resized)
-        self.display.delete("IMG")
-        self.display.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
+        self.canvas.delete("IMG")
+        self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
 
     def disable_loop(self):
         """
@@ -88,8 +87,6 @@ class VisualScene:
             self.autoloop = False
         else:
             self.draw_scene()
-            if self.scene.counter == 630:
-                self.store_scene(None)
             if self.autoloop:
                 self.window.after(self.delay, self.step_callback)
             else:
@@ -119,7 +116,8 @@ class VisualScene:
         All objects are removed prior to the drawing step.
         :return: None
         """
-        # self.canvas.delete('all')
+        self.canvas.delete('all')
+        self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
         self.draw_pedestrians()
 
     def store_scene(self, _, filename=None):
@@ -130,7 +128,7 @@ class VisualScene:
 
             name = "scene#%d" % time.time()
             filename = "%s/%s-%.2f.eps" % (directory, name, self.scene.time)
-        print("Snapshot at %.2f. Storing in %s" % (self.scene.time,filename))
+        print("Snapshot at %.2f. Storing in %s" % (self.scene.time, filename))
         self.canvas.postscript(file=filename, pageheight=self.size[1], pagewidth=self.size[0])
 
     def draw_pedestrians(self):

@@ -8,6 +8,7 @@ from math_objects.scalar_field import ScalarField as Field
 from lib.wdt import get_weighted_distance_transform
 import matplotlib.pyplot as plt
 
+
 class PotentialTransporter:
     """
     A potential field transporter that computes the weighted distance transform
@@ -28,7 +29,7 @@ class PotentialTransporter:
         self.show_plot = show_plot
 
         wdt = get_weighted_distance_transform(self.scene.env_field)
-        self.dx, self.dy = self.scene.size.array/wdt.shape
+        self.dx, self.dy = self.scene.size.array / wdt.shape
         self.potential_field = Field(wdt.shape, Field.Orientation.center, 'potential', (self.dx, self.dy))
         self.potential_field.array = wdt
         # self.fire_effects = self._get_fire_effects()
@@ -40,6 +41,7 @@ class PotentialTransporter:
         self.compute_potential_gradient()
         self.grad_x_func = self.pot_grad_x.get_interpolation_function()
         self.grad_y_func = self.pot_grad_y.get_interpolation_function()
+
     # def _get_fire_effects(self):
     #     fire_effects = np.zeros(self.grid_dimension)
     #     for i,j in np.ndindex(self.grid_dimension):

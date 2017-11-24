@@ -116,7 +116,7 @@ class Scene:
             self.fire_center = (fire_config.getfloat('center_x'), fire_config.getfloat('center_y'))
             self.fire_intensity = fire_config.getfloat('intensity')
             self.fire_radius = fire_config.getfloat('radius')
-        self.env_field = map_image_to_costs(image_file)
+        self.env_field = np.rot90(map_image_to_costs(image_file), -1)
 
     def _expand_arrays(self):
         """
@@ -179,7 +179,7 @@ class Scene:
         """
         if not self.is_within_boundaries(coord):
             return False
-        cell = (int(coord[0]//self.dx),int(coord[1]//self.dy))
+        cell = (int(coord[0] // self.dx), int(coord[1] // self.dy))
         if at_start:
             return self.env_field[cell] > 0 and self.env_field[cell] < np.inf
         else:
@@ -218,7 +218,8 @@ class Scene:
         geq_zero = np.logical_and(self.position_array[:, 0] > 0, self.position_array[:, 1] > 0)
         leq_size = np.logical_and(self.position_array[:, 0] < self.size[0], self.position_array[:, 1] < self.size[1])
         still_correct = np.logical_and(geq_zero, leq_size)
-        cells = (self.position_array // (self.dx, self.dy)).astype(int)
+        cells = (self.position_array // (self.dx, self.dy)).astype(int) % self.env_field.shape
+        # All peds for which the modulo kicks in, are already out
         not_in_obstacle = self.env_field[cells[:, 0], cells[:, 1]] < np.inf
         still_correct = np.logical_and(still_correct, not_in_obstacle)
         still_correct = np.logical_and(still_correct, self.active_entries)

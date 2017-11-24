@@ -69,6 +69,7 @@ def get_weighted_distance_transform(cost_field):
         # Run the Fortran module
         wdt_field = _wdt.weighted_distance_transform(cost_field, nx, ny, obstacle_value)
         wdt_field[wdt_field >= obstacle_value] = np.inf
+        cost_field[cost_field >= obstacle_value] = np.inf
         return wdt_field
     else:
         # Run python implementation
