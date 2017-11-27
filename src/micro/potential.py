@@ -29,7 +29,6 @@ class PotentialTransporter:
         self.show_plot = show_plot
         cost_field = self._add_obstacle_discomfort(radius=4)
         wdt = get_weighted_distance_transform(cost_field)
-        plot(wdt)
         self.dx, self.dy = self.scene.size.array / wdt.shape
         self.potential_field = Field(wdt.shape, Field.Orientation.center, 'potential', (self.dx, self.dy))
         self.potential_field.array = wdt
@@ -46,11 +45,10 @@ class PotentialTransporter:
     def _add_obstacle_discomfort(self, radius):
         cost_field = self.scene.env_field.copy()
         cost_field[cost_field == np.inf] = 0
-        cost_field[self.scene.env_field == np.inf] = 5
+        cost_field[self.scene.env_field == np.inf] = np.max(cost_field)*2
         cost_field = gaussian_filter(cost_field, sigma=radius)
         cost_field[self.scene.env_field == np.inf] = np.inf
         cost_field[self.scene.env_field == 0] = 0
-        plot(cost_field)
         return cost_field
 
     # def _get_fire_effects(self):

@@ -1,6 +1,5 @@
-
 import numpy as np
-import time
+
 try:
     import lib.wdt_module as _wdt
 
@@ -46,7 +45,7 @@ def map_image_to_costs(image):
     cost_field[obstacles] = np.inf
     cost_field[exits] = 0
     cost_field[space] = 1. / (255 * grey_scales[space])
-    return cost_field*255
+    return cost_field
 
 
 def get_weighted_distance_transform(cost_field):
@@ -57,26 +56,21 @@ def get_weighted_distance_transform(cost_field):
 
     Starting from the exit, we march over all the pixels with the lowest weighted distance iteratively,
     until we found values for all pixels in reach.
-    :param cost_field: nonnegative 2D array with cost in each cell/pixel, zero and infinity are allowed values.
+    :param cost_field: non-negative 2D array with cost in each cell/pixel, zero and infinity are allowed values.
     :return: weighted distance transform field
     """
     if fortran_lib:
         # Fortran does not allow for infinite float.
         nx, ny = cost_field.shape
         # Float that is (probably far) higher than the highest reachable potential
-        obstacle_value = 1500  # np.max(cost_field[cost_field < np.inf]) * nx * ny * 2
+        obstacle_value = np.max(cost_field[cost_field < np.inf]) * (nx + ny) + 1
         cost_field[cost_field == np.inf] = obstacle_value
         # Run the Fortran module
-        time1 = time.time()
         wdt_field = _wdt.weighted_distance_transform(cost_field, nx, ny, obstacle_value)
-        time2 = time.time()
-        print(time2-time1)
         wdt_field[wdt_field >= obstacle_value] = np.inf
         cost_field[cost_field >= obstacle_value] = np.inf
         return wdt_field
     else:
-        # cost_field *= 255.
-        # plot(cost_field)
         # Run python implementation
         return _wdt_python(cost_field)
 

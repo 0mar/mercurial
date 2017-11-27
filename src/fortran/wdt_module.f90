@@ -18,12 +18,11 @@ module wdt_module
     integer (KIND=4), parameter :: NEW_CANDIDATE = 3
 
 contains
-    subroutine new_candidate_cells(cell_x,cell_y,wdt_field,n_x,n_y,cell_indicators,cand_cells)
+    subroutine new_candidate_cells(cell_x,cell_y,wdt_field,n_x,n_y,cand_cells)
         implicit none
         ! Find new candidate cells
         integer (kind=4), intent(in) :: cell_x,cell_y,n_x,n_y
         real (kind=8), dimension(0:n_x-1,0:n_y-1), intent(in) :: wdt_field
-        integer (kind=4), dimension(0:n_x-1,0:n_y-1), intent(inout) :: cell_indicators
         integer (kind=4), dimension(0:3,0:1), intent(out) :: cand_cells
         integer (kind=4) :: direction,nb_x,nb_y
         cand_cells = -1
@@ -31,10 +30,9 @@ contains
             nb_x = sign(mod(direction+1,2),direction-1) + cell_x
             nb_y = sign(mod(direction,2),direction-2) + cell_y
             if (exists(nb_x,nb_y)==1)  then
-                if (cell_indicators(nb_x,nb_y) >= UNKNOWN) then
+                if (wdt_field(nb_x,nb_y) == unknown_value) then
                     cand_cells(direction,0) = nb_x
                     cand_cells(direction,1) = nb_y
-                    cell_indicators(nb_x,nb_y) = CANDIDATE
                 end if
             end if
         end do
@@ -115,14 +113,17 @@ contains
     end do
 
     if (hor_potential >= obstacle_value) then
+        !write(*,*) "Horizontal obstacle_valueinite"
         a = 1. / (ver_cost * ver_cost)
         b = -2. * ver_potential / (ver_cost * ver_cost)
         c = (ver_potential / ver_cost) * (ver_potential / ver_cost) -1
     elseif (ver_potential >=obstacle_value) then
+        !write(*,*) "Vertical obstacle_valueinite"
         a = 1. / (hor_cost * hor_cost)
         b = -2. * hor_potential / (hor_cost * hor_cost)
         c = (hor_potential / hor_cost) * (hor_potential / hor_cost) -1
     else
+        !write(*,*) "All good"
         a = 1. / (hor_cost * hor_cost) + 1. / (ver_cost * ver_cost)
         b = -2. * (hor_potential / (hor_cost * hor_cost) + ver_potential / (ver_cost * ver_cost))
         c = (hor_potential / hor_cost) * (hor_potential / hor_cost) + (ver_potential / ver_cost) * (ver_potential / ver_cost) - 1
@@ -162,7 +163,7 @@ integer (kind=4), allocatable, dimension(:,:) :: cand_heap
 integer (kind=4), allocatable, dimension(:) :: indx
 integer (kind=4) :: heap_capacity, heap_length, tree_length
 
-integer (kind=4) :: i,j,l,k
+integer (kind=4) :: i,j,l
 real (kind=8), dimension(0:n_x-1,0:n_y-1) :: cost_field,wdt_field
 real (kind=8), dimension(0:n_x,0:n_y-1) :: costs_x
 real (kind=8), dimension(0:n_x-1,0:n_y) :: costs_y
@@ -206,10 +207,14 @@ do j=0,n_y-1
     enddo
 enddo
 
-! First sweep
-do k=0,heap_length - 1
+! Iteration of level set
+do while (.true.)
+    if (heap_length==0) then
+        exit
+    end if
     call heap_pop(cand_heap, indx, heap_capacity, heap_length, wdt_field, n_x, n_y, best_cell)
-    call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,cell_indicators,new_cand_cells)
+
+    call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,new_cand_cells)
     do l=0,3
         i = new_cand_cells(l,0)
         if (i >=0) then
@@ -221,28 +226,6 @@ do k=0,heap_length - 1
             end if
         end if
     end do
-end do
-
-
-! Iteration of level set
-do while (.true.)
-    do l=0,3
-        i = new_cand_cells(l,0)
-        if (i >=0) then
-            j = new_cand_cells(l,1)
-            call propagate_dist(i,j,wdt_field,costs_x,costs_y,n_x,n_y,dist)
-            if (wdt_field(i,j) > dist) then
-                wdt_field(i,j) = dist
-                call heap_insert(cand_heap,indx,heap_capacity,heap_length,tree_length,[i,j],wdt_field,n_x,n_y)
-            end if
-        end if
-    end do
-    call heap_pop(cand_heap, indx, heap_capacity, heap_length, wdt_field, n_x, n_y, best_cell)
-    cell_indicators(best_cell(0),best_cell(1)) = KNOWN
-    call new_candidate_cells(best_cell(0),best_cell(1),wdt_field,n_x,n_y,cell_indicators,new_cand_cells)
-    if (heap_length==0) then
-        exit
-    end if
 end do
 deallocate(cand_heap)
 deallocate(indx)
