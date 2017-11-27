@@ -3,9 +3,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 import numpy as np
 from math_objects import functions as ft
-from math_objects.geometry import Point
+from scipy.ndimage import gaussian_filter
 from math_objects.scalar_field import ScalarField as Field
-from lib.wdt import get_weighted_distance_transform
+from lib.wdt import get_weighted_distance_transform, plot
 import matplotlib.pyplot as plt
 
 
@@ -27,8 +27,9 @@ class PotentialTransporter:
         self.scene = scene
         self.config = scene.config
         self.show_plot = show_plot
-
-        wdt = get_weighted_distance_transform(self.scene.env_field)
+        cost_field = self._add_obstacle_discomfort(radius=4)
+        wdt = get_weighted_distance_transform(cost_field)
+        plot(wdt)
         self.dx, self.dy = self.scene.size.array / wdt.shape
         self.potential_field = Field(wdt.shape, Field.Orientation.center, 'potential', (self.dx, self.dy))
         self.potential_field.array = wdt
@@ -41,6 +42,16 @@ class PotentialTransporter:
         self.compute_potential_gradient()
         self.grad_x_func = self.pot_grad_x.get_interpolation_function()
         self.grad_y_func = self.pot_grad_y.get_interpolation_function()
+
+    def _add_obstacle_discomfort(self, radius):
+        cost_field = self.scene.env_field.copy()
+        cost_field[cost_field == np.inf] = 0
+        cost_field[self.scene.env_field == np.inf] = 5
+        cost_field = gaussian_filter(cost_field, sigma=radius)
+        cost_field[self.scene.env_field == np.inf] = np.inf
+        cost_field[self.scene.env_field == 0] = 0
+        plot(cost_field)
+        return cost_field
 
     # def _get_fire_effects(self):
     #     fire_effects = np.zeros(self.grid_dimension)
