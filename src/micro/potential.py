@@ -5,8 +5,7 @@ import numpy as np
 from math_objects import functions as ft
 from scipy.ndimage import gaussian_filter
 from math_objects.scalar_field import ScalarField as Field
-from lib.wdt import get_weighted_distance_transform, plot
-import matplotlib.pyplot as plt
+from lib.wdt import get_weighted_distance_transform
 
 
 class PotentialTransporter:
@@ -43,6 +42,13 @@ class PotentialTransporter:
         self.grad_y_func = self.pot_grad_y.get_interpolation_function()
 
     def _add_obstacle_discomfort(self, radius):
+        """
+        Use a gaussian filter (image blurring) to obtain a layer of discomfort around the obstacles
+        The radius specifies how far the discomfort reaches. This radius is related to pedestrian size but can vary
+        among different scenarios
+        :param radius: SD of gaussian filter. Higher means lower values but longer range.
+        :return: An adjusted cost field
+        """
         cost_field = self.scene.env_field.copy()
         cost_field[cost_field == np.inf] = 0
         cost_field[self.scene.env_field == np.inf] = np.max(cost_field)*2

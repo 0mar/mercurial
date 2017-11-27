@@ -181,7 +181,7 @@ class Scene:
             return False
         cell = (int(coord[0] // self.dx), int(coord[1] // self.dy))
         if at_start:
-            return self.env_field[cell] > 0 and self.env_field[cell] < np.inf
+            return 0 < self.env_field[cell] < np.inf  # Todo: Rather, you want to check the potential field
         else:
             return self.env_field[cell] < np.inf
 

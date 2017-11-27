@@ -39,7 +39,7 @@ class SimulationManager:
         self.config = config
 
         if args.obstacle_file:
-            config['general']['obstacle_file'] = args.obstacle_file
+            config['general']['scene'] = args.obstacle_file
 
         # Initialization scene
         if args.number >= 0:

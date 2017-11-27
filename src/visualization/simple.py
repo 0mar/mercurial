@@ -56,10 +56,19 @@ class VisualScene:
         self.window.geometry("%dx%d" % tuple(value))
 
     def start(self):
+        """
+        Starts the visualization loop
+        :return:
+        """
         self.loop()
         self.window.mainloop()
 
     def resize(self, event):
+        """
+        Resizes the screen and the image
+        :param event:
+        :return:
+        """
         size = (event.width, event.height)
         resized = self.original_env.resize(size, Image.ANTIALIAS)
         self.env = ImageTk.PhotoImage(resized)
@@ -173,27 +182,6 @@ class VisualScene:
         for j in range(ny - 1):
             y_coord = (j + 1) * screen_dy
             self.canvas.create_line(0, y_coord, self.size[0], y_coord)
-
-    # def draw_cell(self, cell):
-    #     """
-    #     Draws a cell as a rectangle within the window.
-    #     Only use for debugging purposes, since drawing is very inefficient.
-    #     :param cell: Cell object to be drawn
-    #     :return: None
-    #     """
-    #     x_0 = self.convert_relative_coordinate(cell.begin / self.scene.size)
-    #     x_1 = self.convert_relative_coordinate((cell.begin + cell.size) / self.scene.size)
-    #     self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), outline='blue')
-
-    # def draw_rect_obstacle(self, obstacle):
-    #     """
-    #     Draws a rectangular obstacle on its relative location in the screen
-    #     :param obstacle: obstacle to be drawn. Obstacles are black by default, exits are red, entrances are blue.
-    #     :return: None
-    #     """
-    #     x_0 = self.convert_relative_coordinate(obstacle.begin / self.scene.size)
-    #     x_1 = self.convert_relative_coordinate((obstacle.begin + obstacle.size) / self.scene.size)
-    #     self.canvas.create_rectangle(tuple(x_0) + tuple(x_1), fill=obstacle.color)
 
     def draw_circ_obstacle(self, circ_object):
         """
