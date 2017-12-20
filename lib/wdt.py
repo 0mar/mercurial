@@ -9,8 +9,11 @@ except ImportError:
     fortran_lib = False
 import math
 import heapq
-from scipy.misc import imread
+import matplotlib
+
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+from scipy.misc import imread
 
 DIR_STRINGS = ["left", "down", "right", "up"]
 DIRS = ((-1, 0), (0, -1), (1, 0), (0, 1))

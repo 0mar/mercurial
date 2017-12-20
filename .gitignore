@@ -1,6 +1,10 @@
 build/
+lib/*
 *.so
 *.egg-info
+*.idea
+*.pyc
+
 images/
 results/
 scenes/
