@@ -11,7 +11,7 @@ class Pedestrian(object):
     and maximum speed.
     """
 
-    def __init__(self, scene, counter, position=Point([0, 0]), index=-1):
+    def __init__(self, scene, counter, position=Point([0, 0]), index=-1,color = None):
         """
         Initializes the pedestrian
         :param scene: Scene instance for the pedestrian to walk in
@@ -27,7 +27,9 @@ class Pedestrian(object):
         else:
             self.index = index
         self.position = position
-        self.color = self._convert_awareness_to_color()
+        self.color = color
+        if not self.color:
+            self.color = self._get_random_color()
         while self.position.is_zero() and type(self) == Pedestrian:
             new_position = scene.size.random_internal_point()
             if scene.is_accessible(new_position, at_start=True):
@@ -49,6 +51,13 @@ class Pedestrian(object):
         """
         return "Pedestrian#%d (%d)" % (self.counter, self.index)
 
+    def _get_random_color(self):
+        """
+        Computes a random color
+        :return:
+        """
+        red,green,blue = np.random.randint(0,255,3)
+        return "#%02x%02x%02x" % (red, green, blue)
     def _convert_speed_to_color(self):
         """
         Computes a color between red and blue based on pedestrian max velocity.
@@ -65,19 +74,6 @@ class Pedestrian(object):
         green = 0
         blue = int(max_val * (speed - end) / (start - end))
         return "#%02x%02x%02x" % (red, green, blue)
-
-    def _convert_awareness_to_color(self):
-        """
-        Gives pedestrians aware of their surroundings a blue color
-        Gives pedestrians unaware of their environment a red color
-        :return: tkinter RGB color code string
-        """
-        red = (200, 50, 50)
-        blue = (50, 50, 200)
-        if self.scene.aware_pedestrians[self.index]:
-            return "#%02x%02x%02x" % blue
-        else:
-            return "#%02x%02x%02x" % red
 
     @property
     def velocity(self):

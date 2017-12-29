@@ -1,4 +1,4 @@
-import time
+import params
 import tkinter
 from PIL import Image, ImageTk
 import numpy as np
@@ -24,28 +24,16 @@ class VisualScene:
         :param scene: Scene to be drawn. The size of the scene is independent of the size of the visualization
         :return: None
         """
-        self.config = scene.config
-        init_size = Size(
-            [self.config['visual'].getfloat('screen_size_x'), self.config['visual'].getfloat('screen_size_y')])
+        init_size = Size([params.screen_size_x,params.screen_size_y])
         self.scene = scene
         self.autoloop = True
-        self.draws_cells = self.config['visual'].getboolean('draw_grid')
-        self.delay = self.config['visual'].getint('time_delay')
         self.window = tkinter.Tk()
         self.window.title("Mercurial: Hybrid simulation for dense crowds")
         self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
         self.window.bind("<Button-3>", self.store_scene)
         self.window.grid()
-        env_image = self.config['general']['scene']
-        self.original_env = Image.open(env_image)
-        self.env = ImageTk.PhotoImage(self.original_env)
-        self.canvas = tkinter.Canvas(self.window, bd=0, highlightthickness=0)
-        self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
-        self.canvas.grid(row=0, sticky=tkinter.W + tkinter.E + tkinter.N + tkinter.S)
-        self.canvas.pack(fill=tkinter.BOTH, expand=1)
-        # self.window.pack(fill=tkinter.BOTH,expand=1)
-        self.window.bind("<Configure>", self.resize)
         self.step_callback = None  # set in manager
+
 
     @property
     def size(self):
@@ -55,11 +43,25 @@ class VisualScene:
     def size(self, value):
         self.window.geometry("%dx%d" % tuple(value))
 
+    def _prepare(self):
+
+        env_image = params.scene_file
+        self.original_env = Image.open(env_image)
+        self.env = ImageTk.PhotoImage(self.original_env)
+        self.canvas = tkinter.Canvas(self.window, bd=0, highlightthickness=0)
+        self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
+        self.canvas.grid(row=0, sticky=tkinter.W + tkinter.E + tkinter.N + tkinter.S)
+        self.canvas.pack(fill=tkinter.BOTH, expand=1)
+        # self.window.pack(fill=tkinter.BOTH,expand=1)
+        self.window.bind("<Configure>", self.resize)
+
+
     def start(self):
         """
         Starts the visualization loop
         :return:
         """
+        self._prepare()
         self.loop()
         self.window.mainloop()
 
@@ -91,15 +93,17 @@ class VisualScene:
         :param _: Event object from tkinter
         :return: None
         """
-        if self.scene.status == 'DONE':
-            self.window.destroy()
-            self.autoloop = False
+        print("Enter loop")
+        self.draw_scene()
+        if self.autoloop:
+            print("Plan new step")
+            self.window.after(params.time_delay, self.step_callback)
         else:
-            self.draw_scene()
-            if self.autoloop:
-                self.window.after(self.delay, self.step_callback)
-            else:
-                self.step_callback()
+            self.step_callback()
+
+    def finish(self):
+        self.window.destroy()
+        self.autoloop = False
 
     def _provide_information(self, event):
         """
@@ -160,7 +164,7 @@ class VisualScene:
         """
         rel_pos_array = self.scene.position_array / self.scene.size.array
         rel_size_array = np.ones(
-            self.scene.position_array.shape) * self.scene.pedestrian_size.array / self.scene.size.array * self.size.array
+            self.scene.position_array.shape) * params.pedestrian_size / self.scene.size.array * self.size.array
         vis_pos_array = np.hstack((rel_pos_array[:, 0][:, None], 1 - rel_pos_array[:, 1][:, None])) * self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array
         end_pos_array = vis_pos_array + 0.5 * rel_size_array

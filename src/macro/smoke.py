@@ -14,6 +14,8 @@ class Smoker:
         Creates a smoke evolver for the given scene
         :param scene: The scene to be smoked.
         """
+        # Todo: Split init and parameters
+
         self.scene = scene
         config = self.scene.config['smoke']
         self.nx = config.getint('res_x')
@@ -41,7 +43,7 @@ class Smoker:
 
         self.velo_unaware_lb = 0.3
         self.velo_aware_ub = 2.5
-        self.smoke_ub = self.scene.smoke_ub = 30  # TODO: resolve monkey patching
+        self.smoke_ub = self.scene.smoke_ub = 30
 
     def _get_source(self, fire):
         """

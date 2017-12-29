@@ -1,5 +1,6 @@
 import matplotlib
 import numpy as np
+import params
 from lib.micro_macro import comp_dens_velo
 from lib.pressure_computer import compute_pressure
 
@@ -10,7 +11,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 
-class PressureTransporter:
+class Repel:
     """
     Class responsible for the macroscopic calculations of the crowd.
     Main tasks:
@@ -20,53 +21,42 @@ class PressureTransporter:
     4. Adapting individual velocity by global velocity field.
     """
 
-    def __init__(self, scene, show_plot=False, apply_interpolation=True, apply_pressure=True):
+    def __init__(self, scene):
         """
         Constructs a grid computer, responsible for the continuum calculations.
         The grid computer takes several parameters in its constructor.
         Numerical parameters are specified in the parameters file.
         :param scene: Scene on which we make the computations
-        :param show_plot: enable matplotlib plotting of discretized fields
-        :param apply_interpolation: impose group velocity on pedestrians
-        :param apply_pressure: impose pressure on velocity field (and on pedestrians)
         :return: Grid computer object.
         """
         self.scene = scene
-        prop_dx = scene.config['general'].getfloat('cell_size_x')
-        prop_dy = scene.config['general'].getfloat('cell_size_y')
-        self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
-        self.dx, self.dy = self.scene.size.array / self.grid_dimension
-        self.dt = self.scene.dt
-        self.packing_factor = scene.config['dynamic'].getfloat('packing_factor')
-        self.max_density = 2 * self.packing_factor / \
-                           (np.sqrt(3) * self.scene.core_distance ** 2)
-        self.smoothing_length = self.scene.core_distance
+        self.on_step_functions = []
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
-        self.show_plot = show_plot
-        self.apply_interpolation = apply_interpolation or apply_pressure
-        self.apply_pressure = apply_pressure
+        self.show_plot = False
+        self.grid_dimension = self.dx = self.dy = None
 
-        dx, dy = self.dx, self.dy
-        shape = self.grid_dimension
-        self.obstacle_correction = np.zeros(shape)
-        # self._get_obstacle_coverage()
-        self.density_field = Field(shape, Field.Orientation.center, 'density', (dx, dy))
-        self.v_x = Field(shape, Field.Orientation.center, 'velocity_x', (dx, dy))
-        self.v_y = Field(shape, Field.Orientation.center, 'velocity_y', (dx, dy)) # Todo: We can probably easily stagger this
-        self.pressure_field = Field((shape[0] + 2, shape[1] + 2), Field.Orientation.center, 'pressure', (dx, dy))
+        # Fields to store the macroscopic quantities in
+        self.density_field = self.v_x = self.v_y = self.pressure_field = None
 
-        # Tools to relate pedestrians to obstacles/walls
-        self.pressure_pad = 1 # TODO: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
-        self.gutter_pressure = 0
-        apply_gutter = scene.config['general'].getboolean('obstacle_gutter')
-        if apply_gutter:
-            self.gutter_pressure = -self.pressure_pad/3
+    def prepare(self):
+        prop_dx = params.cell_size_x
+        prop_dy = params.cell_size_y
+        self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
+        self.dx, self.dy = self.scene.size.array / self.grid_dimension
 
+        self.density_field = Field(self.grid_dimension, Field.Orientation.center, 'density', (self.dx, self.dy))
+        self.v_x = Field(self.grid_dimension, Field.Orientation.center, 'velocity_x', (self.dx, self.dy))
+        self.v_y = Field(self.grid_dimension, Field.Orientation.center, 'velocity_y',
+                         (self.dx, self.dy))  # Todo: We can probably easily stagger this
+        self.pressure_field = Field((self.grid_dimension[0] + 2, self.grid_dimension[1] + 2), Field.Orientation.center, 'pressure', (self.dx, self.dy))
+        self.on_step_functions.append(self.apply_repulsion)
         if self.show_plot:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
             plt.show(block=False)
+            self.on_step_functions.append(self.plot_grid_values)
+
 
     def plot_grid_values(self):
         """
@@ -89,6 +79,18 @@ class PressureTransporter:
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
+    def get_macro_field(self):
+        n_x, n_y = self.grid_dimension
+        dx, dy = self.scene.size.array / self.grid_dimension
+        density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
+                                                 self.scene.active_entries, n_x, n_y, dx, dy, params.smoothing_length)
+        self.density_field.update(density_field)
+        self.v_x.update(v_x)
+        self.v_y.update(v_y)
+        ft.debug("Max allowed density: %.4f" % params.max_density)
+        ft.debug("Max observed density: %.4f" % np.max(self.density_field.array))
+
+
     def compute_pressure(self):
         """
         Compute the pressure term
@@ -97,11 +99,11 @@ class PressureTransporter:
         """
 
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
-                                    self.dx, self.dy, self.dt, self.max_density)
+                                    self.dx, self.dy, params.dt, params.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
         # dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
         # dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
-        padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.pressure_pad)
+        padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=params.boundary_pressure)
         self.pressure_field.update(padded_dim_p)
 
     def adjust_velocity(self):
@@ -115,7 +117,7 @@ class PressureTransporter:
         self.v_x.array -= well_shaped_x_grad
         self.v_y.array -= well_shaped_y_grad
 
-    def interpolate_pedestrians(self):
+    def put_micro_changes(self):
         """
         Method that reconverts the velocity field to individual pedestrian positions.
         Input are the velocity x/y fields. We use a bivariate spline interpolation method
@@ -130,9 +132,9 @@ class PressureTransporter:
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),
-                                self.max_density)
+                                params.max_density)
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
-        self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / self.max_density * (
+        self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / params.max_density * (
             solved_velocity - self.scene.velocity_array) + ft.EPS
         self.scene.velocity_array /= \
             np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / (self.scene.max_speed_array[:, None] + ft.EPS)
@@ -146,38 +148,25 @@ class PressureTransporter:
         Adjusts the velocities of the pedestrians according to the velocity field
         :return: None
         """
-        if self.apply_interpolation or self.show_plot:
-            n_x, n_y = self.grid_dimension
-            dx, dy = self.scene.size.array / self.grid_dimension
-            density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
-                                                     self.scene.active_entries, n_x, n_y, dx, dy, self.smoothing_length)
-            self.density_field.update(density_field)
-            self.v_x.update(v_x)
-            self.v_y.update(v_y)
-            ft.debug("Max allowed density: %.4f" % self.max_density)
-            ft.debug("Max observed density: %.4f" % np.max(self.density_field.array))
+        [step() for step in self.on_step_functions]
 
-        if self.apply_interpolation:
+    def apply_repulsion(self):
+        self.get_macro_field()
+        self.compute_pressure()
+        self.adjust_velocity()
+        self.put_micro_changes()
 
-            if self.apply_pressure:
-                self.compute_pressure()
-                self.adjust_velocity()
-                if self.show_plot:
-                    self.plot_grid_values()
-                    # self.compute_pressure()
-            self.interpolate_pedestrians()
-
-    @staticmethod
-    def weight_function(array, smoothing_length=1):
-        """
-        Using the Wendland kernel to determine the interpolation weight
-        Calculation is performed in two steps to take advantage of numpy's speed
-        :param array: Array of distances to apply the kernel on.
-        :param smoothing_length: Steepness factor (standard deviation) of kernel
-        :return: Weights of interpolation
-        """
-        array /= smoothing_length
-        norm_constant = 7. / (4 * np.pi * smoothing_length * smoothing_length)
-        first_factor = np.maximum(1 - array / 2, 0)
-        weight = first_factor ** 4 * (1 + 2 * array)
-        return weight * norm_constant
+    # @staticmethod
+    # def weight_function(array, smoothing_length=1):
+    #     """
+    #     Using the Wendland kernel to determine the interpolation weight
+    #     Calculation is performed in two steps to take advantage of numpy's speed
+    #     :param array: Array of distances to apply the kernel on.
+    #     :param smoothing_length: Steepness factor (standard deviation) of kernel
+    #     :return: Weights of interpolation
+    #     """
+    #     array /= smoothing_length
+    #     norm_constant = 7. / (4 * np.pi * smoothing_length * smoothing_length)
+    #     first_factor = np.maximum(1 - array / 2, 0)
+    #     weight = first_factor ** 4 * (1 + 2 * array)
+    #     return weight * norm_constant
