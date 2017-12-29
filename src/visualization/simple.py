@@ -93,10 +93,8 @@ class VisualScene:
         :param _: Event object from tkinter
         :return: None
         """
-        print("Enter loop")
         self.draw_scene()
         if self.autoloop:
-            print("Plan new step")
             self.window.after(params.time_delay, self.step_callback)
         else:
             self.step_callback()

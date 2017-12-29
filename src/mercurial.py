@@ -56,6 +56,7 @@ class Simulation:
         self.step_functions = self.pre_move_functions + self.step_functions + self.post_move_functions
         if self.visual_backend.lower() == 'tkinter':
             self.vis = VisualScene(self.scene)
+            self.step_functions.append(self.vis.loop)
         elif self.visual_backend.lower() == 'none' or not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
         else:
@@ -79,7 +80,6 @@ class Simulation:
         for population in self.populations:
             population.prepare()
         self.status = 'RUNNING'
-        print("started")
         self.vis.start()
         self.finish()
 
@@ -91,9 +91,7 @@ class Simulation:
         """
         self.scene.time += params.dt
         self.scene.counter += 1
-        print("hoi")
         [step() for step in self.step_functions]
-        print("Done")
 
     def add_local(self,effect):
         if effect.lower() == 'separation':
@@ -120,7 +118,9 @@ class Simulation:
             Behaviour = Knowing
         else:
             raise NotImplementedError("Behaviour %s not implemented"%behaviour)
-        self.populations.append(Behaviour(population))
+        gov_population = Behaviour(population)
+        self.populations.append(gov_population)
+        self.step_functions.append(gov_population.step)
 
     def store_positions(self): # Todo: Make this work
         # filename = input('Specify storage file\n')

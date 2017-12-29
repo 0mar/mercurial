@@ -12,7 +12,7 @@ class Population:
         self.scene = scene
         self.number = number
         self.on_step_functions = []
-        self.indices = np.zeros(self.number)
+        self.indices = np.zeros(self.number,dtype=int)
         self.scene.total_pedestrians += self.number
 
     def prepare(self):

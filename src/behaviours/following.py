@@ -95,7 +95,7 @@ class Following:
             actives = self.scene.active_entries[self.population.indices]
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.follow_radii)
-        random_force = np.random.randn(len(self.population.indices)) * params.random_force
+        random_force = np.random.randn(len(self.population.indices),2) * params.random_force
         # fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
