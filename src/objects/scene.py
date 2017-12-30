@@ -39,9 +39,9 @@ class Scene:
         :return: None
         """
         self.size = Size([params.scene_size_x,params.scene_size_y])
-        self.dx = self.size[0]/params.cell_size_x
-        self.dy = self.size[1]/params.cell_size_y
         self.env_field = np.rot90(map_image_to_costs(params.scene_file), -1)
+        self.dx = self.size[0]/self.env_field.shape[0]
+        self.dy = self.size[1]/self.env_field.shape[1]
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
         self.velocity_array = np.zeros([self.total_pedestrians, 2])
@@ -156,6 +156,7 @@ class Scene:
             return False
         cell = (int(coord[0] // self.dx), int(coord[1] // self.dy))
         if at_start:
+            print("Cell %s has value %s"%(cell,self.env_field[cell]))
             return 0 < self.env_field[cell] < np.inf  # Todo: Rather, you want to check the potential field
         else:
             return self.env_field[cell] < np.inf

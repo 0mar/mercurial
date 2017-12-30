@@ -17,6 +17,7 @@ class Population:
 
     def prepare(self):
         self._init_pedestrians()
+        self.on_step_functions.append(self.find_finished)
 
     def _init_pedestrians(self):
         """
