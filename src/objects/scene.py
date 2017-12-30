@@ -1,5 +1,5 @@
 import numpy as np
-from lib.wdt import map_image_to_costs
+from lib.wdt import map_image_to_costs, get_weighted_distance_transform
 from math_objects.geometry import Point, Size
 import params
 
@@ -33,6 +33,7 @@ class Scene:
         self.acceleration_array = self.max_speed_array = self.active_entries = None
         self.pedestrian_list = []
         self.index_map = {}
+
     def prepare(self):
         """
         Method called directly before simulation start. All parameters need to be registered.
@@ -40,6 +41,7 @@ class Scene:
         """
         self.size = Size([params.scene_size_x,params.scene_size_y])
         self.env_field = np.rot90(map_image_to_costs(params.scene_file), -1)
+        self.direction_field = get_weighted_distance_transform(self.env_field)
         self.dx = self.size[0]/self.env_field.shape[0]
         self.dy = self.size[1]/self.env_field.shape[1]
         self.position_array = np.zeros([self.total_pedestrians, 2])
@@ -48,7 +50,6 @@ class Scene:
         self.acceleration_array = np.zeros([self.total_pedestrians, 2])
         self.max_speed_array = np.empty(self.total_pedestrians)
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
-        # self.index_map = {i: self.pedestrian_list[i] for i in range(self.total_pedestrians)}
 
         if params.max_speed_distribution.lower() == 'uniform':
             # in a uniform distribution [a,b], sd = (b-a)/sqrt(12).
@@ -56,7 +57,7 @@ class Scene:
             interval_start = interval_size/2 + params.max_speed_av
             self.max_speed_array = interval_start + np.random.rand(self.total_pedestrians)*interval_size
         elif params.max_speed_distribution.lower() == 'normal':
-            self.max_speed_array = np.random.randn(self.total_pedestrians)
+            self.max_speed_array = np.abs(np.random.randn(self.total_pedestrians))
         else:
             raise NotImplementedError('Distribution %s not yet implemented'%params.max_speed_distribution)
     # def get_obstacle_gutter_cells(self, radius=2): # Move
@@ -156,7 +157,6 @@ class Scene:
             return False
         cell = (int(coord[0] // self.dx), int(coord[1] // self.dy))
         if at_start:
-            print("Cell %s has value %s"%(cell,self.env_field[cell]))
             return 0 < self.env_field[cell] < np.inf  # Todo: Rather, you want to check the potential field
         else:
             return self.env_field[cell] < np.inf
@@ -167,6 +167,23 @@ class Scene:
         :return: None
         """
         [step() for step in self.on_step_functions]
+
+    def find_finished(self):
+        """
+        Finds all pedestrians that have reached the goal in this time step.
+        If there is a cap on the number of pedestrians allowed to exit,
+        we randomly sample that number of pedestrians and leave the rest in the exit.
+        If any pedestrians are unable to exit, we set the exit to inaccessible.
+        The pedestrians that leave are processed and removed from the scene
+        :return: None
+        """
+        cells = (self.position_array // (self.dx, self.dy)).astype(int) % self.env_field.shape
+        in_goal = self.env_field[cells[:, 0], cells[:, 1]] == 0
+        finished = np.logical_and(in_goal, self.active_entries)
+        index_list = np.where(finished)[0]  # possible extension: Goal cap
+        for index in index_list:
+            finished_pedestrian = self.index_map[index]
+            self.remove_pedestrian(finished_pedestrian)
 
     def remove_pedestrian(self, pedestrian):
         """

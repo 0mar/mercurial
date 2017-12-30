@@ -31,7 +31,7 @@ class Simulation:
         self.status = 'PREPARE'
         self.pre_move_functions = []
         self.post_move_functions = []
-        self.step_functions = []
+        self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_pedestrian_init_functions = []
         self.finish_functions = []
@@ -51,12 +51,13 @@ class Simulation:
     def _prepare(self):
         if not self.store_positions and not self.store_results:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
-        self.scene.on_step_functions.append(self.scene.move)
+        self.on_step_functions.append(self.scene.move)
         self.post_move_functions.append(self.scene.correct_for_geometry)
-        self.step_functions = self.pre_move_functions + self.step_functions + self.post_move_functions
+        self.post_move_functions.append(self.scene.find_finished)
+        self.on_step_functions = self.pre_move_functions + self.on_step_functions + self.post_move_functions
         if self.visual_backend.lower() == 'tkinter':
             self.vis = VisualScene(self.scene)
-            self.step_functions.append(self.vis.loop)
+            self.on_step_functions.append(self.vis.loop)
         elif self.visual_backend.lower() == 'none' or not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
         else:
@@ -91,7 +92,7 @@ class Simulation:
         """
         self.scene.time += params.dt
         self.scene.counter += 1
-        [step() for step in self.step_functions]
+        [step() for step in self.on_step_functions]
 
     def add_local(self,effect):
         if effect.lower() == 'separation':
@@ -120,20 +121,20 @@ class Simulation:
             raise NotImplementedError("Behaviour %s not implemented"%behaviour)
         gov_population = Behaviour(population)
         self.populations.append(gov_population)
-        self.step_functions.append(gov_population.step)
+        self.on_step_functions.append(gov_population.step)
 
     def store_positions(self): # Todo: Make this work
         # filename = input('Specify storage file\n')
         import re
         filename = re.search('/([^/]+)\.(png|jpe?g)', params.scene_file).group(1)
         functions.log("Storing positions results in '%s%s'" % (params.result_dir, filename))
-        self.step_functions.append(lambda: self.store_positions_to_file(filename))
+        self.on_step_functions.append(lambda: self.store_positions_to_file(filename))
         # self.finish_functions.append(lambda: self.store_position_usage(filename))
         self.finish_functions.append(self.store_exit_logs)
 
     def log_results(self,true):
         results = Result(self.scene,None,None)  # Todo: Make this work
-        self.step_functions.append(results.on_step)
+        self.on_step_functions.append(results.on_step)
         self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
         self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
         self.finish_functions.append(results.on_finish)
@@ -203,6 +204,11 @@ class Simulation:
         if self.scene.time > params.max_time:
             self.vis.finish()
 
-    def _check_percentage(self):
+    def _check_percentage(self,_=None):
+        """
+        Check whether the required percentage of evacs has been reached
+        :param _: Placeholder parameter; ignore
+        :return:
+        """
         if 1 - np.sum(self.scene.active_entries)/len(self.scene.active_entries) >= params.max_percentage:
             self.vis.finish()

@@ -21,6 +21,7 @@ class Separate:
             self.on_step_functions.append(self.compute_violations)
 
     def separate(self):
+        print(self.scene.position_array)
         self.mde = compute_mde(self.scene.position_array, self.scene.size[0], self.scene.size[1],
                                self.scene.active_entries, params.minimal_distance)
         self.scene.position_array += self.mde
