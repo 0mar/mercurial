@@ -21,7 +21,7 @@ class Simulation:
     """
     The simulation class controls all the components of the simulation.
     It converts the input flags to configuration options and augments them to the configuration file.
-    It initializes the important objects and makes sure that all the event methods (step,on_exit, on_finish) are run.
+    It initializes the important objects and makes sure that all the event methods (step, on_exit, on_finish) are run.
     """
 
     def __init__(self, scene_file=None):
@@ -52,6 +52,7 @@ class Simulation:
         if not self.store_positions and not self.store_results:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
         self.on_step_functions.append(self.scene.move)
+        # Todo: Dump pre and post move functions. We will have to indicate the exact order of all steps.
         self.post_move_functions.append(self.scene.correct_for_geometry)
         self.post_move_functions.append(self.scene.find_finished)
         self.on_step_functions = self.pre_move_functions + self.on_step_functions + self.post_move_functions
@@ -60,7 +61,7 @@ class Simulation:
             self.on_step_functions.append(self.vis.loop)
         elif self.visual_backend.lower() == 'none' or not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
-        else:
+        else: 
             print("Backend '%s' is not available"%self.visual_backend)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish

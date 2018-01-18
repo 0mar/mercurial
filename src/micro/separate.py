@@ -10,7 +10,7 @@ class Separate:
 
     def __init__(self,scene):
         self.scene = scene
-        self.store_violations=False
+        self.store_violations = False
         self.violations = []
         self.mde = None
         self.on_step_functions = []
@@ -22,6 +22,7 @@ class Separate:
 
     def separate(self):
         print(self.scene.position_array)
+        print(np.any(self.scene.position_array < [0,0]) or np.any(self.scene.position_array > self.scene.size.array))
         self.mde = compute_mde(self.scene.position_array, self.scene.size[0], self.scene.size[1],
                                self.scene.active_entries, params.minimal_distance)
         self.scene.position_array += self.mde

@@ -93,6 +93,7 @@ class Following:
             positions = self.scene.position_array[self.population.indices]
             velocities = self.scene.velocity_array[self.population.indices]
             actives = self.scene.active_entries[self.population.indices]
+        print(np.any(self.scene.position_array < [0,0]) or np.any(self.scene.position_array > self.scene.size.array))
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.follow_radii)
         random_force = np.random.randn(len(self.population.indices),2) * params.random_force
