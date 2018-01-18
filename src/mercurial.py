@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('src')
 import params
 
@@ -29,14 +30,12 @@ class Simulation:
         Create a new simulation.
         """
         self.status = 'PREPARE'
-        self.pre_move_functions = []
-        self.post_move_functions = []
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_pedestrian_init_functions = []
         self.finish_functions = []
-
-        self.effects = []
+        # All the effects added in the simulation. keys are strings of the effect name, values are the effect objects
+        self.effects = {}
         self.populations = []
 
         if scene_file:
@@ -51,18 +50,23 @@ class Simulation:
     def _prepare(self):
         if not self.store_positions and not self.store_results:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
+        # The order in which the following effects are added is important.
+        if 'smoke' in self.effects:
+            self.on_step_functions.append(self.effects['smoke'].step)
+        for population in self.populations:
+            self.on_step_functions.append(population.step)
+        if 'repulsion' in self.effects:
+            self.on_step_functions.append(self.effects['repulsion'].step)
         self.on_step_functions.append(self.scene.move)
-        # Todo: Dump pre and post move functions. We will have to indicate the exact order of all steps.
-        self.post_move_functions.append(self.scene.correct_for_geometry)
-        self.post_move_functions.append(self.scene.find_finished)
-        self.on_step_functions = self.pre_move_functions + self.on_step_functions + self.post_move_functions
+        self.on_step_functions.append(self.scene.correct_for_geometry)
+        self.on_step_functions.append(self.scene.find_finished)
         if self.visual_backend.lower() == 'tkinter':
             self.vis = VisualScene(self.scene)
             self.on_step_functions.append(self.vis.loop)
         elif self.visual_backend.lower() == 'none' or not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
-        else: 
-            print("Backend '%s' is not available"%self.visual_backend)
+        else:
+            print("Backend '%s' is not available" % self.visual_backend)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
@@ -78,7 +82,7 @@ class Simulation:
         self._prepare()
         self.scene.prepare()
         for effect in self.effects:
-            effect.prepare()
+            self.effects[effect].prepare()
         for population in self.populations:
             population.prepare()
         self.status = 'RUNNING'
@@ -95,36 +99,36 @@ class Simulation:
         self.scene.counter += 1
         [step() for step in self.on_step_functions]
 
-    def add_local(self,effect):
-        if effect.lower() == 'separation':
+    def add_local(self, effect):
+        effect_name = effect.lower()
+        if effect_name == 'separation':
             separation = Separate(self.scene)
-            self.effects.append(separation)
-            self.post_move_functions.append(separation.step)
+            self.effects[effect_name] = separation
         else:
-            raise NotImplementedError("Local effect %s not found"%effect)
+            raise NotImplementedError("Local effect %s not found" % effect)
 
-    def add_global(self,effect):
-        if effect.lower() == 'smoke':
+    def add_global(self, effect):
+        effect_name = effect.lower()
+        if effect_name == 'smoke':
             raise NotImplementedError("Smoke is not yet implemented")
-        elif effect.lower() == 'fire':
+        elif effect_name == 'fire':
             raise NotImplementedError("Also fire not yet implemented")
-        elif effect.lower() == 'repulsion':
+        elif effect_name == 'repulsion':
             repulsion = Repel(self.scene)
-            self.post_move_functions.append(repulsion.step)
+            self.effects[effect_name] = repulsion
 
-    def add_pedestrians(self,num,behaviour):
-        population = Population(self.scene,num)
+    def add_pedestrians(self, num, behaviour):
+        population = Population(self.scene, num)
         if behaviour.lower() == 'following':
             Behaviour = Following
         elif behaviour.lower() == 'knowing':
             Behaviour = Knowing
         else:
-            raise NotImplementedError("Behaviour %s not implemented"%behaviour)
+            raise NotImplementedError("Behaviour %s not implemented" % behaviour)
         gov_population = Behaviour(population)
         self.populations.append(gov_population)
-        self.on_step_functions.append(gov_population.step)
 
-    def store_positions(self): # Todo: Make this work
+    def store_positions(self):  # Todo: Make this work
         # filename = input('Specify storage file\n')
         import re
         filename = re.search('/([^/]+)\.(png|jpe?g)', params.scene_file).group(1)
@@ -133,8 +137,8 @@ class Simulation:
         # self.finish_functions.append(lambda: self.store_position_usage(filename))
         self.finish_functions.append(self.store_exit_logs)
 
-    def log_results(self,true):
-        results = Result(self.scene,None,None)  # Todo: Make this work
+    def log_results(self, true):
+        results = Result(self.scene, None, None)  # Todo: Make this work
         self.on_step_functions.append(results.on_step)
         self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
         self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
@@ -205,11 +209,11 @@ class Simulation:
         if self.scene.time > params.max_time:
             self.vis.finish()
 
-    def _check_percentage(self,_=None):
+    def _check_percentage(self, _=None):
         """
         Check whether the required percentage of evacs has been reached
         :param _: Placeholder parameter; ignore
         :return:
         """
-        if 1 - np.sum(self.scene.active_entries)/len(self.scene.active_entries) >= params.max_percentage:
+        if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= params.max_percentage:
             self.vis.finish()

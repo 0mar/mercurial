@@ -3,6 +3,7 @@ from lib.wdt import map_image_to_costs, get_weighted_distance_transform
 from math_objects.geometry import Point, Size
 import params
 
+
 class Scene:
     """
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
@@ -25,7 +26,7 @@ class Scene:
         self.fire = None
         # self.fire_center = None # Todo: Implement fires
         # if self.fire_center:
-        #     self.fire = Fire(self.size * Point(self.fire_center), self.size[0] * self.fire_radius, self.fire_intensity)
+        #     self.fire = Fire(self.size *Point(self.fire_center), self.size[0] * self.fire_radius, self.fire_intensity)
         #     self.drawables.append(self.fire)
         # self.gutter_cells = self.get_obstacle_gutter_cells()
         # Array initialization
@@ -39,11 +40,11 @@ class Scene:
         Method called directly before simulation start. All parameters need to be registered.
         :return: None
         """
-        self.size = Size([params.scene_size_x,params.scene_size_y])
+        self.size = Size([params.scene_size_x, params.scene_size_y])
         self.env_field = np.rot90(map_image_to_costs(params.scene_file), -1)
         self.direction_field = get_weighted_distance_transform(self.env_field)
-        self.dx = self.size[0]/self.env_field.shape[0]
-        self.dy = self.size[1]/self.env_field.shape[1]
+        self.dx = self.size[0] / self.env_field.shape[0]
+        self.dy = self.size[1] / self.env_field.shape[1]
         self.position_array = np.zeros([self.total_pedestrians, 2])
         self.last_position_array = np.zeros([self.total_pedestrians, 2])
         self.velocity_array = np.zeros([self.total_pedestrians, 2])
@@ -53,13 +54,14 @@ class Scene:
 
         if params.max_speed_distribution.lower() == 'uniform':
             # in a uniform distribution [a,b], sd = (b-a)/sqrt(12).
-            interval_size = params.max_speed_sd*np.sqrt(12)
-            interval_start = interval_size/2 + params.max_speed_av
-            self.max_speed_array = interval_start + np.random.rand(self.total_pedestrians)*interval_size
+            interval_size = params.max_speed_sd * np.sqrt(12)
+            interval_start = interval_size / 2 + params.max_speed_av
+            self.max_speed_array = interval_start + np.random.rand(self.total_pedestrians) * interval_size
         elif params.max_speed_distribution.lower() == 'normal':
             self.max_speed_array = np.abs(np.random.randn(self.total_pedestrians))
         else:
-            raise NotImplementedError('Distribution %s not yet implemented'%params.max_speed_distribution)
+            raise NotImplementedError('Distribution %s not yet implemented' % params.max_speed_distribution)
+
     # def get_obstacle_gutter_cells(self, radius=2): # Move
     #     """
     #     Compute all the cells which lie of distance `radius` from an obstacle.
@@ -107,7 +109,7 @@ class Scene:
         Assumes that all accelerations and velocities have been set accordingly.
         :return: None
         """
-        self.last_position_array = self.position_array
+        self.last_position_array = np.array(self.position_array)
         self.velocity_array += self.acceleration_array * params.dt
         self.position_array += self.velocity_array * params.dt
 
@@ -116,9 +118,9 @@ class Scene:
         Performs a vectorized correction to make sure pedestrians do not enter obstacles
         :return: None
         """
-        geq_zero = np.logical_and(self.position_array[:, 0] > 0, self.position_array[:, 1] > 0)
-        leq_size = np.logical_and(self.position_array[:, 0] < self.size[0], self.position_array[:, 1] < self.size[1])
-        still_correct = np.logical_and(geq_zero, leq_size)
+        ge_zero = np.logical_and(self.position_array[:, 0] > 0, self.position_array[:, 1] > 0)
+        le_size = np.logical_and(self.position_array[:, 0] < self.size[0], self.position_array[:, 1] < self.size[1])
+        still_correct = np.logical_and(ge_zero, le_size)
         cells = (self.position_array // (self.dx, self.dy)).astype(int) % self.env_field.shape
         # All peds for which the modulo kicks in, are already out
         not_in_obstacle = self.env_field[cells[:, 0], cells[:, 1]] < np.inf
