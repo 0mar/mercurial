@@ -25,7 +25,7 @@ def map_image_to_costs(image):
     a 2D array containing costs for moving through each pixel.
     This cost field forms the input for the weighted distance transform
     zero costs denote exits, infinite costs denote fully impenetrable obstacles.
-    In this example, we follow previous Mercurial standards: obstacles are in black, exits in red,
+    In this example, we follow Mercurial standards: obstacles are in black, exits in green,
     accessible space is in white, less accessible space has less white.
     Adapt to your own needs.
     :param image: String of image file or open file descriptor of image
@@ -33,8 +33,8 @@ def map_image_to_costs(image):
     """
     # Read image and convert to binary format
     data = imread(image, mode='RGB') / 255.
-    # Exits are present in all red enough places ("R >> BG")
-    exits = np.where(data[:, :, 0] - (data[:, :, 1] + data[:, :, 2]) / 2 > 2. / 3)
+    # Exits are present in all green enough places ("G >> R and G")
+    exits = np.where(data[:, :, 1] - (data[:, :, 0] + data[:, :, 2]) / 2 > 1. / 3)
     # Obstacles are in black (so at least G and B must be zero)
     obstacles = np.where(np.abs(data[:, :, 1] + data[:, :, 2]) < 1. / 256)
     # Convert image to greyscale

@@ -47,4 +47,4 @@ smoke_limit = 30
 # following
 follow_radius = 5
 minimal_follow_radius = 0.2
-random_force = 5
+random_force = 1
