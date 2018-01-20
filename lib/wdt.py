@@ -36,7 +36,7 @@ def map_image_to_costs(image):
     # Exits are present in all green enough places ("G >> R and G")
     exits = np.where(data[:, :, 1] - (data[:, :, 0] + data[:, :, 2]) / 2 > 1. / 3)
     # Obstacles are in black (so at least G and B must be zero)
-    obstacles = np.where(np.abs(data[:, :, 1] + data[:, :, 2]) < 1. / 256)
+    obstacles = np.where(np.abs(data[:, :, 0] + data[:, :, 2]) < 1. / 256)
     # Convert image to greyscale
     grey_scales = np.dot(data[..., :3], [0.299, 0.587, 0.114])
     # Boolean index array for places without exits and obstacles

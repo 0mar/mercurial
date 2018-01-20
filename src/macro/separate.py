@@ -40,8 +40,8 @@ class Repel:
         self.density_field = self.v_x = self.v_y = self.pressure_field = None
 
     def prepare(self):
-        prop_dx = params.cell_size_x
-        prop_dy = params.cell_size_y
+        prop_dx = params.pressure_dx
+        prop_dy = params.pressure_dy
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
 

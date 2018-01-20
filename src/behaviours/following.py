@@ -20,32 +20,32 @@ class Following:
         """
         Initializes a dynamic planner object. Takes a scene as argument.
         Parameters are initialized in this constructor, still need to be validated.
-        :param scene: scene object to impose planner on
+
+        :param population: The group of people the behaviour is imposed upon
         :return: dynamic planner object
         """
         # Todo: Add the graphing of the necessary plots as on_step_functions
         self.population = population
         self.scene = population.scene
         self.waypoints = []
-        self.waypoint_positions = self.waypoint_velocities = None
+        # self.waypoint_positions = self.waypoint_velocities = None
         self.follow_radii = None
         self.on_step_functions = []
 
     def prepare(self):
         self.population.prepare()
-        prop_dx = params.cell_size_x
-        prop_dy = params.cell_size_y
-        self.grid_dimension = tuple((self.scene.size.array / (prop_dx, prop_dy)).astype(int))
-        self.dx, self.dy = self.scene.size.array / self.grid_dimension
-        # self._load_waypoints()
         self.follow_radii = np.ones(self.population.number) * params.follow_radius
         if hasattr(self.scene, 'smoke_field'): # Probably there is a nicer way
             self.on_step_functions.append(self._reduce_sight_by_smoke)
         self.on_step_functions.append(self.assign_velocities)
-        # Initialize waypoints
 
     def _load_waypoints(self, file_name="None"):
-        # Todo: Fix implementation
+        """
+
+        not yet used, not yet implemented. Future research
+
+        :return:
+        """
         with open(file_name, 'r') as wp_file:
             data = json.loads(wp_file.read())
             if not 'waypoints' in data:

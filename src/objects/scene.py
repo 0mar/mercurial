@@ -2,6 +2,7 @@ import numpy as np
 from lib.wdt import map_image_to_costs, get_weighted_distance_transform
 from math_objects.geometry import Point, Size
 import params
+from scipy.misc import imresize
 
 
 class Scene:
@@ -24,16 +25,14 @@ class Scene:
         self.on_pedestrian_init_functions = []
 
         self.fire = None
-        # self.fire_center = None # Todo: Implement fires
-        # if self.fire_center:
-        #     self.fire = Fire(self.size *Point(self.fire_center), self.size[0] * self.fire_radius, self.fire_intensity)
-        #     self.drawables.append(self.fire)
         # self.gutter_cells = self.get_obstacle_gutter_cells()
         # Array initialization
         self.position_array = self.last_position_array = self.velocity_array = None
         self.acceleration_array = self.max_speed_array = self.active_entries = None
         self.pedestrian_list = []
         self.index_map = {}
+        self.env_field = self.direction_field = None
+        self.dx = self.dy = None
 
     def prepare(self):
         """
@@ -61,29 +60,6 @@ class Scene:
             self.max_speed_array = np.abs(np.random.randn(self.total_pedestrians))
         else:
             raise NotImplementedError('Distribution %s not yet implemented' % params.max_speed_distribution)
-
-    # def get_obstacle_gutter_cells(self, radius=2): # Move
-    #     """
-    #     Compute all the cells which lie of distance `radius` from an obstacle.
-    #     Used in the macroscopic pressure, in case we want to repel/attract pedestrians from/to specific zones.
-    #     :param radius: distance in cells to the obstacles
-    #     :return: array of nx,ny with 1 on gutter cells and obstacle cells and 0 on rest.
-    #     """
-    #     if not self.snap_obstacles:
-    #         ft.warn("Computing obstacle coverage: Snapping is turned off, so this is only an estimation")
-    #     dx, dy = self.config['general'].getfloat('cell_size_x'), self.config['general'].getfloat('cell_size_y')
-    #     nx = int(self.config['general'].getint('scene_size_x') / dx)
-    #     ny = int(self.config['general'].getint('scene_size_y') / dy)
-    #     obstacle_gutter = np.zeros(self.obstacle_coverage.shape)
-    #
-    #     for row, col in np.ndindex((nx, ny)):
-    #         if not self.obstacle_coverage[row, col]:
-    #             right, up = min(row + radius + 1, nx - 1), min(col + radius + 1, ny - 1)
-    #             left, down = max(row - radius, 0), max(col - radius, 0)
-    #             if np.any(self.obstacle_coverage[left:right, down:up]):
-    #                 obstacle_gutter[row, col] = 1
-    #     return obstacle_gutter
-
 
     def _expand_arrays(self):
         """
@@ -189,7 +165,7 @@ class Scene:
 
     def remove_pedestrian(self, pedestrian):
         """
-        Removes a pedestrian from the scene.
+        Removes a pedestrian from the scene and performs cleanup.
         :param pedestrian: The pedestrian instance to be removed.
         :return: None
         """
@@ -199,3 +175,16 @@ class Scene:
         self.active_entries[index] = False
         for func in self.on_pedestrian_exit_functions:
             func(pedestrian)
+
+    def get_obstacles(self, nx, ny):
+        """
+        Determines the obstacles for a (smaller) resolution of the image.
+        Useful for macroscopic operations like computing pressure and smoke
+
+        :param nx: number of points along x direction
+        :param ny: number of points along y direction
+        :return: resized numpy array with shape (nx,ny)
+        """
+        resized_env_field = imresize(self.env_field, (nx, ny), 'nearest')
+        obstacle_field = (resized_env_field < 0.5).astype(int)
+        return obstacle_field

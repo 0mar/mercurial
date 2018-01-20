@@ -58,6 +58,8 @@ class Simulation:
         if 'repulsion' in self.effects:
             self.on_step_functions.append(self.effects['repulsion'].step)
         self.on_step_functions.append(self.scene.move)
+        if 'separation' in self.effects:
+            self.on_step_functions.append(self.effects['separation'].step)
         self.on_step_functions.append(self.scene.correct_for_geometry)
         self.on_step_functions.append(self.scene.find_finished)
         if self.visual_backend.lower() == 'tkinter':
