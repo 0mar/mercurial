@@ -5,6 +5,10 @@ import numpy as np
 from math_objects import functions as ft
 from math_objects.geometry import Point, Size, Interval
 
+"""
+Removed in next commit
+"""
+
 
 class Obstacle:
     """
