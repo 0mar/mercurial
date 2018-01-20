@@ -31,8 +31,7 @@ class Smoke:
         self.obstacles[1:-1, 1:-1] = self.scene.get_obstacles(nx, ny)
         self.speed_ref = self.scene.max_speed_array
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
-        self.smoke_field = Field(self.scene.obstacle_coverage.shape, Field.Orientation.center, 'smoke',
-                                 (dx, dy))
+        self.smoke_field = Field((nx, ny), Field.Orientation.center, 'smoke', (dx, dy))
         self.sparse_disc_matrix = get_sparse_matrix(
             params.diffusion, params.velocity_x, params.velocity_y,
             dx, dy, params.dt, self.obstacles)
@@ -49,7 +48,7 @@ class Smoke:
         source_function = np.zeros(self.obstacles.shape)
         for row, col in np.ndindex((nx, ny)):
             center = np.array([(row + 0.5) * dx, (col + 0.5) * dy])
-            source_function[row, col] = fire.get_fire_experience(center)
+            source_function[row, col] = fire.get_fire_experience(center[None, :])
         return source_function
 
     def step(self):
@@ -64,10 +63,10 @@ class Smoke:
 
     def modify_speed_by_smoke(self):
         """
-        Choosing velocity parameters as given by the Japanese paper
+        Choosing velocity parameters as given by the Japanese paper.
         :return:
         """
         smoke_function = self.smoke_field.get_interpolation_function()
         smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        velo_modifier = np.clip(smoke_on_positions / params.max_smoke_level, 0, 1)
-        self.scene.max_speed_array = self.speed_ref - velo_modifier * params.minimum_speed
+        velo_modifier = np.clip(smoke_on_positions / params.max_smoke_level, 0, 1 - params.min_speed_ratio)
+        self.scene.max_speed_array = self.speed_ref * (1 - velo_modifier)

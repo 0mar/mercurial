@@ -191,7 +191,7 @@ class VisualScene:
         :param circ_object: object object to be drawn. Needs a center, radius and color
         :return: None
         """
-        rel_pos_array = circ_object.center.array / self.scene.size.array
+        rel_pos_array = circ_object.center / self.scene.size.array
         rel_size_array = circ_object.radius / self.scene.size.array * self.size.array
         vis_pos_array = np.array([rel_pos_array[0], 1 - rel_pos_array[1]]) * self.size.array
         start_pos_array = vis_pos_array - 0.5 * rel_size_array

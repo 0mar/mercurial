@@ -2,7 +2,7 @@ import numpy as np
 from lib.wdt import map_image_to_costs, get_weighted_distance_transform
 from math_objects.geometry import Point, Size
 import params
-from scipy.misc import imresize
+from scipy.ndimage import zoom
 
 
 class Scene:
@@ -185,6 +185,6 @@ class Scene:
         :param ny: number of points along y direction
         :return: resized numpy array with shape (nx,ny)
         """
-        resized_env_field = imresize(self.env_field, (nx, ny), 'nearest')
-        obstacle_field = (resized_env_field < 0.5).astype(int)
-        return obstacle_field
+        obstacle_field = (self.env_field == np.inf).astype(int)
+        resized_obstacle_field = zoom(obstacle_field, (nx / obstacle_field.shape[0], ny / obstacle_field.shape[1]))
+        return resized_obstacle_field

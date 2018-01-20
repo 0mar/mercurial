@@ -11,7 +11,7 @@ class Population:
     def __init__(self, scene, number):
         self.scene = scene
         self.number = number
-        self.indices = np.zeros(self.number,dtype=int)
+        self.indices = np.zeros(self.number, dtype=int)  # Necessary?
         self.scene.total_pedestrians += self.number
 
     def prepare(self):
@@ -28,7 +28,7 @@ class Population:
         """
         old_len = len(self.scene.pedestrian_list)
         for i in range(self.number):
-            pedestrian = Pedestrian(self.scene,old_len+i)
+            pedestrian = Pedestrian(self.scene, old_len + i)
             self.indices[i] = old_len + i
             self.scene.pedestrian_list.append(pedestrian)
-            self.scene.index_map[old_len+i] = pedestrian
+            self.scene.index_map[old_len + i] = pedestrian

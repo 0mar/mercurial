@@ -29,6 +29,8 @@ class Fire:
         self.on_step_functions = []
 
     def prepare(self):
+        if np.any(np.zeros(2) > self.center) or np.any(self.scene.size.array < self.center):
+            raise ValueError("Fire coordinates %s do not lie within scene" % self.center)
         if self.cause_smoke:
             self.smoke_module = Smoke(self)
             self.smoke_module.prepare()
@@ -40,17 +42,31 @@ class Fire:
         [step() for step in self.on_step_functions]
 
     def _repel_pedestrians(self):
-        self.fire_experience = self.get_fire_experience(self.scene.position_array)
-        self.scene.velocity_array = self.scene.velocity_array - self.fire_experience
+        self.fire_experience = self.get_fire_repulsion(self.scene.position_array)
+        self.scene.velocity_array = (self.scene.velocity_array - self.fire_experience) / (np.linalg.norm(
+            self.scene.velocity_array - self.fire_experience, axis=1) * self.scene.max_speed_array)[:, None]
 
     def get_fire_experience(self, position):
         """
         Compute the intensity for the fire for both repelling of pedestrian as for the creation of smoke
+        Todo: Change this to be optimized for smoke
+
         :param position: nx2 array for which the intensity is computed
         :return: The experienced intensity of the fire as a scalar, based on the distance to the center
         """
         distance = np.sqrt((position[:, 0] - self.center[0]) ** 2 + (position[:, 1] - self.center[1]) ** 2)
         return self.intensity * np.exp(-distance / self.radius)
+
+    def get_fire_repulsion(self, position):
+        """
+        Get the force the fire pushes the pedestrians towards
+
+        :param position: Positions
+        :return:
+        """
+        xs = np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
+        ys = np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]
+        return np.hstack([xs, ys])
 
     def __str__(self):
         return "Fire with center: %s, radius %.2f" % (self.center, self.radius)

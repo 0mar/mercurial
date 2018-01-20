@@ -44,7 +44,7 @@ diffusion = 0.4
 velocity_x = 0.3
 velocity_y = 0.2
 smoke_limit = 30
-minimum_speed = 0.3
+min_speed_ratio = 0.1
 max_smoke_level = 30
 
 # following

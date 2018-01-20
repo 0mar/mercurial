@@ -16,6 +16,7 @@ from visualization.none import NoVisualScene
 from populations.base import Population
 from behaviours.following import Following
 from behaviours.knowing import Knowing
+from extensions.fire import Fire
 
 
 class Simulation:
@@ -51,12 +52,13 @@ class Simulation:
         if not self.store_positions and not self.store_results:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
         # The order in which the following effects are added is important.
-        if 'smoke' in self.effects:
-            self.on_step_functions.append(self.effects['smoke'].step)
+
         for population in self.populations:
             self.on_step_functions.append(population.step)
         if 'repulsion' in self.effects:
             self.on_step_functions.append(self.effects['repulsion'].step)
+        if 'fire' in self.effects:
+            self.on_step_functions.append(self.effects['fire'].step)
         self.on_step_functions.append(self.scene.move)
         if 'separation' in self.effects:
             self.on_step_functions.append(self.effects['separation'].step)
@@ -111,15 +113,13 @@ class Simulation:
 
     def add_global(self, effect):
         effect_name = effect.lower()
-        if effect_name == 'smoke':
-            raise NotImplementedError("Smoke is not yet implemented")
-        elif effect_name == 'fire':
-            raise NotImplementedError("Also fire not yet implemented")
-        elif effect_name == 'repulsion':
+        if effect_name == 'repulsion':
             repulsion = Repel(self.scene)
             self.effects[effect_name] = repulsion
 
     def add_pedestrians(self, num, behaviour):
+        if type(num) != int or num < 1:
+            raise ValueError("Provide a positive integer as a population number, not %s" % num)
         population = Population(self.scene, num)
         if behaviour.lower() == 'following':
             Behaviour = Following
@@ -130,10 +130,15 @@ class Simulation:
         gov_population = Behaviour(population)
         self.populations.append(gov_population)
 
+    def add_fire(self, center, radius):
+        effect = Fire(center, radius, self.scene)
+        # If we want more fires, key needs to be unique (changing the fire effect)
+        self.effects['fire'] = effect
+
     def store_positions(self):  # Todo: Make this work
         # filename = input('Specify storage file\n')
         import re
-        filename = re.search('/([^/]+)\.(png|jpe?g)', params.scene_file).group(1)
+        filename = re.search('/([^/]+)\.(png|jpe?g)$', params.scene_file).group(1)
         functions.log("Storing positions results in '%s%s'" % (params.result_dir, filename))
         self.on_step_functions.append(lambda: self.store_positions_to_file(filename))
         # self.finish_functions.append(lambda: self.store_position_usage(filename))
