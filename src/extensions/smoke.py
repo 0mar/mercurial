@@ -36,19 +36,17 @@ class Smoke:
             params.diffusion, params.velocity_x, params.velocity_y,
             dx, dy, params.dt, self.obstacles)
         # Ready for use per time step
-        self.source = self._get_source(self.fire, nx, ny, dx, dy).flatten() * params.dt
+        self.source = self._get_source(self.fire, nx + 2, ny + 2).flatten() * params.dt
 
-    def _get_source(self, fire, nx, ny, dx, dy):
+    def _get_source(self, fire, nx, ny):
         """
         Compute the source function for the fire. Quite inefficient, but not a bottleneck at this stage.
 
         :param fire: The specific fire of the scene
         :return: Array with intensity of fire in every cell
         """
-        source_function = np.zeros(self.obstacles.shape)
-        for row, col in np.ndindex((nx, ny)):
-            center = np.array([(row + 0.5) * dx, (col + 0.5) * dy])
-            source_function[row, col] = fire.get_fire_experience(center[None, :])
+
+        source_function = fire.get_fire_experience(nx, ny)
         return source_function
 
     def step(self):
@@ -60,6 +58,7 @@ class Smoke:
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
         self.smoke_field.update(np.reshape(self.smoke, self.obstacles.shape)[1:-1, 1:-1])
         self.modify_speed_by_smoke()
+        print(np.max(self.smoke_field.array))
 
     def modify_speed_by_smoke(self):
         """
