@@ -42,6 +42,8 @@ allocate(count_arr(n_x,n_y))
 count_arr=0
 cell_pos = int(pos/min_dist)+1
 do k=1,n
+    cell_pos(k, 1) = max(min(cell_pos(k, 1), n_x), 1)
+    cell_pos(k, 2) = max(min(cell_pos(k, 2), n_y), 1)
     count_arr(cell_pos(k,1),cell_pos(k,2)) =&
     count_arr(cell_pos(k,1),cell_pos(k,2))+active(k)
 end do
