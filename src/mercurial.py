@@ -10,13 +10,14 @@ from math_objects import functions
 from objects.scene import Scene
 from micro.separate import Separate
 from macro.separate import Repel
-from processing.results import Result
+from processing.log_results import PositionLogger
 from visualization.simple import VisualScene
 from visualization.none import NoVisualScene
 from populations.base import Population
 from behaviours.following import Following
 from behaviours.knowing import Knowing
 from extensions.fire import Fire
+from extensions.camera import Cameras
 
 
 class Simulation:
@@ -41,15 +42,16 @@ class Simulation:
 
         if scene_file:
             params.scene_file = scene_file
-        else:
-            self.scene_file = params.scene_file
-        self.store_results = False
-        self.visual_backend = 'tkinter'
+        self.scene_file = params.scene_file
+        self.store_positions = False
+        self.logger = None
+        self.collect_data = None
+        self.visual_backend = True
         functions.EPS = params.tolerance
         self.scene = Scene()
 
     def _prepare(self):
-        if not self.store_positions and not self.store_results:
+        if not self.visual_backend and not self.store_positions:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
         # The order in which the following effects are added is important.
 
@@ -64,10 +66,12 @@ class Simulation:
             self.on_step_functions.append(self.effects['separation'].step)
         self.on_step_functions.append(self.scene.correct_for_geometry)
         self.on_step_functions.append(self.scene.find_finished)
-        if self.visual_backend.lower() == 'tkinter':
+        if self.store_positions:
+            self.on_step_functions.append(self.logger.step)
+        if self.visual_backend:
             self.vis = VisualScene(self.scene)
             self.on_step_functions.append(self.vis.loop)
-        elif self.visual_backend.lower() == 'none' or not self.visual_backend:
+        elif not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
         else:
             print("Backend '%s' is not available" % self.visual_backend)
@@ -83,12 +87,16 @@ class Simulation:
         and cleanup is handled through self.finish()
         :return: None
         """
+        if self.store_positions:
+            self.logger = PositionLogger(self)
         self._prepare()
         self.scene.prepare()
         for effect in self.effects:
             self.effects[effect].prepare()
         for population in self.populations:
             population.prepare()
+        if self.store_positions:
+            self.logger.prepare()
         self.status = 'RUNNING'
         self.vis.start()
         self.finish()
@@ -135,21 +143,29 @@ class Simulation:
         # If we want more fires, key needs to be unique (changing the fire effect)
         self.effects['fire'] = effect
 
-    def store_positions(self):  # Todo: Make this work
-        # filename = input('Specify storage file\n')
-        import re
-        filename = re.search('/([^/]+)\.(png|jpe?g)$', params.scene_file).group(1)
-        functions.log("Storing positions results in '%s%s'" % (params.result_dir, filename))
-        self.on_step_functions.append(lambda: self.store_positions_to_file(filename))
-        # self.finish_functions.append(lambda: self.store_position_usage(filename))
-        self.finish_functions.append(self.store_exit_logs)
+    def add_cameras(self, positions, angles):
+        """
+        Not implemented yet. Used to pass data about future camera's to post-visualisation.
+        :param positions:
+        :return:
+        """
+        effect = Cameras(np.array(positions), np.array(angles))
+        self.effects['cameras'] = effect
 
-    def log_results(self, true):
-        results = Result(self.scene, None, None)  # Todo: Make this work
-        self.on_step_functions.append(results.on_step)
-        self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
-        self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
-        self.finish_functions.append(results.on_finish)
+    def set_visualisation(self, on):
+        self.visual_backend = bool(on)
+
+    def set_store_positions(self, on):
+        self.store_positions = bool(on)
+
+    def set_data_collector(self, on):
+        self.collect_data = bool(on)
+        #
+        # results = Result(self.scene, None, None)  # Todo: Make this work
+        # self.on_step_functions.append(results.on_step)
+        # self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
+        # self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
+        # self.finish_functions.append(results.on_finish)
 
     def print_settings(self):
         """

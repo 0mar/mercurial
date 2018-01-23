@@ -1,6 +1,9 @@
 # import src.params as params
 import time
 import base64
+import os
+import re
+from src import params
 
 try:
     import h5py
@@ -13,7 +16,7 @@ except ImportError:
 import numpy as np
 
 
-class Logger:
+class PositionLogger:
 
     def __init__(self, simulation):
         if not has_h5py:
@@ -22,9 +25,14 @@ class Logger:
         self.simulation = simulation
         self.filename = None
         self.file = None
+        self.results_folder = "results"
+        if not os.path.exists(self.results_folder):
+            os.makedirs(self.results_folder)
+            print("Created new folder %s" % self.results_folder)
 
     def prepare(self):
-        self.filename = 'trd.h5'  # self.simulation.scene_file+self.hash
+        base_name = re.search('/([^/]+).(png|jpe?g)$', params.scene_file).group(1)
+        self.filename = "%s/%s%s.h5" % (self.results_folder, base_name, self.hash)
         self.file = h5py.File(self.filename, 'w')
         self.file.create_group('scene')
         self.file.attrs['timestamp'] = time.time()
@@ -33,29 +41,43 @@ class Logger:
         image_data = self.file['scene'].create_dataset("image", (2,))
         image_data[:] = self.simulation.scene.size.array
         image_data.attrs['environment'] = np.string_(base64.b64encode(binary_data))
+        if 'fire' in self.simulation.effects:
+            self.file['scene'].create_dataset('fire', data=self.simulation.effects['fire'].center)
+        if 'cameras' in self.simulation.effects:
+            combined_data = np.hstack(
+                (self.simulation.effects['cameras'].positions, self.simulation.effects['cameras'].angles[:, None]))
+            self.file['scene'].create_dataset('cameras', data=combined_data)
 
     def step(self):
         time_step = self.file.create_group('%d' % self.simulation.scene.counter)
-        time_step.attrs['dt'] = 0.1  # params.dt
+        time_step.attrs['dt'] = params.dt
+        micro = ['positions', 'velocities', 'active', 'map']  # Particle characteristics
         time_step.create_dataset('positions', data=self.simulation.scene.position_array)
         time_step.create_dataset('velocities', data=self.simulation.scene.velocity_array)
         time_step.create_dataset('active', data=self.simulation.scene.active_entries)
-        time_step.create_dataset('map', data=self._get_index_array()
+        time_step.create_dataset('map', data=self._get_index_array())
+        for tag in micro:
+            time_step[tag].attrs['level'] = 'micro'
 
+        macro = ['density', 'velo_field_x', 'velo_field_y', 'pressure', 'smoke']  # Continuum characteristics
         time_step.create_dataset('density', data=self.simulation.effects['repulsion'].density_field.array)
-        time_step.create_dataset('velocity_x', data=self.simulation.scene.effects['repulsion'].velocity_field_x.array)
-        time_step.create_dataset('velocity_y', data=self.simulation.scene.effects['repulsion'].velocity_field_y.array)
+        time_step.create_dataset('velo_field_x', data=self.simulation.effects['repulsion'].v_x.array)
+        time_step.create_dataset('velo_field_y', data=self.simulation.effects['repulsion'].v_y.array)
         time_step.create_dataset('pressure', data=self.simulation.effects['repulsion'].pressure_field.array)
-        time_step.create_dataset('smoke', data=self.simulation.effects['smoke'].smoke_field.array)
+        time_step.create_dataset('smoke', data=self.simulation.effects['fire'].smoke_module.smoke_field.array)
+        for tag in macro:
+            time_step[tag].attrs['level'] = 'macro'
 
     def _get_index_array(self):
+        """
+        Convert the index map of the pedestrians to an numpy array.
+        Each index (each row) contains the unique pedestrian counter.
+        Empty arrays correspond to -1, so that index_array > 0 == active_array
+
+        :return: a numpy array, shape of active_array with pedestrian counters
+        """
         index_array = np.zeros_like(self.simulation.scene.active_entries) - 1
-        for key, val in self.simulation.scene.index_map.items:
-            index_array[key] = val.counter
+        for key, val in self.simulation.scene.index_map.items():
+            if val:
+                index_array[key] = val.counter
         return index_array
-
-
-class Sim:
-    def __init__(self):
-        self.scene = 'scene'
-        self.scene_file = 'scenes/test.png'

@@ -5,13 +5,15 @@ from objects.pedestrian import Pedestrian
 class Population:
     """
     Base class that models a population.
+    Todo: Perhaps merge with behaviour class? Or make it override this one.
+
     Can be overridden with populations following different rules
     """
 
     def __init__(self, scene, number):
         self.scene = scene
         self.number = number
-        self.indices = np.zeros(self.number, dtype=int)  # Necessary?
+        self.indices = np.zeros(self.number, dtype=int)
         self.scene.total_pedestrians += self.number
 
     def prepare(self):
