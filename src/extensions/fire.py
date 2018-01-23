@@ -29,6 +29,11 @@ class Fire:
         self.on_step_functions = []
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         if self.cause_smoke:
             self.smoke_module = Smoke(self)
             self.smoke_module.prepare()
@@ -40,6 +45,12 @@ class Fire:
         [step() for step in self.on_step_functions]
 
     def _repel_pedestrians(self):
+        """
+        Apply the repelling force of the fire to the pedestrians.
+        Difficult factor to implement... maybe because of the assumptions on pedestrian paths,
+        maybe because it is quite difficult how people react to real fire.
+        :return:
+        """
         self.fire_experience = self.get_fire_experience(self.scene.position_array)
         self.scene.velocity_array = self.scene.velocity_array - self.fire_experience
 

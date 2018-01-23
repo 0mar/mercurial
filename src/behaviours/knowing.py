@@ -13,23 +13,27 @@ class Knowing:
     """
     A potential field transporter that computes the weighted distance transform
     of the scene and uses the steepest gradient to move the pedestrians towards their goal.
-    Combine with a macroscopic planner for interaction
+    Combine with a macroscopic planner for interaction (repulsion)
     """
 
     def __init__(self, population):
         """
-        Initializes a static planner object. Takes a scene as argument.
-        Parameters are initialized in this constructor, still need to be validated.
-        :param scene: scene object to impose planner on
-        :return: dynamic planner object
+        Initializes a following behaviour for the given population.
+
+        :param population: The group of people the behaviour is imposed upon
+        :return: Scripted pedestrian group
         """
-        # Initialize depending on scene or on grid_computer?
         self.population = population
         self.scene = population.scene
         self.on_step_functions = []
         self.on_step_functions.append(self.assign_velocities)
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         self.population.prepare()
         cost_field = self._add_obstacle_discomfort(radius=params.obstacle_clearance)
         wdt = get_weighted_distance_transform(cost_field)
@@ -51,6 +55,7 @@ class Knowing:
         Use a gaussian filter (image blurring) to obtain a layer of discomfort around the obstacles
         The radius specifies how far the discomfort reaches. This radius is related to pedestrian size but can vary
         among different scenarios
+
         :param radius: SD of gaussian filter. Higher means lower values but longer range.
         :return: An adjusted cost field
         """

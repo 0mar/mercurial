@@ -90,53 +90,6 @@ def is_close(a, b):
     return math.fabs(a - b) < EPS
 
 
-def rot_mat(angle):
-    """
-    Computes a 2D rotation matrix
-    :param angle: rotation angle in radians
-    :return: 2x2 rotation matrix
-    """
-    return np.array([[np.sin(angle), np.cos(angle)], [-np.cos(angle), np.sin(angle)]])
-
-
-def rectangles_intersect(start_1, end_1, start_2, end_2, open_sets=False):
-    """
-    Expect ordered coordinates.
-    Checks whether two rectangles have a nonempty intersection.
-    :param start_1: Tuple with bottom coordinates of first rectangle
-    :param end_1: Tuple with top coordinates of first rectangle
-    :param start_2: Tuple with bottom coordinates of second rectangle
-    :param end_2: Tuple with top coordinates of second rectangle
-    :param open_sets: Whether we check for strict inequality or equality also suffices
-    :return: True if rectangles intersect, false otherwise
-    """
-    if open_sets:
-        if (start_1[0] > end_2[0]) or (start_2[0] > end_1[0]) \
-                or (start_1[1] > end_2[1]) or (start_2[1] > end_1[1]):
-            return False
-    else:
-        if (start_1[0] >= end_2[0]) or (start_2[0] >= end_1[0]) \
-                or (start_1[1] >= end_2[1]) or (start_2[1] >= end_1[1]):
-            return False
-    return True
-
-
-
-def get_hyperplane_functional(p, q):
-    """
-    Returns a functional that computes whether a vector is on either side (or on) a hyperplane.
-    The hyperplane (in 2D) is determined by the input vectors.
-    :param p: one of the 2D vectors determining the hyperplane
-    :param q:one of the 2D vectors (!=p) determining the hyperplane
-    :return: 2D functional that is positive for vectors on one side of the hyperplane, negative
-    for vectors on the other side, and zero for vectors on the plane
-    """
-    a1 = -(p[1] - q[1])
-    a2 = p[0] - q[0]
-    b = p[1] * (p[0] - q[0]) - p[0] * (p[1] - q[1])
-    return lambda x1, x2: a1 * x1 + a2 * x2 - b
-
-
 def increase_array_size(array, increment_factor=2):
     """
     Increases the size (first dimension) of a numpy array with the given factor
