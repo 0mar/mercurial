@@ -51,7 +51,7 @@ class Smoke:
         :return: Array with intensity of fire in every cell
         """
 
-        source_function = fire.get_fire_experience(nx, ny)
+        source_function = fire.get_fire_intensity(nx, ny)
         return source_function
 
     def step(self):
@@ -63,7 +63,6 @@ class Smoke:
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
         self.smoke_field.update(np.reshape(self.smoke, self.obstacles.shape)[1:-1, 1:-1])
         self.modify_speed_by_smoke()
-        print(np.max(self.smoke_field.array))
 
     def modify_speed_by_smoke(self):
         """

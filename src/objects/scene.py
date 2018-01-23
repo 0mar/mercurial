@@ -57,7 +57,8 @@ class Scene:
             interval_start = interval_size / 2 + params.max_speed_av
             self.max_speed_array = interval_start + np.random.rand(self.total_pedestrians) * interval_size
         elif params.max_speed_distribution.lower() == 'normal':
-            self.max_speed_array = np.abs(np.random.randn(self.total_pedestrians))
+            self.max_speed_array = params.max_speed_sd * np.abs(
+                np.random.randn(self.total_pedestrians)) + params.max_speed_av
         else:
             raise NotImplementedError('Distribution %s not yet implemented' % params.max_speed_distribution)
 

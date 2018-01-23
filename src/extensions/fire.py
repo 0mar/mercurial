@@ -23,7 +23,6 @@ class Fire:
         self.repelling = repelling
         self.cause_smoke = cause_smoke
         # intensity_level: length scale of repulsion (may turn out to depend on radius)
-        self.intensity = params.fire_intensity
         self.color = 'orange'
         self.smoke_module = None
         self.on_step_functions = []
@@ -57,11 +56,12 @@ class Fire:
         self.scene.velocity_array = (self.scene.velocity_array - self.fire_experience) / (np.linalg.norm(
             self.scene.velocity_array - self.fire_experience, axis=1) * self.scene.max_speed_array)[:, None]
 
-    def get_fire_experience(self, nx, ny):
+    def get_fire_intensity(self, nx, ny):
         """
-        Compute the intensity for the fire for both repelling of pedestrian as for the creation of smoke
+        Compute the intensity of the fire for the smoke propagation.
 
-        :param position: nx array for which the intensity is computed
+        :param nx: Number of cells for smoke discretization in x direction
+        :param ny: Number of cells for smoke discretization in y direction
         :return: The experienced intensity of the fire as a scalar, based on the distance to the center
         """
         dx, dy = self.scene.size.array / (nx, ny)
@@ -78,8 +78,8 @@ class Fire:
         :param position: Positions
         :return:
         """
-        xs = np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
-        ys = np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]
+        xs = params.fire_intensity * np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
+        ys = params.fire_intensity * np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]
         return np.hstack([xs, ys])
 
     def __str__(self):

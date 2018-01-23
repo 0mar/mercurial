@@ -1,5 +1,7 @@
 """
 Contains all parameters.
+Todo: I thought I could import this module and change it's values globally at runtime... not possible.
+This should become a class, maybe static.
 """
 
 # general
@@ -9,12 +11,12 @@ log_file = 'logs'
 dt = 0.1
 scene_size_x = 100
 scene_size_y = 100
-max_speed_av = 1.1
-max_speed_sd = 0.4
+max_speed_av = 0.7
+max_speed_sd = 0.1
 max_speed_distribution = 'normal'
 tolerance = 0.0001
-pedestrian_size = 0.4
-minimal_distance = 0.7
+pedestrian_size = 0.8
+minimal_distance = 1
 max_time = 0
 max_percentage = 1
 
@@ -36,7 +38,7 @@ screen_size_x = 1000
 screen_size_y = 800
 
 # Fire
-fire_intensity = 2
+fire_intensity = 0.0001
 # smoke
 smoke_dx = 2
 smoke_dy = 2
