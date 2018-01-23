@@ -3,8 +3,8 @@ from src import params
 from math import pi
 
 simulation = Simulation('scenes/test.png')
-simulation.add_pedestrians(10, 'knowing')
-simulation.add_pedestrians(300, 'following')
+simulation.add_pedestrians(3, 'following')
+simulation.add_pedestrians(300, 'knowing')
 simulation.add_global('repulsion')
 simulation.add_local('separation')
 cam_positions = [[400 / 8, 500 / 6], [600 / 8, 300 / 6], [200 / 8, 250 / 6]]

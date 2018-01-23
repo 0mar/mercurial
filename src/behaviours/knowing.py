@@ -89,11 +89,14 @@ class Knowing:
         Interpolates the potential gradients for this time step and computes the velocities.
         :return: None
         """
-        solved_grad_x = self.grad_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        solved_grad_y = self.grad_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        solved_grad_x = self.grad_x_func.ev(self.scene.position_array[:, 0][self.population.indices],
+                                            self.scene.position_array[:, 1][self.population.indices])
+        solved_grad_y = self.grad_y_func.ev(self.scene.position_array[:, 0][self.population.indices],
+                                            self.scene.position_array[:, 1][self.population.indices])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
-        self.scene.velocity_array = - self.scene.max_speed_array[:, None] * solved_grad / \
-                                    np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
+        self.scene.velocity_array[self.population.indices] = - self.scene.max_speed_array[:, None][
+            self.population.indices] * solved_grad / \
+                                                             np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
 
     def step(self):
         """

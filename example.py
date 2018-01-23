@@ -1,6 +1,6 @@
 from src.mercurial import Simulation
 
-simulation = Simulation('scenes/test.png')
+simulation = Simulation('scenes/small.png')
 simulation.add_pedestrians(10, 'knowing')
 simulation.add_pedestrians(100, 'following')
 simulation.add_global('repulsion')
