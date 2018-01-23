@@ -29,6 +29,11 @@ class Fire:
         self.on_step_functions = []
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         if np.any(np.zeros(2) > self.center) or np.any(self.scene.size.array < self.center):
             raise ValueError("Fire coordinates %s do not lie within scene" % self.center)
         if self.cause_smoke:
@@ -42,6 +47,12 @@ class Fire:
         [step() for step in self.on_step_functions]
 
     def _repel_pedestrians(self):
+        """
+        Apply the repelling force of the fire to the pedestrians.
+        Difficult factor to implement... maybe because of the assumptions on pedestrian paths,
+        maybe because it is quite difficult how people react to real fire.
+        :return:
+        """
         self.fire_experience = self.get_fire_repulsion(self.scene.position_array)
         self.scene.velocity_array = (self.scene.velocity_array - self.fire_experience) / (np.linalg.norm(
             self.scene.velocity_array - self.fire_experience, axis=1) * self.scene.max_speed_array)[:, None]

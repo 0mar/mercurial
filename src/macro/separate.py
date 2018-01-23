@@ -40,6 +40,11 @@ class Repel:
         self.density_field = self.v_x = self.v_y = self.pressure_field = None
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         prop_dx = params.pressure_dx
         prop_dy = params.pressure_dy
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
@@ -79,7 +84,12 @@ class Repel:
         self.graphs[1, 1].set_title('Pressure gradient')
         plt.show(block=False)
 
-    def get_macro_field(self):
+    def get_macro_fields(self):
+        """
+        Compute the macroscopic (continuum) fields like density and velocity by interpolation of the
+        microsopic pedestrian quantities.
+        :return:
+        """
         n_x, n_y = self.grid_dimension
         dx, dy = self.scene.size.array / self.grid_dimension
         density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
@@ -95,7 +105,7 @@ class Repel:
         """
         Compute the pressure term
         We pad the pressure with an extra boundary
-        so that the gradient is defined everywhere.
+        so that the gradient is defined for each cell in the scene.
         """
 
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
@@ -151,22 +161,12 @@ class Repel:
         [step() for step in self.on_step_functions]
 
     def apply_repulsion(self):
-        self.get_macro_field()
+        """
+        The full iteration. Interpolate macrofields, solve the PDE,
+        adjust the velocity field, and impose this on the pedestrians
+        :return:
+        """
+        self.get_macro_fields()
         self.compute_pressure()
         self.adjust_velocity()
         self.put_micro_changes()
-
-    # @staticmethod
-    # def weight_function(array, smoothing_length=1):
-    #     """
-    #     Using the Wendland kernel to determine the interpolation weight
-    #     Calculation is performed in two steps to take advantage of numpy's speed
-    #     :param array: Array of distances to apply the kernel on.
-    #     :param smoothing_length: Steepness factor (standard deviation) of kernel
-    #     :return: Weights of interpolation
-    #     """
-    #     array /= smoothing_length
-    #     norm_constant = 7. / (4 * np.pi * smoothing_length * smoothing_length)
-    #     first_factor = np.maximum(1 - array / 2, 0)
-    #     weight = first_factor ** 4 * (1 + 2 * array)
-    #     return weight * norm_constant

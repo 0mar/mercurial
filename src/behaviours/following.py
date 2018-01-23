@@ -11,18 +11,16 @@ import params
 
 class Following:
     """
-    Two types of planners, based on awareness:
-    Aware pedestrians are guided by a potential field
-    Unaware pedestrians are guided by a swarm force.
+    Class of pedestrian individuals that follow everyone in a certain radius.
+    This radius represents a sight and can be reduced due to smoke.
     """
 
     def __init__(self, population):
         """
-        Initializes a dynamic planner object. Takes a scene as argument.
-        Parameters are initialized in this constructor, still need to be validated.
+        Initializes a following behaviour for the given population.
 
         :param population: The group of people the behaviour is imposed upon
-        :return: dynamic planner object
+        :return: Scripted pedestrian group
         """
         # Todo: Add the graphing of the necessary plots as on_step_functions
         self.population = population
@@ -33,6 +31,11 @@ class Following:
         self.on_step_functions = []
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         self.population.prepare()
         self.follow_radii = np.ones(self.population.number) * params.follow_radius
         if hasattr(self.scene, 'smoke_field'): # Probably there is a nicer way
@@ -41,8 +44,7 @@ class Following:
 
     def _load_waypoints(self, file_name="None"):
         """
-
-        not yet used, not yet implemented. Future research
+        Not yet used, not yet implemented. Future research
 
         :return:
         """
@@ -63,6 +65,10 @@ class Following:
             self.waypoint_velocities[i, :] = waypoint.direction.array*20
 
     def _reduce_sight_by_smoke(self):
+        """
+        Todo: Integrate
+        :return:
+        """
         smoke_on_positions = self.scene.smoke_field.get_interpolation_function().ev(self.scene.position_array[self.population.indices, 0],
                                                                                     self.scene.position_array[self.population.indices, 1])
         self.follow_radii = params.follow_radius * (1 - (1 - params.minimal_follow_radius) *
@@ -71,20 +77,10 @@ class Following:
 
     def assign_velocities(self):
         """
-        Three options for the unaware velocities:
-        1. We set new velocities for followers equal to the average velocities.
-        Problem if there are no people around
-        dx_i/dt = v* = sum_j{w_ij * v_j)
-
-        2. We weigh the new velocities with the densities
-        dx_i/dt = alpha(rho)*(dx_i/dt+ v*)
-
         3. We don't change the velocity but the acceleration based on neighbours
         dv_i/dt = sum_j{w_ij(v_i-v_j)}
         |dx_i/dt| = v_i
-        We choose the third, but should check what happens with the first two
         """
-
         if self.waypoints:
             positions = np.vstack((self.scene.position_array[self.population.indices], self.waypoint_positions))
             velocities = np.vstack((self.scene.velocity_array[self.population.indices], self.waypoint_velocities))

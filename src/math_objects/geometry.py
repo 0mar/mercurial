@@ -5,6 +5,11 @@ import numpy as np
 
 from math_objects import functions as ft
 
+"""
+Bunch of convenience classes which are not really used anymore. Except Point.
+Perhaps the rest will come in handy at a later stage.
+"""
+
 
 class Coordinate(object):
     """

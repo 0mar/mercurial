@@ -11,7 +11,7 @@ class Smoke:
 
     def __init__(self, fire):
         """
-        Creates a smoke propagator for the fire in the associated scene.
+        Creates a smoke propagator using the fire in the associated scene.
 
         :param fire: The source of the smoke.
         """
@@ -22,6 +22,11 @@ class Smoke:
         self.source = None
 
     def prepare(self):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :return: None
+        """
         prop_dx = params.smoke_dx
         prop_dy = params.smoke_dy
         nx, ny = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
