@@ -1,30 +1,28 @@
-import matplotlib
-
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 import numpy as np
+from populations.base import Population
 from math_objects import functions as ft
 from scipy.ndimage import gaussian_filter
 from math_objects.scalar_field import ScalarField as Field
 from lib.wdt import get_weighted_distance_transform
 import params
 
-class Knowing:
+
+class Knowing(Population):
     """
     A potential field transporter that computes the weighted distance transform
     of the scene and uses the steepest gradient to move the pedestrians towards their goal.
     Combine with a macroscopic planner for interaction (repulsion)
     """
 
-    def __init__(self, population):
+    def __init__(self, scene, number):
         """
         Initializes a following behaviour for the given population.
 
-        :param population: The group of people the behaviour is imposed upon
+        :param scene: Simulation scene
+        :param number: Initial number of people
         :return: Scripted pedestrian group
         """
-        self.population = population
-        self.scene = population.scene
+        super().__init__(scene, number)
         self.on_step_functions = []
         self.on_step_functions.append(self.assign_velocities)
         self.dx = self.dy = None
@@ -38,7 +36,7 @@ class Knowing:
 
         :return: None
         """
-        self.population.prepare()
+        super().prepare()
         cost_field = self._add_obstacle_discomfort(radius=params.obstacle_clearance)
         wdt = get_weighted_distance_transform(cost_field)
         self.dx, self.dy = self.scene.size.array / wdt.shape
@@ -93,14 +91,14 @@ class Knowing:
         Interpolates the potential gradients for this time step and computes the velocities.
         :return: None
         """
-        solved_grad_x = self.grad_x_func.ev(self.scene.position_array[:, 0][self.population.indices],
-                                            self.scene.position_array[:, 1][self.population.indices])
-        solved_grad_y = self.grad_y_func.ev(self.scene.position_array[:, 0][self.population.indices],
-                                            self.scene.position_array[:, 1][self.population.indices])
+        solved_grad_x = self.grad_x_func.ev(self.scene.position_array[:, 0][self.indices],
+                                            self.scene.position_array[:, 1][self.indices])
+        solved_grad_y = self.grad_y_func.ev(self.scene.position_array[:, 0][self.indices],
+                                            self.scene.position_array[:, 1][self.indices])
         solved_grad = np.hstack([solved_grad_x[:, None], solved_grad_y[:, None]])
-        self.scene.velocity_array[self.population.indices] = - self.scene.max_speed_array[:, None][
-            self.population.indices] * solved_grad / \
-                                                             np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
+        self.scene.velocity_array[self.indices] = - self.scene.max_speed_array[:, None][
+            self.indices] * solved_grad / \
+                                                  np.linalg.norm(solved_grad + ft.EPS, axis=1)[:, None]
 
     def step(self):
         """
