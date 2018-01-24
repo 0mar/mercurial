@@ -1,7 +1,6 @@
 import numpy as np
 from objects.pedestrian import Pedestrian
-
-
+from math_objects.geometry import Point, Size
 class Population:
     """
     Base class that models a population.
@@ -34,3 +33,10 @@ class Population:
             self.indices.append(old_len + i)
             self.scene.pedestrian_list.append(pedestrian)
             self.scene.index_map[old_len + i] = pedestrian
+
+    def create_new_pedestrian(self):
+        index = np.where(self.scene.active_entries == 0)[0][0]
+        new_pedestrian = Pedestrian(self.scene, counter=self.scene.total_pedestrians, index=index,
+                                    position=Point([30, 40]))
+        self.scene.add_pedestrian(new_pedestrian)
+        self.indices.append(index)

@@ -70,7 +70,6 @@ class Scene:
         :return: None
         """
         # I don't like [gs]etattr, but this is pretty explicit
-        # Todo: Is it possible to to make one method that expands all arrays application-wide?
         attr_list = ["position_array", "last_position_array", "velocity_array",
                      "max_speed_array", "active_entries", "aware_pedestrians",
                      "acceleration_array"]
@@ -136,9 +135,9 @@ class Scene:
             return False
         cell = (int(coord[0] // self.dx), int(coord[1] // self.dy))
         if at_start:
-            return 0 < self.env_field[cell] < np.inf  # Todo: Rather, you want to check the potential field
+            return 0 < self.direction_field[cell] < np.inf
         else:
-            return self.env_field[cell] < np.inf
+            return self.direction_field[cell] < np.inf
 
     def step(self):
         """
@@ -168,6 +167,7 @@ class Scene:
         """
         Removes a pedestrian from the scene and performs cleanup.
         :param pedestrian: The pedestrian instance to be removed.
+
         :return: None
         """
         index = pedestrian.index
@@ -175,6 +175,20 @@ class Scene:
         self.pedestrian_list.remove(pedestrian)
         self.active_entries[index] = False
         for func in self.on_pedestrian_exit_functions:
+            func(pedestrian)
+
+    def add_pedestrian(self, pedestrian):
+        """
+        Adds a new pedestrian to the scene
+        :param pedestrian: The pedestrian to be added
+
+        :return: None
+        """
+        index = pedestrian.index
+        self.index_map[index] = pedestrian
+        self.pedestrian_list.append(pedestrian)
+        self.active_entries[index] = True
+        for func in self.on_pedestrian_init_functions:
             func(pedestrian)
 
     def get_obstacles(self, nx, ny):

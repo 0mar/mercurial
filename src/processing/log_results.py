@@ -59,12 +59,14 @@ class PositionLogger:
         for tag in micro:
             time_step[tag].attrs['level'] = 'micro'
 
-        macro = ['density', 'velo_field_x', 'velo_field_y', 'pressure', 'smoke']  # Continuum characteristics
+        macro = ['density', 'velo_field_x', 'velo_field_y', 'pressure']  # Continuum characteristics
         time_step.create_dataset('density', data=self.simulation.effects['repulsion'].density_field.array)
         time_step.create_dataset('velo_field_x', data=self.simulation.effects['repulsion'].v_x.array)
         time_step.create_dataset('velo_field_y', data=self.simulation.effects['repulsion'].v_y.array)
         time_step.create_dataset('pressure', data=self.simulation.effects['repulsion'].pressure_field.array)
-        time_step.create_dataset('smoke', data=self.simulation.effects['fire'].smoke_module.smoke_field.array)
+        if 'fire' in self.simulation.effects:
+            time_step.create_dataset('smoke', data=self.simulation.effects['fire'].smoke_module.smoke_field.array)
+            time_step['smoke'].attrs['level'] = 'macro'
         for tag in macro:
             time_step[tag].attrs['level'] = 'macro'
 

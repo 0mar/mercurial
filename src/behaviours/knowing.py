@@ -27,6 +27,10 @@ class Knowing:
         self.scene = population.scene
         self.on_step_functions = []
         self.on_step_functions.append(self.assign_velocities)
+        self.dx = self.dy = None
+        self.potential_field = None
+        self.pot_grad_x = self.pot_grad_y = None
+        self.grad_x_func = self.grad_y_func = None
 
     def prepare(self):
         """

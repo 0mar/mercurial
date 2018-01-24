@@ -47,6 +47,7 @@ class Simulation:
         self.logger = None
         self.collect_data = None
         self.visual_backend = True
+        self.in_beta = False
         functions.EPS = params.tolerance
         self.scene = Scene()
 
@@ -71,6 +72,8 @@ class Simulation:
         if self.visual_backend:
             self.vis = VisualScene(self.scene)
             self.on_step_functions.append(self.vis.loop)
+        if self.in_beta:
+            self.on_step_functions.append(self._add_new_pedestrian_sometimes)
         elif not self.visual_backend:
             self.vis = NoVisualScene(self.scene)
         else:
@@ -213,21 +216,6 @@ class Simulation:
         log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.scene.exit_list}
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
-    def store_positions_to_file(self, file_name):
-        """
-        Store the positions of each pedestrian to a file.
-        This allows for the creation of a heatmap and a path display in postprocessing.
-        Currently not implemented very efficiently.
-        :param file_name: Base file name to store the positions, appended with simulation time.
-        :return: None
-        """
-        # Todo: Alter this, we need the positions stored in one file.
-        # This way we clean up the files and we are able to extract a 2+1 dimensional density field from one file.
-        log_dir = params.result_dir
-        if self.scene.counter % 10 == 0:
-            with open("%s%s-%d" % (log_dir, file_name, int(self.scene.counter / 10)), 'wb') as f:
-                np.save(f, self.scene.position_array[self.scene.active_entries])
-
     def _check_max_time(self):
         if self.scene.time > params.max_time:
             self.vis.finish()
@@ -240,3 +228,16 @@ class Simulation:
         """
         if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= params.max_percentage:
             self.vis.finish()
+
+    def _add_new_pedestrian_sometimes(self, prob=0.1):
+        """
+        Prototype for adding new pedestrians to the scene. Quite unstable, might explode.
+        :param prob:
+        :return:
+        """
+        if np.random.random() < prob and len(self.scene.pedestrian_list) < self.scene.total_pedestrians:
+            print("Adding new pedestrian")
+            self.populations[0].population.create_new_pedestrian()
+
+    def set_develop(self):
+        self.in_beta = True
