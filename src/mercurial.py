@@ -72,12 +72,10 @@ class Simulation:
         if self.visual_backend:
             self.vis = VisualScene(self.scene)
             self.on_step_functions.append(self.vis.loop)
+        else:
+            self.vis = NoVisualScene(self.scene)
         if self.in_beta:
             self.on_step_functions.append(self._add_new_pedestrian_sometimes)
-        elif not self.visual_backend:
-            self.vis = NoVisualScene(self.scene)
-        else:
-            print("Backend '%s' is not available" % self.visual_backend)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
