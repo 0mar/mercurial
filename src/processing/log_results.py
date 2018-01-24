@@ -10,7 +10,6 @@ try:
 
     has_h5py = True
 except ImportError:
-    print("Logging of the results requires storing HDF5 files. Please install h5py")
     has_h5py = False
 
 import numpy as np
