@@ -30,17 +30,20 @@ class Parameters:
         self.packing_factor = 0.8
         self.min_density = 2
         self.max_density = 8
-        self.boundary_pressure = 1  # TODO: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
+        self.boundary_pressure = 1
+        # Todo: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
 
         # visual
         self.time_delay = 1
         self.screen_size_x = 1000
         self.screen_size_y = 800
 
+        # Todo: Not perfectly happy with how fire and smoke parameters are coupled with the rest
+        # Can probably be improved.
         # Fire
         self.fire_intensity = 0.0001
         # smoke
-        self.smoke = True
+        self.smoke = False
         self.smoke_dx = 2
         self.smoke_dy = 2
         self.diffusion = 0.4

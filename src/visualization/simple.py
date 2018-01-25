@@ -133,6 +133,8 @@ class VisualScene:
         self.canvas.delete('all')
         self.canvas.create_image(0, 0, image=self.env, anchor=tkinter.NW, tags="IMG")
         self.draw_pedestrians()
+        if hasattr(self.params, 'fire'):
+            self.draw_circ_obstacle(self.params.fire)
 
     def store_scene(self, _, filename=None):
 

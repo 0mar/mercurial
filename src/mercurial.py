@@ -138,6 +138,8 @@ class Simulation:
 
     def add_fire(self, center, radius):
         effect = Fire(center, radius, self.scene)
+        self.params.fire = effect
+        self.params.smoke = True
         # If we want more fires, key needs to be unique (changing the fire effect)
         self.effects['fire'] = effect
 

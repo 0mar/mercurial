@@ -87,7 +87,7 @@ class Following(Population):
         smoke_function = self.params.smoke_field.get_interpolation_function()
         smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         velo_modifier = np.clip(smoke_on_positions / self.params.max_smoke_level, 0, 1 - self.params.min_speed_ratio)
-        self.scene.max_speed_array = self.speed_ref * (1 - velo_modifier)
+        self.scene.max_speed_array[self.indices] = self.speed_ref[self.indices] * (1 - velo_modifier)
 
     def assign_velocities(self):
         """
