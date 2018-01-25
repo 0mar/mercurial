@@ -35,6 +35,7 @@ class VisualScene:
         self.window.bind("<Button-3>", self.store_scene)
         self.window.grid()
         self.env = None
+        # Todo: Draw the fire
         self.step_callback = None  # set in manager
 
 

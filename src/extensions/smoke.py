@@ -39,6 +39,7 @@ class Smoke:
         self.params.smoke = True
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
         self.smoke_field = Field((nx, ny), Field.Orientation.center, 'smoke', (dx, dy))
+        # Note: This object is monkey patched in the params object.
         self.params.smoke_field = self.smoke_field
         self.sparse_disc_matrix = get_sparse_matrix(
             self.params.diffusion, self.params.velocity_x, self.params.velocity_y,
@@ -65,14 +66,3 @@ class Smoke:
         """
         self.smoke = iterate_jacobi(*self.sparse_disc_matrix, self.source + self.smoke, self.smoke, self.obstacles)
         self.smoke_field.update(np.reshape(self.smoke, self.obstacles.shape)[1:-1, 1:-1])
-        self.modify_speed_by_smoke()
-
-    def modify_speed_by_smoke(self):
-        """
-        Choosing velocity parameters as given by the Japanese paper.
-        :return:
-        """
-        smoke_function = self.smoke_field.get_interpolation_function()
-        smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        velo_modifier = np.clip(smoke_on_positions / self.params.max_smoke_level, 0, 1 - self.params.min_speed_ratio)
-        self.scene.max_speed_array = self.speed_ref * (1 - velo_modifier)

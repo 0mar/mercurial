@@ -1,8 +1,6 @@
 class Parameters:
     """
     Contains all parameters.
-    Todo: I thought I could import this module and change its values globally at runtime... not possible.
-    This should become a class, maybe static.
     """
 
     def __init__(self):
