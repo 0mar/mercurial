@@ -13,9 +13,8 @@ from macro.separate import Repel
 from processing.log_results import PositionLogger
 from visualization.simple import VisualScene
 from visualization.none import NoVisualScene
-from populations.base import Population
-from behaviours.following import Following
-from behaviours.knowing import Knowing
+from populations.following import Following
+from populations.knowing import Knowing
 from extensions.fire import Fire
 from extensions.camera import Cameras
 
@@ -47,7 +46,6 @@ class Simulation:
         self.logger = None
         self.collect_data = None
         self.visual_backend = True
-        self.in_beta = False
         functions.EPS = params.tolerance
         self.scene = Scene()
 
@@ -74,8 +72,6 @@ class Simulation:
             self.on_step_functions.append(self.vis.loop)
         else:
             self.vis = NoVisualScene(self.scene)
-        if self.in_beta:
-            self.on_step_functions.append(self._add_new_pedestrian_sometimes)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
@@ -129,15 +125,14 @@ class Simulation:
     def add_pedestrians(self, num, behaviour):
         if type(num) != int or num < 1:
             raise ValueError("Provide a positive integer as a population number, not %s" % num)
-        population = Population(self.scene, num)
         if behaviour.lower() == 'following':
-            Behaviour = Following
+            Population = Following
         elif behaviour.lower() == 'knowing':
-            Behaviour = Knowing
+            Population = Knowing
         else:
             raise NotImplementedError("Behaviour %s not implemented" % behaviour)
-        gov_population = Behaviour(population)
-        self.populations.append(gov_population)
+        population = Population(self.scene, num)
+        self.populations.append(population)
 
     def add_fire(self, center, radius):
         effect = Fire(center, radius, self.scene)
@@ -226,16 +221,3 @@ class Simulation:
         """
         if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= params.max_percentage:
             self.vis.finish()
-
-    def _add_new_pedestrian_sometimes(self, prob=0.1):
-        """
-        Prototype for adding new pedestrians to the scene. Quite unstable, might explode.
-        :param prob:
-        :return:
-        """
-        if np.random.random() < prob and len(self.scene.pedestrian_list) < self.scene.total_pedestrians:
-            print("Adding new pedestrian")
-            self.populations[0].population.create_new_pedestrian()
-
-    def set_develop(self):
-        self.in_beta = True
