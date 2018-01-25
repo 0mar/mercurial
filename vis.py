@@ -1,5 +1,5 @@
 from src.mercurial import Simulation
-from src import params
+from src import self.params
 from math import pi
 
 simulation = Simulation('scenes/test.png')

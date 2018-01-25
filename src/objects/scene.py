@@ -1,7 +1,6 @@
 import numpy as np
 from lib.wdt import map_image_to_costs, get_weighted_distance_transform
 from math_objects.geometry import Point, Size
-import params
 from scipy.ndimage import zoom
 
 
@@ -10,7 +9,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self):
+    def __init__(self, params):
         """
         Initializes a Scene using the settings in the configuration file augmented with command line parameters
         :return: scene instance.
@@ -19,6 +18,7 @@ class Scene:
         self.counter = 0
         self.total_pedestrians = 0
         self.size = None
+        self.params = params
 
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
@@ -39,8 +39,8 @@ class Scene:
         Method called directly before simulation start. All parameters need to be registered.
         :return: None
         """
-        self.size = Size([params.scene_size_x, params.scene_size_y])
-        self.env_field = np.rot90(map_image_to_costs(params.scene_file), -1)
+        self.size = Size([self.params.scene_size_x, self.params.scene_size_y])
+        self.env_field = np.rot90(map_image_to_costs(self.params.scene_file), -1)
         self.direction_field = get_weighted_distance_transform(self.env_field)
         self.dx = self.size[0] / self.env_field.shape[0]
         self.dy = self.size[1] / self.env_field.shape[1]
@@ -51,16 +51,16 @@ class Scene:
         self.max_speed_array = np.empty(self.total_pedestrians)
         self.active_entries = np.ones(self.total_pedestrians, dtype=bool)
 
-        if params.max_speed_distribution.lower() == 'uniform':
+        if self.params.max_speed_distribution.lower() == 'uniform':
             # in a uniform distribution [a,b], sd = (b-a)/sqrt(12).
-            interval_size = params.max_speed_sd * np.sqrt(12)
-            interval_start = interval_size / 2 + params.max_speed_av
+            interval_size = self.params.max_speed_sd * np.sqrt(12)
+            interval_start = interval_size / 2 + self.params.max_speed_av
             self.max_speed_array = interval_start + np.random.rand(self.total_pedestrians) * interval_size
-        elif params.max_speed_distribution.lower() == 'normal':
-            self.max_speed_array = params.max_speed_sd * np.abs(
-                np.random.randn(self.total_pedestrians)) + params.max_speed_av
+        elif self.params.max_speed_distribution.lower() == 'normal':
+            self.max_speed_array = self.params.max_speed_sd * np.abs(
+                np.random.randn(self.total_pedestrians)) + self.params.max_speed_av
         else:
-            raise NotImplementedError('Distribution %s not yet implemented' % params.max_speed_distribution)
+            raise NotImplementedError('Distribution %s not yet implemented' % self.params.max_speed_distribution)
 
     def _expand_arrays(self):
         """
@@ -86,8 +86,8 @@ class Scene:
         :return: None
         """
         self.last_position_array = np.array(self.position_array)
-        self.velocity_array += self.acceleration_array * params.dt
-        self.position_array += self.velocity_array * params.dt
+        self.velocity_array += self.acceleration_array * self.params.dt
+        self.position_array += self.velocity_array * self.params.dt
 
     def correct_for_geometry(self):
         """

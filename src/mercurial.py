@@ -1,8 +1,7 @@
 import sys
 
 sys.path.append('src')
-import params
-
+from params import Parameters
 import numpy as np
 import scipy.io as sio
 
@@ -26,7 +25,7 @@ class Simulation:
     It initializes the important objects and makes sure that all the event methods (step, on_exit, on_finish) are run.
     """
 
-    def __init__(self, scene_file=None):
+    def __init__(self, scene_file=None, params=None):
         """
         Create a new simulation.
         """
@@ -38,16 +37,19 @@ class Simulation:
         # All the effects added in the simulation. keys are strings of the effect name, values are the effect objects
         self.effects = {}
         self.populations = []
-
+        if not params:
+            self.params = Parameters()
+        else:
+            self.params = params
         if scene_file:
-            params.scene_file = scene_file
-        self.scene_file = params.scene_file
+            self.params.scene_file = scene_file
+        self.scene_file = self.params.scene_file
         self.store_positions = False
         self.logger = None
         self.collect_data = None
         self.visual_backend = True
-        functions.EPS = params.tolerance
-        self.scene = Scene()
+        functions.EPS = self.params.tolerance
+        self.scene = Scene(self.params)
 
     def _prepare(self):
         if not self.visual_backend and not self.store_positions:
@@ -75,7 +77,7 @@ class Simulation:
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
-        if params.max_time > 0:
+        if self.params.max_time > 0:
             self.scene.on_pedestrian_exit_functions.append(self._check_max_time)
 
     def start(self):
@@ -104,7 +106,7 @@ class Simulation:
         run all the event listener methods that run on each time step
         :return:
         """
-        self.scene.time += params.dt
+        self.scene.time += self.params.dt
         self.scene.counter += 1
         [step() for step in self.on_step_functions]
 
@@ -168,7 +170,7 @@ class Simulation:
         Prints the parameters used in this simulation.
         :return:
         """
-        print([item for item in dir(params) if not item.startswith("__")])
+        print([item for item in dir(self.params) if not item.startswith("__")])
 
     def finish(self):
         """
@@ -194,7 +196,7 @@ class Simulation:
         """
         with open(file_name, 'w') as config_file:
             pass
-            # params.write(config_file)
+            # self.params.write(config_file)
 
     def store_exit_logs(self, file_name=None):
         """
@@ -203,14 +205,14 @@ class Simulation:
         :param file_name: File name for exit logs. If left empty, stores in file indicated by configuration.
         :return:
         """
-        log_dir = params.result_dir
+        log_dir = self.params.result_dir
         if not file_name:
-            file_name = params.log_file
+            file_name = self.params.log_file
         log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.scene.exit_list}
         sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
     def _check_max_time(self):
-        if self.scene.time > params.max_time:
+        if self.scene.time > self.params.max_time:
             self.vis.finish()
 
     def _check_percentage(self, _=None):
@@ -219,5 +221,5 @@ class Simulation:
         :param _: Placeholder parameter; ignore
         :return:
         """
-        if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= params.max_percentage:
+        if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= self.params.max_percentage:
             self.vis.finish()

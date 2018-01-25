@@ -30,6 +30,7 @@ class Repel:
         :return: Grid computer object.
         """
         self.scene = scene
+        self.params = self.scene.params
         self.on_step_functions = []
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
@@ -45,8 +46,8 @@ class Repel:
 
         :return: None
         """
-        prop_dx = params.pressure_dx
-        prop_dy = params.pressure_dy
+        prop_dx = self.params.pressure_dx
+        prop_dy = self.params.pressure_dy
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
         self.dx, self.dy = self.scene.size.array / self.grid_dimension
 
@@ -93,11 +94,12 @@ class Repel:
         n_x, n_y = self.grid_dimension
         dx, dy = self.scene.size.array / self.grid_dimension
         density_field, v_x, v_y = comp_dens_velo(self.scene.position_array, self.scene.velocity_array,
-                                                 self.scene.active_entries, n_x, n_y, dx, dy, params.smoothing_length)
+                                                 self.scene.active_entries, n_x, n_y, dx, dy,
+                                                 self.params.smoothing_length)
         self.density_field.update(density_field)
         self.v_x.update(v_x)
         self.v_y.update(v_y)
-        ft.debug("Max allowed density: %.4f" % params.max_density)
+        ft.debug("Max allowed density: %.4f" % self.params.max_density)
         ft.debug("Max observed density: %.4f" % np.max(self.density_field.array))
 
 
@@ -109,11 +111,11 @@ class Repel:
         """
 
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
-                                    self.dx, self.dy, params.dt, params.max_density)
+                                    self.dx, self.dy, self.params.dt, self.params.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
         # dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
         # dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
-        padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=params.boundary_pressure)
+        padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.params.boundary_pressure)
         self.pressure_field.update(padded_dim_p)
 
     def adjust_velocity(self):
@@ -142,9 +144,9 @@ class Repel:
         solved_v_x = v_x_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         solved_v_y = v_y_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         local_dens = np.minimum(dens_func.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1]),
-                                params.max_density)
+                                self.params.max_density)
         solved_velocity = np.hstack((solved_v_x[:, None], solved_v_y[:, None]))
-        self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / params.max_density * (
+        self.scene.velocity_array = self.scene.velocity_array + local_dens[:, None] / self.params.max_density * (
             solved_velocity - self.scene.velocity_array) + ft.EPS
         self.scene.velocity_array /= \
             np.linalg.norm(self.scene.velocity_array, axis=1)[:, None] / (self.scene.max_speed_array[:, None] + ft.EPS)

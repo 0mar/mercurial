@@ -7,8 +7,6 @@ from math_objects import functions as ft
 from lib.local_swarm import get_swarm_force
 import json
 
-import params
-
 
 class Following(Population):
     """
@@ -38,7 +36,7 @@ class Following(Population):
         :return: None
         """
         super().prepare()
-        self.follow_radii = np.ones(self.number) * params.follow_radius
+        self.follow_radii = np.ones(self.number) * self.params.follow_radius
         if hasattr(self.scene, 'smoke_field'):  # Probably there is a nicer way
             self.on_step_functions.append(self._reduce_sight_by_smoke)
         self.on_step_functions.append(self.assign_velocities)
@@ -73,8 +71,9 @@ class Following(Population):
         smoke_on_positions = self.scene.smoke_field.get_interpolation_function().ev(
             self.scene.position_array[self.indices, 0],
             self.scene.position_array[self.indices, 1])
-        self.follow_radii = params.follow_radius * (1 - (1 - params.minimal_follow_radius) *
-                                                    np.minimum(np.maximum(smoke_on_positions, 0) / params.smoke_limit,
+        self.follow_radii = self.params.follow_radius * (1 - (1 - self.params.minimal_follow_radius) *
+                                                         np.minimum(np.maximum(smoke_on_positions,
+                                                                               0) / self.params.smoke_limit,
                                                                1))
 
     def assign_velocities(self):
@@ -94,11 +93,11 @@ class Following(Population):
             actives = self.scene.active_entries[self.indices]
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.follow_radii)
-        random_force = np.random.randn(len(self.indices), 2) * params.random_force
+        random_force = np.random.randn(len(self.indices), 2) * self.params.random_force
         # fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
-        self.scene.velocity_array[self.indices] += (swarm_force + random_force) * params.dt
+        self.scene.velocity_array[self.indices] += (swarm_force + random_force) * self.params.dt
         # Normalizing velocities
         self.scene.velocity_array[self.indices] *= self.scene.max_speed_array[
                                                        self.indices, None] / np.linalg.norm(

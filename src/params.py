@@ -1,55 +1,58 @@
-"""
-Contains all parameters.
-Todo: I thought I could import this module and change its values globally at runtime... not possible.
-This should become a class, maybe static.
-"""
+class Parameters:
+    """
+    Contains all parameters.
+    Todo: I thought I could import this module and change its values globally at runtime... not possible.
+    This should become a class, maybe static.
+    """
 
-# general
-result_dir = 'results/'
-scene_file = 'scenes/test.png'
-log_file = 'logs'
-dt = 0.1
-scene_size_x = 100
-scene_size_y = 100
-max_speed_av = 0.7
-max_speed_sd = 0.1
-max_speed_distribution = 'normal'
-tolerance = 0.0001
-pedestrian_size = 0.8
-minimal_distance = 1
-max_time = 0
-max_percentage = 1
+    def __init__(self):
+        # general
+        self.result_dir = 'results/'
+        self.scene_file = 'scenes/test.png'
+        self.log_file = 'logs'
+        self.dt = 0.1
+        self.scene_size_x = 100
+        self.scene_size_y = 100
+        self.max_speed_av = 0.7
+        self.max_speed_sd = 0.1
+        self.max_speed_distribution = 'normal'
+        self.tolerance = 0.0001
+        self.pedestrian_size = 0.8
+        self.minimal_distance = 1
+        self.max_time = 0
+        self.max_percentage = 1
 
-# Environment
-obstacle_clearance = 4
+        # Environment
+        self.obstacle_clearance = 4
 
-# pressure
-pressure_dx = 2
-pressure_dy = 2
-smoothing_length = 1
-packing_factor = 0.8
-min_density = 2
-max_density = 8
-boundary_pressure = 1  # TODO: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
+        # pressure
+        self.pressure_dx = 2
+        self.pressure_dy = 2
+        self.smoothing_length = 1
+        self.packing_factor = 0.8
+        self.min_density = 2
+        self.max_density = 8
+        self.boundary_pressure = 1  # TODO: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
 
-# visual
-time_delay = 1
-screen_size_x = 1000
-screen_size_y = 800
+        # visual
+        self.time_delay = 1
+        self.screen_size_x = 1000
+        self.screen_size_y = 800
 
-# Fire
-fire_intensity = 0.0001
-# smoke
-smoke_dx = 2
-smoke_dy = 2
-diffusion = 0.4
-velocity_x = 0.3
-velocity_y = 0.2
-smoke_limit = 30
-min_speed_ratio = 0.1
-max_smoke_level = 30
+        # Fire
+        self.fire_intensity = 0.0001
+        # smoke
+        self.smoke = True
+        self.smoke_dx = 2
+        self.smoke_dy = 2
+        self.diffusion = 0.4
+        self.velocity_x = 0.3
+        self.velocity_y = 0.2
+        self.smoke_limit = 30
+        self.min_speed_ratio = 0.1
+        self.max_smoke_level = 30
 
-# following
-follow_radius = 5
-minimal_follow_radius = 0.2
-random_force = 1
+        # following
+        self.follow_radius = 5
+        self.minimal_follow_radius = 0.2
+        self.random_force = 1

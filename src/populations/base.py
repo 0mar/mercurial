@@ -11,6 +11,7 @@ class Population:
 
     def __init__(self, scene, number):
         self.scene = scene
+        self.params = self.scene.params
         self.number = number
         self.indices = []
         self.scene.total_pedestrians += self.number

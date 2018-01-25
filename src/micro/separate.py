@@ -15,6 +15,7 @@ class Separate:
         :param scene: current scene
         """
         self.scene = scene
+        self.params = self.scene.params
         self.store_violations = False
         self.violations = []
         self.mde = None
@@ -36,7 +37,7 @@ class Separate:
         :return:
         """
         self.mde = compute_mde(self.scene.position_array, self.scene.size[0], self.scene.size[1],
-                               self.scene.active_entries, params.minimal_distance)
+                               self.scene.active_entries, self.params.minimal_distance)
         self.scene.position_array += self.mde
 
     def compute_violations(self):

@@ -18,6 +18,7 @@ class Fire:
         :return: new fire source.
         """
         self.scene = scene
+        self.params = self.scene.params
         self.center = center
         self.radius = radius
         self.repelling = repelling
@@ -78,8 +79,8 @@ class Fire:
         :param position: Positions
         :return:
         """
-        xs = params.fire_intensity * np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
-        ys = params.fire_intensity * np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]
+        xs = self.params.fire_intensity * np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
+        ys = self.params.fire_intensity * np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]
         return np.hstack([xs, ys])
 
     def __str__(self):

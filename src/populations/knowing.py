@@ -4,7 +4,6 @@ from math_objects import functions as ft
 from scipy.ndimage import gaussian_filter
 from math_objects.scalar_field import ScalarField as Field
 from lib.wdt import get_weighted_distance_transform
-import params
 
 
 class Knowing(Population):
@@ -37,7 +36,7 @@ class Knowing(Population):
         :return: None
         """
         super().prepare()
-        cost_field = self._add_obstacle_discomfort(radius=params.obstacle_clearance)
+        cost_field = self._add_obstacle_discomfort(radius=self.params.obstacle_clearance)
         wdt = get_weighted_distance_transform(cost_field)
         self.dx, self.dy = self.scene.size.array / wdt.shape
         self.potential_field = Field(wdt.shape, Field.Orientation.center, 'potential', (self.dx, self.dy))

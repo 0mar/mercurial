@@ -1,9 +1,8 @@
-# import src.params as params
+# import src.self.params as self.params
 import time
 import base64
 import os
 import re
-from src import params
 
 try:
     import h5py
@@ -22,6 +21,7 @@ class PositionLogger:
             raise ImportError("Cannot launch logger, install h5py")
         self.hash = ("%.5f" % (time.time() % 1))[2:]
         self.simulation = simulation
+        self.params = self.simulation.params
         self.filename = None
         self.file = None
         self.results_folder = "results"
@@ -30,7 +30,7 @@ class PositionLogger:
             print("Created new folder %s" % self.results_folder)
 
     def prepare(self):
-        base_name = re.search('/([^/]+).(png|jpe?g)$', params.scene_file).group(1)
+        base_name = re.search('/([^/]+).(png|jpe?g)$', self.params.scene_file).group(1)
         self.filename = "%s/%s%s.h5" % (self.results_folder, base_name, self.hash)
         self.file = h5py.File(self.filename, 'w')
         self.file.create_group('scene')
@@ -49,7 +49,7 @@ class PositionLogger:
 
     def step(self):
         time_step = self.file.create_group('%d' % self.simulation.scene.counter)
-        time_step.attrs['dt'] = params.dt
+        time_step.attrs['dt'] = self.params.dt
         micro = ['positions', 'velocities', 'active', 'map']  # Particle characteristics
         time_step.create_dataset('positions', data=self.simulation.scene.position_array)
         time_step.create_dataset('velocities', data=self.simulation.scene.velocity_array)

@@ -16,6 +16,7 @@ class Smoke:
         :param fire: The source of the smoke.
         """
         self.scene = fire.scene
+        self.params = self.scene.params
         self.fire = fire
         self.obstacles = self.speed_ref = self.smoke = None
         self.smoke_field = self.sparse_disc_matrix = None
@@ -27,21 +28,23 @@ class Smoke:
 
         :return: None
         """
-        prop_dx = params.smoke_dx
-        prop_dy = params.smoke_dy
+        prop_dx = self.params.smoke_dx
+        prop_dy = self.params.smoke_dy
         nx, ny = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)
         dx, dy = self.scene.size.array / (nx, ny)
 
         self.obstacles = np.ones((nx + 2, ny + 2), dtype=int)
         self.obstacles[1:-1, 1:-1] = self.scene.get_obstacles(nx, ny)
         self.speed_ref = self.scene.max_speed_array
+        self.params.smoke = True
         self.smoke = np.zeros(np.prod(self.obstacles.shape))
         self.smoke_field = Field((nx, ny), Field.Orientation.center, 'smoke', (dx, dy))
+        self.params.smoke_field = self.smoke_field
         self.sparse_disc_matrix = get_sparse_matrix(
-            params.diffusion, params.velocity_x, params.velocity_y,
-            dx, dy, params.dt, self.obstacles)
+            self.params.diffusion, self.params.velocity_x, self.params.velocity_y,
+            dx, dy, self.params.dt, self.obstacles)
         # Ready for use per time step
-        self.source = self._get_source(self.fire, nx + 2, ny + 2).flatten() * params.dt
+        self.source = self._get_source(self.fire, nx + 2, ny + 2).flatten() * self.params.dt
 
     def _get_source(self, fire, nx, ny):
         """
@@ -71,5 +74,5 @@ class Smoke:
         """
         smoke_function = self.smoke_field.get_interpolation_function()
         smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
-        velo_modifier = np.clip(smoke_on_positions / params.max_smoke_level, 0, 1 - params.min_speed_ratio)
+        velo_modifier = np.clip(smoke_on_positions / self.params.max_smoke_level, 0, 1 - self.params.min_speed_ratio)
         self.scene.max_speed_array = self.speed_ref * (1 - velo_modifier)
