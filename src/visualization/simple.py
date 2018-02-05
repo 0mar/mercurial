@@ -24,19 +24,12 @@ class VisualScene:
         :return: None
         """
         self.scene = scene
-        self.params = self.scene.params
-        init_size = Size([self.params.screen_size_x, self.params.screen_size_y])
-        # Todo: Set initial visualisation dimensions as a function of scene size
-
         self.autoloop = True
-        self.window = tkinter.Tk()
-        self.window.title("Mercurial: Hybrid simulation for dense crowds")
-        self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
-        self.window.bind("<Button-3>", self.store_scene)
-        self.window.grid()
+        self.window = None
         self.env = None
-        # Todo: Draw the fire
         self.step_callback = None  # set in manager
+        self.original_env = None
+        self.canvas = None
 
 
     @property
@@ -47,8 +40,25 @@ class VisualScene:
     def size(self, value):
         self.window.geometry("%dx%d" % tuple(value))
 
-    def _prepare(self):
+    def prepare(self, params):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
 
+        :params: Parameter object
+        :return: None
+        """
+        self.params = params
+        init_size = Size([self.params.screen_size_x, self.params.screen_size_y])
+        # Todo: Set initial visualisation dimensions as a function of scene size
+        self.autoloop = params.time_delay > 0
+        if not self.autoloop:
+            ft.log("Auto-updating of backend disabled. Press <Space> or click to advance simulation")
+        self.window = tkinter.Tk()
+        self.window.title("Mercurial: Hybrid simulation for dense crowds")
+        self.window.geometry("%dx%d" % (init_size[0], init_size[1]))
+        self.window.bind("<Button-3>", self.store_scene)
+        self.window.grid()
+        # Todo: Draw the fire
         env_image = self.params.scene_file
         self.original_env = Image.open(env_image)
         self.env = ImageTk.PhotoImage(self.original_env)
@@ -64,7 +74,6 @@ class VisualScene:
         Starts the visualization loop
         :return:
         """
-        self._prepare()
         self.loop()
         self.window.mainloop()
 
@@ -103,6 +112,11 @@ class VisualScene:
             self.step_callback()
 
     def finish(self):
+        """
+        Cleanup. Called after self.start() returns
+
+        :return:
+        """
         self.window.destroy()
         self.autoloop = False
 
@@ -121,6 +135,11 @@ class VisualScene:
             print(obstacle)
 
     def _give_relative_position(self, event):
+        """
+        Return the position of the click, reverted to the standard coordinate system (in first quadrant of unit square)
+        :param event: Mouse click or whatever
+        :return: Coordinates relative to scene.
+        """
         x, y = (event.x / self.size[0], 1 - event.y / self.size[1])
         ft.log("Mouse location: (%.2f,%.2f)" % (x, y))
 
@@ -137,7 +156,13 @@ class VisualScene:
             self.draw_circ_obstacle(self.params.fire)
 
     def store_scene(self, _, filename=None):
+        """
+        Store a snapshot of the scene as an vector image.
+        :param _: Event argument supplied by tkinter, can be ignored.
+        :param filename: image file name. Leave empty for time-based (unique) name.
 
+        :return: None
+        """
         directory = 'images'
         if not filename:
             import time

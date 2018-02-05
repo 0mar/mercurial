@@ -30,13 +30,13 @@ class Following(Population):
         self.follow_radii = self.speed_ref = None
         self.on_step_functions = []
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
         :return: None
         """
-        super().prepare()
+        super().prepare(params)
         # The size of the radius the pedestrian uses to follow others.
         self.follow_radii = np.ones(self.number) * self.params.follow_radius
         # A reference to the original maximum speed of the pedestrians
@@ -85,7 +85,8 @@ class Following(Population):
         :return:
         """
         smoke_function = self.params.smoke_field.get_interpolation_function()
-        smoke_on_positions = smoke_function.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
+        smoke_on_positions = smoke_function.ev(self.scene.position_array[self.indices, 0],
+                                               self.scene.position_array[self.indices, 1])
         velo_modifier = np.clip(smoke_on_positions / self.params.max_smoke_level, 0, 1 - self.params.min_speed_ratio)
         self.scene.max_speed_array[self.indices] = self.speed_ref[self.indices] * (1 - velo_modifier)
 

@@ -16,18 +16,19 @@ class Smoke:
         :param fire: The source of the smoke.
         """
         self.scene = fire.scene
-        self.params = self.scene.params
+        self.params = None
         self.fire = fire
         self.obstacles = self.speed_ref = self.smoke = None
         self.smoke_field = self.sparse_disc_matrix = None
         self.source = None
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
         :return: None
         """
+        self.params = params
         prop_dx = self.params.smoke_dx
         prop_dy = self.params.smoke_dy
         nx, ny = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)

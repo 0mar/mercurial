@@ -15,13 +15,21 @@ import numpy as np
 
 
 class PositionLogger:
+    """
+    Class that stores all relevant data of the simulation on disk. Uses the HD5F format for structuring data.
+    """
 
     def __init__(self, simulation):
+        """
+        Create a new logger for the simulation. Stores data on each time step.
+
+        :param simulation: Simulation that will be logged
+        """
         if not has_h5py:
             raise ImportError("Cannot launch logger, install h5py")
         self.hash = ("%.5f" % (time.time() % 1))[2:]
         self.simulation = simulation
-        self.params = self.simulation.params
+        self.params = None
         self.filename = None
         self.file = None
         self.results_folder = "results"
@@ -29,7 +37,14 @@ class PositionLogger:
             os.makedirs(self.results_folder)
             print("Created new folder %s" % self.results_folder)
 
-    def prepare(self):
+    def prepare(self, params):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :params: Parameter object
+        :return: None
+        """
+        self.params = params
         base_name = re.search('/([^/]+).(png|jpe?g)$', self.params.scene_file).group(1)
         self.filename = "%s/%s%s.h5" % (self.results_folder, base_name, self.hash)
         self.file = h5py.File(self.filename, 'w')
@@ -48,6 +63,11 @@ class PositionLogger:
             self.file['scene'].create_dataset('cameras', data=combined_data)
 
     def step(self):
+        """
+        All logging actions that occur on each time step.
+
+        :return: None
+        """
         time_step = self.file.create_group('%d' % self.simulation.scene.counter)
         time_step.attrs['dt'] = self.params.dt
         micro = ['positions', 'velocities', 'active', 'map']  # Particle characteristics

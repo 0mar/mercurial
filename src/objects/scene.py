@@ -9,7 +9,7 @@ class Scene:
     Models a scene. A scene is a rectangular object with obstacles and pedestrians inside.
     """
 
-    def __init__(self, params):
+    def __init__(self):
         """
         Initializes a Scene using the settings in the configuration file augmented with command line parameters
         :return: scene instance.
@@ -18,7 +18,7 @@ class Scene:
         self.counter = 0
         self.total_pedestrians = 0
         self.size = None
-        self.params = params
+        self.params = None
 
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
@@ -34,11 +34,13 @@ class Scene:
         self.env_field = self.direction_field = None
         self.dx = self.dy = None
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Method called directly before simulation start. All parameters need to be registered.
+        :param params: Parameter object
         :return: None
         """
+        self.params = params
         self.size = Size([self.params.scene_size_x, self.params.scene_size_y])
         self.env_field = np.rot90(map_image_to_costs(self.params.scene_file), -1)
         self.direction_field = get_weighted_distance_transform(self.env_field)

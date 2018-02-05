@@ -29,13 +29,13 @@ class Knowing(Population):
         self.pot_grad_x = self.pot_grad_y = None
         self.grad_x_func = self.grad_y_func = None
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
         :return: None
         """
-        super().prepare()
+        super().prepare(params)
         cost_field = self._add_obstacle_discomfort(radius=self.params.obstacle_clearance)
         wdt = get_weighted_distance_transform(cost_field)
         self.dx, self.dy = self.scene.size.array / wdt.shape

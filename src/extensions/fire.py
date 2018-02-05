@@ -18,7 +18,7 @@ class Fire:
         :return: new fire source.
         """
         self.scene = scene
-        self.params = self.scene.params
+        self.params = None
         self.center = center
         self.radius = radius
         self.repelling = repelling
@@ -28,17 +28,18 @@ class Fire:
         self.smoke_module = None
         self.on_step_functions = []
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
         :return: None
         """
+        self.params = params
         if np.any(np.zeros(2) > self.center) or np.any(self.scene.size.array < self.center):
             raise ValueError("Fire coordinates %s do not lie within scene" % self.center)
         if self.cause_smoke:
             self.smoke_module = Smoke(self)
-            self.smoke_module.prepare()
+            self.smoke_module.prepare(self.params)
             self.on_step_functions.append(self.smoke_module.step)
         if self.repelling:
             self.on_step_functions.append(self._repel_pedestrians)

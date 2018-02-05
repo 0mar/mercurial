@@ -11,12 +11,19 @@ class Population:
 
     def __init__(self, scene, number):
         self.scene = scene
-        self.params = self.scene.params
+        self.params = None
         self.number = number
         self.indices = []
         self.scene.total_pedestrians += self.number
 
-    def prepare(self):
+    def prepare(self, params):
+        """
+        Called before the simulation starts. Fix all parameters and bootstrap functions.
+
+        :params: Parameter object
+        :return: None
+        """
+        self.params = params
         self._init_pedestrians()
 
     def _init_pedestrians(self):
@@ -36,6 +43,10 @@ class Population:
             self.scene.index_map[old_len + i] = pedestrian
 
     def create_new_pedestrian(self):
+        """
+        Create a new pedestrian and add it somewhere in the scene.
+        :return: None
+        """
         index = np.where(self.scene.active_entries == 0)[0][0]
         new_pedestrian = Pedestrian(self.scene, counter=self.scene.total_pedestrians, index=index)
         self.scene.add_pedestrian(new_pedestrian)

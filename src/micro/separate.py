@@ -15,18 +15,20 @@ class Separate:
         :param scene: current scene
         """
         self.scene = scene
-        self.params = self.scene.params
+        self.params = None
         self.store_violations = False
         self.violations = []
         self.mde = None
         self.on_step_functions = []
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
+        :params: Parameter object
         :return: None
         """
+        self.params = params
         self.on_step_functions.append(self.separate)
         if self.store_violations:
             self.on_step_functions.append(self.compute_violations)

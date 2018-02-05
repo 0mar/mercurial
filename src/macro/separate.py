@@ -30,7 +30,7 @@ class Repel:
         :return: Grid computer object.
         """
         self.scene = scene
-        self.params = self.scene.params
+        self.params = None
         self.on_step_functions = []
         self.basis_A = self.basis_v_x = self.basis_v_y = None
         self._last_solution = None
@@ -40,12 +40,14 @@ class Repel:
         # Fields to store the macroscopic quantities in
         self.density_field = self.v_x = self.v_y = self.pressure_field = None
 
-    def prepare(self):
+    def prepare(self, params):
         """
         Called before the simulation starts. Fix all parameters and bootstrap functions.
 
+        :params: Parameter object
         :return: None
         """
+        self.params = params
         prop_dx = self.params.pressure_dx
         prop_dy = self.params.pressure_dy
         self.grid_dimension = (self.scene.size.array / (prop_dx, prop_dy)).astype(int)

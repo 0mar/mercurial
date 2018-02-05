@@ -49,7 +49,7 @@ class Simulation:
         self.collect_data = None
         self.visual_backend = True
         functions.EPS = self.params.tolerance
-        self.scene = Scene(self.params)
+        self.scene = Scene()
 
     def _prepare(self):
         if not self.visual_backend and not self.store_positions:
@@ -89,14 +89,15 @@ class Simulation:
         if self.store_positions:
             self.logger = PositionLogger(self)
         self._prepare()
-        self.scene.prepare()
+        self.scene.prepare(self.params)
         for effect in self.effects:
-            self.effects[effect].prepare()
+            self.effects[effect].prepare(self.params)
         for population in self.populations:
-            population.prepare()
+            population.prepare(self.params)
         if self.store_positions:
-            self.logger.prepare()
+            self.logger.prepare(self.params)
         self.status = 'RUNNING'
+        self.vis.prepare(self.params)
         self.vis.start()
         self.finish()
 
@@ -124,7 +125,7 @@ class Simulation:
             repulsion = Repel(self.scene)
             self.effects[effect_name] = repulsion
 
-    def add_pedestrians(self, num, behaviour):
+    def add_pedestrians(self, num, behaviour='knowing'):
         if type(num) != int or num < 1:
             raise ValueError("Provide a positive integer as a population number, not %s" % num)
         if behaviour.lower() == 'following':
@@ -146,6 +147,7 @@ class Simulation:
     def add_cameras(self, positions, angles):
         """
         Not implemented yet. Used to pass data about future camera's to post-visualisation.
+        
         :param positions:
         :return:
         """
@@ -166,6 +168,15 @@ class Simulation:
         # self.on_pedestrian_exit_functions.append(results.on_pedestrian_exit)
         # self.on_pedestrian_init_functions.append(results.on_pedestrian_entrance)
         # self.finish_functions.append(results.on_finish)
+
+    def set_params(self, params):
+        """
+        Set the parameters with the given object.
+
+        :param params: Parameter object
+        :return: None
+        """
+        self.params = params
 
     def print_settings(self):
         """
