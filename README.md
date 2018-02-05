@@ -42,7 +42,7 @@ simulation.add_pedestrians(100)
 simulation.start()
 ```
 
-Some example files are included that feature some more options.
+Some example files (called `example*.py`) are included that feature some more options.
 You can run them with: `python3 example.py`.
 
 ## Environment ##
@@ -101,7 +101,11 @@ The coverage of the tests highly varies per module and most have not been mainta
 
 ### Known issues ###
 
-This simulation has points for improvement. The biggest issue is the lack of tests and maintaining thereof.
+When running Mercurial on (my) Mac, exiting the simulation sometimes causes it to hang unless the process is aborted manually.
+On several (again, of my) Linux distributions, this is not the case.
+I suspect there to be a mismatch in how Conda interacts with the tkinter module on macOS.
+
+Other than that, this simulation has points for improvement. The biggest issue is the lack of tests and maintaining thereof.
 
 ### Contribution guidelines ###
 
