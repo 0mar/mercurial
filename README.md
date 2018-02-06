@@ -53,6 +53,9 @@ New environments can be created using Windows' Paint, Linux's Pinta, Mac's previ
 * Grey: less accessible zones
 * Green: exits
 
+For example:
+[png](scenes/cave/office.png)
+
 Caveats:
 * If you create your own scenarios in an image editor, remember to turn antialiasing off. Mercurial can have difficulties with interpreting smoothed obstacle edges in images.
 * Creating large images (larger than 1024x1024 for instance) delays pre-processing time, and is (probably) not required for the simulation. If you want large environments, you can set the `scene_size_x/scene_size_y` parameters.
