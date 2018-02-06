@@ -16,9 +16,7 @@ This simulation is under active development.
 Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/) and a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/).
 Details and a detailed analysis and features is present in the report `thesis.pdf`.
 
-### How do I get set up? ###
-
-## Summary of installation ##
+## Installation ##
 
 Obtain the source code and create the custom modules with
 
@@ -28,7 +26,7 @@ cd mercurial
 python3 setup.py install
 ```
 
-## Creating a simulation ##
+## Usage: creating a simulation ##
 
 After installation, the simulation can be imported using module `mercurial`.
 
@@ -57,7 +55,7 @@ New environments can be created using Windows' Paint, Linux's Pinta, Mac's previ
 Caveats:
 * If you create your own scenarios in an image editor, remember to turn antialiasing off. Mercurial can have difficulties with interpreting smoothed obstacle edges in images.
 * Creating large images (larger than 1024x1440 for instance) delays pre-processing time, and is (probably) not required for the simulation. If you want large environments, you can set the `scene_size_x/scene_size_y` parameters.
-The resolution of the images only affects the route planning and the obstacles.
+The resolution of the images only affects the level of detail in route planning and the obstacles.
 
 ## Custom parameters ##
 
