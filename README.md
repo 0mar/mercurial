@@ -11,9 +11,10 @@ The simulation is written in Python 3 and calls some custom Fortran libraries.
 
 * Version
 
-Current version: 0.3
+Current version: 0.3.
+
 This simulation is under active development.
-Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/) and a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/).
+Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/), a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/), and more information of the structure of the code is present [here](https://symbols.hotell.kau.se/2018/02/05/mercurial-2/).
 Details and a detailed analysis and features is present in the report `thesis.pdf`.
 
 ## Installation ##
@@ -54,7 +55,7 @@ New environments can be created using Windows' Paint, Linux's Pinta, Mac's previ
 
 Caveats:
 * If you create your own scenarios in an image editor, remember to turn antialiasing off. Mercurial can have difficulties with interpreting smoothed obstacle edges in images.
-* Creating large images (larger than 1024x1440 for instance) delays pre-processing time, and is (probably) not required for the simulation. If you want large environments, you can set the `scene_size_x/scene_size_y` parameters.
+* Creating large images (larger than 1024x1024 for instance) delays pre-processing time, and is (probably) not required for the simulation. If you want large environments, you can set the `scene_size_x/scene_size_y` parameters.
 The resolution of the images only affects the level of detail in route planning and the obstacles.
 
 ## Custom parameters ##
