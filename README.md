@@ -54,7 +54,7 @@ New environments can be created using Windows' Paint, Linux's Pinta, Mac's previ
 * Green: exits
 
 For example:
-![Example image](/scenes/office.png?raw=true "Example of simulation environment")
+![Example image](/scenes/cave.png?raw=true "Example of simulation environment")
 
 Caveats:
 * If you create your own scenarios in an image editor, remember to turn antialiasing off. Mercurial can have difficulties with interpreting smoothed obstacle edges in images.
