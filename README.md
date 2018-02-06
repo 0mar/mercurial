@@ -54,7 +54,7 @@ New environments can be created using Windows' Paint, Linux's Pinta, Mac's previ
 * Green: exits
 
 For example:
-[png](scenes/cave/office.png)
+[png](scenes/office.png)
 
 Caveats:
 * If you create your own scenarios in an image editor, remember to turn antialiasing off. Mercurial can have difficulties with interpreting smoothed obstacle edges in images.
