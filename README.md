@@ -2,6 +2,11 @@
 
 Multiscale crowd dynamics simulation *Mercurial*
 
+## Visualisation notes:
+
+This branch has two additional simulation files called `office.py` and `cave.py`. Running these files creates data sets that can be used in visualisation tools. For more information/bugs regarding the simulation/datasets, contact me.
+
+
 ### What is this repository for? ###
 
 * Quick summary
