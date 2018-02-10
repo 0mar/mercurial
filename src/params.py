@@ -6,7 +6,7 @@ class Parameters:
     def __init__(self):
         # general
         self.result_dir = 'results/'
-        self.scene_file = 'scenes/test.png'
+        self.scene_file = None
         self.log_file = 'logs'
         self.dt = 0.1
         self.scene_size_x = 100
