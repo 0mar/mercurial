@@ -14,10 +14,6 @@ This branch has two additional simulation files called `office.py` and `cave.py`
 This repository contains a framework to simulate the motion of human crowds, managed by Omar Richardson.
 The simulation is written in Python 3 and calls some custom Fortran libraries.
 
-* Version
-
-Current version: 0.3.
-
 This simulation is under active development.
 Information on the simulation can be found [here](https://symbols.hotell.kau.se/2016/11/30/mercurial/), a summary of the mathematical implementations can be found [here](https://symbols.hotell.kau.se/2016/11/20/graduation-project/), and more information of the structure of the code is present [here](https://symbols.hotell.kau.se/2018/02/05/mercurial-2/).
 Details and a detailed analysis and features is present in the report `thesis.pdf`.
