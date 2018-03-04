@@ -48,7 +48,7 @@ class Simulation:
         self.logger = None
         self.collect_data = None
         self.visual_backend = True
-        functions.EPS = self.params.tolerance
+        functions.EPS = self.params.tolerance # TODO: Remove
         self.scene = Scene()
 
     def _prepare(self):
