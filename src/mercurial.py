@@ -29,7 +29,6 @@ class Simulation:
         """
         Create a new simulation.
         """
-        self.status = 'PREPARE'
         self.on_step_functions = []
         self.on_pedestrian_exit_functions = []
         self.on_pedestrian_init_functions = []
@@ -42,8 +41,8 @@ class Simulation:
         else:
             self.params = params
         if scene_file:
-            self.params.scene_file = scene_file
-        self.scene_file = self.params.scene_file
+            self.scene_file = scene_file
+        self.inflow = False
         self.store_positions = False
         self.logger = None
         self.collect_data = None
@@ -55,7 +54,6 @@ class Simulation:
         if not self.visual_backend and not self.store_positions:
             functions.warn("No results are logged. Ensure you want a headless simulation.")
         # The order in which the following effects are added is important.
-
         for population in self.populations:
             self.on_step_functions.append(population.step)
         if 'repulsion' in self.effects:
@@ -74,6 +72,8 @@ class Simulation:
             self.on_step_functions.append(self.vis.loop)
         else:
             self.vis = NoVisualScene(self.scene)
+        if self.inflow:
+            self.on_step_functions.append(self._add_new_pedestrian_sometimes)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
@@ -86,6 +86,11 @@ class Simulation:
         and cleanup is handled through self.finish()
         :return: None
         """
+        if self.params.scene_file:
+            self.scene_file = self.params.scene_file
+        if not self.scene_file:
+            raise AttributeError("No environment provided")
+        self.params.scene_file = self.scene_file
         if self.store_positions:
             self.logger = PositionLogger(self)
         self._prepare()
@@ -96,7 +101,6 @@ class Simulation:
             population.prepare(self.params)
         if self.store_positions:
             self.logger.prepare(self.params)
-        self.status = 'RUNNING'
         self.vis.prepare(self.params)
         self.vis.start()
         self.finish()
@@ -146,6 +150,7 @@ class Simulation:
 
     def add_cameras(self, positions, angles):
         """
+        -- Beta functionality --
         Not implemented yet. Used to pass data about future camera's to post-visualisation.
         
         :param positions:
@@ -154,6 +159,16 @@ class Simulation:
         effect = Cameras(np.array(positions), np.array(angles))
         self.effects['cameras'] = effect
 
+    def allow_new_pedestrians(self, probability):
+        """
+        -- Beta functionality --
+        Add a probability of entering new pedestrians on each time step.
+
+        :param probability: number between 0 and 1
+        :return: None
+        """
+        self.inflow = probability
+
     def set_visualisation(self, on):
         self.visual_backend = bool(on)
 
@@ -161,6 +176,11 @@ class Simulation:
         self.store_positions = bool(on)
 
     def set_data_collector(self, on):
+        """
+        Not implemented yet
+        :param on:
+        :return:
+        """
         self.collect_data = bool(on)
         #
         # results = Result(self.scene, None, None)  # Todo: Make this work
@@ -203,26 +223,14 @@ class Simulation:
 
     def store_config(self, file_name):
         """
-        Store the configuration in memory to file(containing the options from the command line and from file)
+        Store the configuration in memory to file(containing the options from the command line and from file).
+        Not yet implemented, I guess pickling the Parameters object would be the best option.
         :param file_name: File name for new config file
         :return:
         """
         with open(file_name, 'w') as config_file:
             pass
             # self.params.write(config_file)
-
-    def store_exit_logs(self, file_name=None):
-        """
-        Stores the exit logs of the pedestrians.
-        These can be reused as entry data for a different simulation (although it requires manual tweaking ATM).
-        :param file_name: File name for exit logs. If left empty, stores in file indicated by configuration.
-        :return:
-        """
-        log_dir = self.params.result_dir
-        if not file_name:
-            file_name = self.params.log_file
-        log_dict = {exit_object.name: np.array(exit_object.log_list) for exit_object in self.scene.exit_list}
-        sio.savemat(file_name=log_dir + file_name, mdict=log_dict)
 
     def _check_max_time(self):
         if self.scene.time > self.params.max_time:
@@ -236,3 +244,13 @@ class Simulation:
         """
         if 1 - np.sum(self.scene.active_entries) / len(self.scene.active_entries) >= self.params.max_percentage:
             self.vis.finish()
+
+    def _add_new_pedestrian_sometimes(self):
+        """
+        -- Beta functionality --
+        Prototype for adding new pedestrians to the scene.
+        Not suitable for research purposes yet.
+        :return:
+        """
+        if np.random.random() < self.inflow and len(self.scene.pedestrian_list) < self.scene.total_pedestrians:
+            self.populations[0].create_new_pedestrian()

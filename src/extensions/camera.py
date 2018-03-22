@@ -7,5 +7,5 @@ class Cameras:
         self.positions = positions
         self.angles = angles
 
-    def prepare(self):
+    def prepare(self, params):
         pass
