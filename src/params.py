@@ -34,7 +34,7 @@ class Parameters:
         # Todo: Get verified parameter value/relation to scene. Factors: discr size, num_ped, min_dist
 
         # visual
-        self.time_delay = 1
+        self.time_delay = 10 # Needs to be at least 10 on mac to be able to close the window
         self.screen_size_x = 1000
         self.screen_size_y = 800
 
