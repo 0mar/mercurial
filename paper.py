@@ -1,7 +1,7 @@
 from src.mercurial import Simulation
 
 # Run simulation on scenario 'test.png'
-simulation = Simulation('scenes/merc1.png')
+simulation = Simulation('scenes/fire.png')
 # Add 100 pedestrians that know the environment
 simulation.add_pedestrians(200, 'knowing')
 # Add 100 pedestrians that follow the rest
@@ -10,6 +10,7 @@ simulation.add_pedestrians(50, 'following')
 simulation.add_global('repulsion')
 # Add a local separation between pedestrians which are too close
 simulation.add_local('separation')
-
+# Add a fire
+simulation.add_fire([25, 50], 2)
 # Start the simulation
 simulation.start()

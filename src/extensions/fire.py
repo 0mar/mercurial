@@ -54,31 +54,42 @@ class Fire:
         maybe because it is quite difficult how people react to real fire.
         :return:
         """
-        self.fire_experience = self.get_fire_repulsion(self.scene.position_array)
+        return  # Todo: Fix in a proper way
+        self.fire_experience = self.get_fire_repulsion_at(self.scene.position_array)
         self.scene.velocity_array = (self.scene.velocity_array - self.fire_experience) / (np.linalg.norm(
             self.scene.velocity_array - self.fire_experience, axis=1) * self.scene.max_speed_array)[:, None]
 
     def get_fire_intensity(self, nx, ny):
         """
-        Compute the intensity of the fire for the smoke propagation.
+        Compute the intensity of the fire for the smoke propagation and repulsion
 
         :param nx: Number of cells for smoke discretization in x direction
         :param ny: Number of cells for smoke discretization in y direction
         :return: The experienced intensity of the fire as a scalar, based on the distance to the center
         """
         dx, dy = self.scene.size.array / (nx, ny)
-        grid_x = np.linspace(dx / 2, self.scene.size[0] - dx / 2, nx)
-        grid_y = np.linspace(dy / 2, self.scene.size[1] - dy / 2, ny)
+        grid_x = np.linspace(dy / 2, self.scene.size[1] - dy / 2, ny)
+        grid_y = np.linspace(dx / 2, self.scene.size[0] - dx / 2, nx)
         mesh_x, mesh_y = np.meshgrid(grid_x, grid_y)
-        intensity = np.sqrt((mesh_x - self.center[0]) ** 2 + (mesh_y - self.center[1]) ** 2)
-        return np.exp(-intensity / self.radius)
+        distance = np.sqrt((mesh_x - self.center[1]) ** 2 + (mesh_y - self.center[0]) ** 2)
+        return np.exp(-distance / self.radius)
 
-    def get_fire_repulsion(self, position):
+    def get_fire_intensity_at(self, position):
+        """
+        Get the heat release/temperature the pedestrians experience
+
+        :param position: nx2 position array
+        :return: Fire intensity, length n array
+        """
+        distance = np.sqrt((position[:, 0] - self.center[0]) ** 2 + (position[:, 1] - self.center[1]) ** 2)
+        return np.exp(-distance / self.radius)
+
+    def get_fire_repulsion_at(self, position):
         """
         Get the force the fire pushes the pedestrians towards
 
         :param position: Positions
-        :return:
+        :return: Fire repulsive force, length[n-1] array
         """
         xs = self.params.fire_intensity * np.exp(-(position[:, 0] - self.center[0] / self.radius))[:, None]
         ys = self.params.fire_intensity * np.exp(-(position[:, 1] - self.center[1] / self.radius))[:, None]

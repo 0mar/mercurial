@@ -13,7 +13,7 @@ class Population:
         self.scene = scene
         self.params = None
         self.number = number
-        self.indices = []
+        self.indices = None
         self.scene.total_pedestrians += self.number
 
     def prepare(self, params):
@@ -24,6 +24,7 @@ class Population:
         :return: None
         """
         self.params = params
+        self.indices = np.zeros(self.scene.total_pedestrians, dtype=bool)
         self._init_pedestrians()
 
     def _init_pedestrians(self):
@@ -38,7 +39,7 @@ class Population:
         old_len = len(self.scene.pedestrian_list)
         for i in range(self.number):
             pedestrian = Pedestrian(self.scene, old_len + i)
-            self.indices.append(old_len + i)
+            self.indices[old_len + i] = 1
             self.scene.pedestrian_list.append(pedestrian)
             self.scene.index_map[old_len + i] = pedestrian
 
@@ -50,4 +51,4 @@ class Population:
         index = np.where(self.scene.active_entries == 0)[0][0]
         new_pedestrian = Pedestrian(self.scene, counter=self.scene.total_pedestrians, index=index)
         self.scene.add_pedestrian(new_pedestrian)
-        self.indices.append(index)
+        self.indices[index] = 1

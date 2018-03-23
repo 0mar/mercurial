@@ -107,14 +107,13 @@ class Following(Population):
             actives = self.scene.active_entries[self.indices]
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
                                       self.scene.size[1], actives, self.follow_radii)
-        random_force = np.random.randn(len(self.indices), 2) * self.params.random_force
+        random_force = np.random.randn(np.sum(self.indices), 2) * self.params.random_force
         # fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
         self.scene.velocity_array[self.indices] += (swarm_force + random_force) * self.params.dt
         # Normalizing velocities
-        self.scene.velocity_array[self.indices] *= self.scene.max_speed_array[
-                                                       self.indices, None] / np.linalg.norm(
+        self.scene.velocity_array[self.indices] *= self.scene.max_speed_array[self.indices, None] / np.linalg.norm(
             self.scene.velocity_array[self.indices] + ft.EPS, axis=1)[:, None]
 
     def step(self):

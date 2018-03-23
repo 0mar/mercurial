@@ -84,7 +84,7 @@ def plot(field):
     :param field: 2D array
     :return: None
     """
-    plt.imshow(field)
+    plt.imshow(np.rot90(field))
     plt.colorbar()
     plt.show()
 
