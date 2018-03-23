@@ -39,6 +39,7 @@ class Repel:
 
         # Fields to store the macroscopic quantities in
         self.density_field = self.v_x = self.v_y = self.pressure_field = None
+        self.obstacle_field = None
 
     def prepare(self, params):
         """
@@ -59,6 +60,7 @@ class Repel:
                          (self.dx, self.dy))  # Todo: We can probably easily stagger this
         self.pressure_field = Field((self.grid_dimension[0] + 2, self.grid_dimension[1] + 2), Field.Orientation.center, 'pressure', (self.dx, self.dy))
         self.on_step_functions.append(self.apply_repulsion)
+        self.obstacle_field = self.scene.get_obstacles(*self.grid_dimension)
         if self.show_plot:
             # Plotting hooks
             f, self.graphs = plt.subplots(2, 2)
@@ -104,7 +106,6 @@ class Repel:
         ft.debug("Max allowed density: %.4f" % self.params.max_density)
         ft.debug("Max observed density: %.4f" % np.max(self.density_field.array))
 
-
     def compute_pressure(self):
         """
         Compute the pressure term
@@ -115,7 +116,7 @@ class Repel:
         pressure = compute_pressure(self.density_field.array + 0.1, self.v_x.array, self.v_y.array,
                                     self.dx, self.dy, self.params.dt, self.params.max_density)
         dim_p = np.reshape(pressure, (self.grid_dimension[0], self.grid_dimension[1]), order='F')
-        # dim_p[self.scene.obstacle_coverage.astype(bool)] = self.pressure_pad
+        dim_p[self.obstacle_field.astype(bool)] = self.params.boundary_pressure
         # dim_p[self.scene.gutter_cells.astype(bool)] = self.gutter_pressure
         padded_dim_p = np.pad(dim_p, (1, 1), 'constant', constant_values=self.params.boundary_pressure)
         self.pressure_field.update(padded_dim_p)

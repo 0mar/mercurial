@@ -30,6 +30,7 @@ class Knowing(Population):
         self.pot_grad_x = self.pot_grad_y = None
         self.grad_x_func = self.grad_y_func = None
         self.seen_fire = None
+        self.color = 'green'
         # self.potential_field_with_fire = None
         # self.pot_grad_fire_x = self.pot_grad_fire_y = None
         self.grad_x_fire_func = self.grad_y_fire_func = None
@@ -95,7 +96,7 @@ class Knowing(Population):
             cost_field = self.scene.env_field.copy()
         new_cost_field = cost_field.copy()
         new_cost_field[new_cost_field == np.inf] = 0
-        new_cost_field[cost_field == np.inf] = np.max(new_cost_field) * 2
+        new_cost_field[cost_field == np.inf] = np.max(new_cost_field) * 3
         new_cost_field = gaussian_filter(new_cost_field, sigma=radius)
         new_cost_field[cost_field == np.inf] = np.inf
         new_cost_field[cost_field == 0] = 0

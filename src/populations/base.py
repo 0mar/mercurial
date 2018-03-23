@@ -14,6 +14,7 @@ class Population:
         self.params = None
         self.number = number
         self.indices = None
+        self.color = None
         self.scene.total_pedestrians += self.number
 
     def prepare(self, params):
@@ -38,7 +39,7 @@ class Population:
         """
         old_len = len(self.scene.pedestrian_list)
         for i in range(self.number):
-            pedestrian = Pedestrian(self.scene, old_len + i)
+            pedestrian = Pedestrian(self.scene, old_len + i, color=self.color)
             self.indices[old_len + i] = 1
             self.scene.pedestrian_list.append(pedestrian)
             self.scene.index_map[old_len + i] = pedestrian

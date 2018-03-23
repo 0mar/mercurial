@@ -28,6 +28,7 @@ class Following(Population):
         self.waypoints = []
         # self.waypoint_positions = self.waypoint_velocities = None
         self.follow_radii = self.speed_ref = None
+        self.color = 'blue'
         self.on_step_functions = []
 
     def prepare(self, params):
@@ -78,6 +79,7 @@ class Following(Population):
             self.scene.position_array[self.indices, 1])
         self.follow_radii = self.params.follow_radius * (1 - (1 - self.params.minimal_follow_radius) * np.minimum(
             np.maximum(smoke_on_positions, 0) / self.params.smoke_limit, 1))
+        print(np.mean(self.follow_radii))
 
     def _modify_speed_by_smoke(self):
         """
@@ -97,21 +99,23 @@ class Following(Population):
         |dx_i/dt| = v_i
         """
         if self.waypoints:
-            positions = np.vstack((self.scene.position_array[self.indices], self.waypoint_positions))
-            velocities = np.vstack((self.scene.velocity_array[self.indices], self.waypoint_velocities))
-            actives = np.hstack(
-                (self.scene.active_entries[self.indices], np.ones(len(self.waypoints), dtype=bool)))
+            positions = np.vstack((self.scene.position_array, self.waypoint_positions))
+            velocities = np.vstack((self.scene.velocity_array, self.waypoint_velocities))
+            actives = np.hstack((self.scene.active_entries, np.ones(len(self.waypoints), dtype=bool)))
         else:
-            positions = self.scene.position_array[self.indices]
-            velocities = self.scene.velocity_array[self.indices]
-            actives = self.scene.active_entries[self.indices]
+            positions = self.scene.position_array
+            velocities = self.scene.velocity_array
+            actives = self.scene.active_entries
         swarm_force = get_swarm_force(positions, velocities, self.scene.size[0],
-                                      self.scene.size[1], actives, self.follow_radii)
+                                      self.scene.size[1], actives, self.follow_radii) * self.params.swarm_force
+        print("swarm force", np.linalg.norm(swarm_force))
+
         random_force = np.random.randn(np.sum(self.indices), 2) * self.params.random_force
+        print("random force", np.linalg.norm(random_force))
         # fire_rep_x = self.fire_force_field_x.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_rep_y = self.fire_force_field_y.ev(self.scene.position_array[:, 0], self.scene.position_array[:, 1])
         # fire_repulsion = np.hstack([fire_rep_x[:,None],fire_rep_y[:,None]])
-        self.scene.velocity_array[self.indices] += (swarm_force + random_force) * self.params.dt
+        self.scene.velocity_array[self.indices] += (swarm_force[self.indices] + random_force) * self.params.dt
         # Normalizing velocities
         self.scene.velocity_array[self.indices] *= self.scene.max_speed_array[self.indices, None] / np.linalg.norm(
             self.scene.velocity_array[self.indices] + ft.EPS, axis=1)[:, None]
