@@ -76,6 +76,7 @@ class Simulation:
             self.on_step_functions.append(self._add_new_pedestrian_sometimes)
         self.vis.step_callback = self.step
         self.vis.finish_callback = self.finish
+        # Todo: Make sure that all pedestrian exit functions are executed
         self.scene.on_pedestrian_exit_functions.append(self._check_percentage)
         if self.params.max_time > 0:
             self.scene.on_pedestrian_exit_functions.append(self._check_max_time)
